@@ -1,5 +1,5 @@
-using System.Text.Json;
 using OnvifSim;
+using OnvifSim.Editor;
 using OnvifSim.Onvif;
 using OnvifSim.Onvif.Services;
 using OnvifSim.Ptz;
@@ -18,8 +18,12 @@ if (options.Bench)
     return;
 }
 
-var builder = WebApplication.CreateBuilder(args);
+// The editor is built next to the binary (see OnvifSim.Server.csproj), whatever the working directory.
+var webRoot = Path.Combine(AppContext.BaseDirectory, "wwwroot");
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions { Args = args, WebRootPath = webRoot });
 builder.WebHost.ConfigureKestrel(k => k.ListenAnyIP(options.WebPort));
+// The editor makes a request per edit; ASP.NET Core's own per-request logging would bury everything else.
+builder.Logging.AddFilter("Microsoft.AspNetCore", LogLevel.Warning);
 builder.Services.AddSingleton(options);
 builder.Services.AddSingleton(store);
 builder.Services.AddSingleton<SceneState>();
@@ -43,51 +47,11 @@ builder.Services.ConfigureHttpJsonOptions(o =>
 
 var app = builder.Build();
 
-app.MapGet("/api/world", (WorldStore s) => Results.Json(s.Current, WorldStore.Json));
-app.MapPut("/api/world", async (HttpRequest req, WorldStore s) =>
-{
-    var world = await JsonSerializer.DeserializeAsync<WorldModel>(req.Body, WorldStore.Json);
-    if (world == null) return Results.BadRequest();
-    s.Replace(world);
-    return Results.NoContent();
-});
-
-app.MapGet("/api/cameras", (SceneState s) =>
-    s.Current.World.Cameras.Select(c => new { c.Id, c.Name, c.Kind, c.Video }));
-
-app.MapGet("/api/cameras/{id}/snapshot.jpg", (string id, FeedManager feeds) =>
-    feeds.Snapshot(id) is { } jpeg ? Results.Bytes(jpeg, "image/jpeg") : Results.NotFound());
-
-// Motion JPEG over HTTP: what the editor's camera preview shows, and any browser can open directly.
-app.MapGet("/api/cameras/{id}/mjpeg", async (string id, HttpContext ctx, FeedManager feeds, IHostApplicationLifetime lifetime) =>
-{
-    var feed = feeds.Get(id);
-    if (feed == null)
-    {
-        ctx.Response.StatusCode = StatusCodes.Status404NotFound;
-        return;
-    }
-    const string boundary = "onvifsimframe";
-    ctx.Response.ContentType = $"multipart/x-mixed-replace; boundary={boundary}";
-    ctx.Response.Headers.CacheControl = "no-store";
-    using var sub = feed.Subscribe();
-    var body = ctx.Response.Body;
-    // The stream never ends by itself, so end it on shutdown too; otherwise the host waits for it.
-    using var stop = CancellationTokenSource.CreateLinkedTokenSource(ctx.RequestAborted, lifetime.ApplicationStopping);
-    try
-    {
-        await foreach (var frame in sub.Frames.ReadAllAsync(stop.Token))
-        {
-            var header = System.Text.Encoding.ASCII.GetBytes(
-                $"--{boundary}\r\nContent-Type: image/jpeg\r\nContent-Length: {frame.Jpeg.Length}\r\n\r\n");
-            await body.WriteAsync(header, stop.Token);
-            await body.WriteAsync(frame.Jpeg, stop.Token);
-            await body.WriteAsync("\r\n"u8.ToArray(), stop.Token);
-            await body.FlushAsync(stop.Token);
-        }
-    }
-    catch (OperationCanceledException) { }
-});
+app.UseDefaultFiles();
+app.UseStaticFiles();
+app.MapEditorApi();
+if (!File.Exists(Path.Combine(webRoot, "index.html")))
+    app.MapGet("/", () => "The editor is not built (building it needs Node.js); the API is under /api.");
 
 app.Logger.LogInformation("OnvifSim: data in {Data}, editor at http://localhost:{Port}/", options.DataDirectory, options.WebPort);
 try

@@ -1,6 +1,6 @@
 # OnvifSim: виртуальный 3D-мир, камеры в котором работают как ONVIF-устройства
 
-> Temporary working plan (agreed 2026-10-13). Status: phases 1–4 and 2b done. Will be removed or turned into a roadmap once the MVP ships.
+> Temporary working plan (agreed 2026-10-13). Status: phases 1–5 and 2b done. Will be removed or turned into a roadmap once the MVP ships.
 
 ## Context
 Нужен мультиплатформенный тестовый ONVIF-сервер. В браузерном редакторе собирается примитивный 3D-мир (рельеф, деревья, дома), в нём расставляются фиксированные и PTZ-камеры. Каждая камера становится отдельным ONVIF-устройством: отвечает на discovery, отдаёт RTSP H.264 с рендером мира и управляется по PTZ, обязательно с AbsoluteMove. Всё запускается в Docker. Основная польза: на этом стенде можно гонять OnvifLib, Probe, GUI, ODM и NVR без железа, детерминированно, в том числе в CI.
@@ -16,9 +16,9 @@
 
 ## Архитектура
 ```
-Browser (React + react-three-fiber)  ──REST/SignalR──►  OnvifSim.Server (ASP.NET Core, один процесс)
+Browser (React + react-three-fiber)  ──REST/SSE──►  OnvifSim.Server (ASP.NET Core, один процесс)
                                                          ├─ WorldStore       world.json в /data; генерация мешей (terrain, деревья, дома)
-                                                         ├─ MeshApi          GET /api/meshes/... → glTF для редактора (SharpGLTF, кэш по хэшу)
+                                                         ├─ EditorApi        правки по частям мира, POST /api/meshes (меши объектов), SSE /api/events
                                                          ├─ ICameraRenderer  SoftwareRasterizer: мир + поза камеры → RGBA-кадр
                                                          ├─ CameraPipeline   кадры → JPEG (in-process) → RTP/JPEG; опционально ffmpeg → H.264 → RTP/H264
                                                          ├─ RtspServer       свой: OPTIONS/DESCRIBE/SETUP/PLAY/TEARDOWN, RTP/TCP-interleaved + UDP, Basic/Digest
@@ -31,9 +31,9 @@ Browser (React + react-three-fiber)  ──REST/SignalR──►  OnvifSim.Serve
 
 ### Мир
 - **Единый JSON.** terrain (размер, сетка, heightmap), objects (type, transform, params, seed), cameras (fixed/ptz, позиция, монтаж, FOV, разрешение, fps, PTZ-лимиты и скорости, порт, логин/пароль, пресеты).
-- **Геометрию генерирует только сервер на C#.** Дерево = цилиндр + конусы, дом = box + призма-крыша, рельеф = grid с цветом по высоте и уклону. Освещение: направленный свет, туман, небо-градиент. Браузер получает готовые меши в glTF и своего генератора в TS не имеет.
+- **Геометрию объектов генерирует только сервер на C#.** Дерево = цилиндр + конусы, дом = box + призма-крыша, рельеф = grid с цветом по высоте и уклону. Освещение: направленный свет, туман, небо-градиент. Браузер получает готовые меши объектов (`POST /api/meshes`: JSON с base64-массивами, которые BufferGeometry берёт как есть; glTF и SharpGLTF оказались лишним слоем) и своего генератора деревьев и домов в TS не имеет; сетку рельефа строит сам по высотам, потому что кисть меняет её локально.
 - **Вьюпорт редактора рендерит браузер** (орбита, гизмо, raycast, кисть — им нужны 60 fps без round-trip). **Превью «вид из камеры» рендерит сервер** — MJPEG от того же `ICameraRenderer`, что идёт в RTSP; пользователь видит ровно то, что получит ONVIF-клиент.
-- **Кисть рельефа** деформирует сетку локально, мазки шлёт на сервер.
+- **Кисть рельефа** деформирует сетку локально; по окончании мазка высоты уходят на сервер (`PUT /api/terrain`).
 
 ### Рендер
 - `ICameraRenderer`: вход — мир и поза камеры (pan/tilt/fov), выход — RGBA-кадр. Реализация в MVP — `SoftwareRasterizer`: перспективная проекция, отсечение, z-буфер, Gouraud-шейдинг от направленного света, туман по глубине, небо-градиент. Brightness/contrast из Imaging применяются на выходе. Работает многопоточно по камерам; `Vector3`/`Vector4` из System.Numerics (SIMD).
@@ -56,18 +56,17 @@ Browser (React + react-three-fiber)  ──REST/SignalR──►  OnvifSim.Serve
 - Объём MVP (Profile S + PTZ): Device (GetDeviceInformation, GetSystemDateAndTime, GetCapabilities, GetServices, GetServiceCapabilities, GetScopes, GetNetworkInterfaces, GetHostname, GetUsers); Media1 + Media2 (GetProfiles, GetStreamUri, GetSnapshotUri, GetVideoSources, GetVideoEncoderConfiguration(s)/Options, SetVideoEncoderConfiguration); PTZ (GetNodes/GetNode, GetConfigurations/Options, AbsoluteMove, RelativeMove, ContinuousMove, Stop, GetStatus, Get/Set/Goto/RemovePreset, Goto/SetHomePosition); Imaging минимум (GetImagingSettings/Options, brightness/contrast видны в картинке).
 
 ### Редактор (OnvifSim.Web)
-Vite + React + TS + @react-three/fiber + drei + zustand. Сборка кладётся в wwwroot.
+Vite + React + TS + @react-three/fiber + drei + zustand. `dotnet build` собирает его через npm, когда меняются исходники, и кладёт в `wwwroot` рядом с бинарником; без Node.js сервер собирается и работает без редактора.
 - Вьюпорт с OrbitControls. Кисти рельефа: raise, lower, smooth, flatten.
 - Палитра объектов, установка raycast'ом на terrain, TransformControls, панель свойств.
-- Камеры: гизмо фрустума, превью «вид из камеры» (MJPEG с сервера), джойстик и слайдеры PTZ через тот же PtzSimulator, что и ONVIF (SignalR); текущее направление транслируется обратно в редактор.
-- Сохранение — PUT /api/world; сервер применяет на лету: перестраивает меши, перезапускает ONVIF-листенеры для добавленных и удалённых камер.
+- Камеры: гизмо фрустума, превью «вид из камеры» (MJPEG с сервера), джойстик и слайдеры PTZ через тот же PtzSimulator, что и ONVIF (REST); текущее направление приходит обратно в редактор по SSE.
+- Кнопки «Сохранить» нет: каждая правка сразу уходит на сервер одной частью мира (`PUT/DELETE /api/objects/{id}`, `/api/cameras/{id}`, `PUT /api/terrain`, `/api/environment`), сервер проверяет её (400 с причиной) и применяет на лету: перестраивает сцену, перезапускает ONVIF-листенеры для добавленных и удалённых камер. Правки по частям не затирают того, что тем временем поменяли ONVIF-клиенты; позицию PTZ-головы, пресеты и home камера сохраняет свои. Изменения мира, порты и позиции PTZ редактор получает по SSE (`/api/events`): SignalR для одного направления не нужен.
 
 ## Языки и зависимости
 Код: **C# (.NET 10)** — всё серверное; **TypeScript** — редактор.
 
 Сервер (NuGet, пермиссивные лицензии):
 - ASP.NET Core (Kestrel, SignalR) — в составе .NET.
-- `SharpGLTF.Toolkit` (MIT) — отдача мешей редактору.
 - `StbImageWriteSharp` (public domain, чистый C#) — JPEG. ImageSharp не берём (платная лицензия для коммерческого использования).
 - `SharpRTSP` (MIT) — опционально, парсер RTSP и RTP-упаковка; решение после прототипа в фазе 1.
 - System.ServiceModel.Http — атрибуты и клиентские классы сгенерированных контрактов (`Onvif/Wsdl/OnvifContracts.cs`).
@@ -75,7 +74,7 @@ Vite + React + TS + @react-three/fiber + drei + zustand. Сборка кладё
 
 Внешние бинарники: у сервера обязательных нет. **ffmpeg** (libx264) — опционально, отдельным процессом, только для H.264-профиля; в Docker-образ кладём apt-пакет из Debian (стабильнее, чем пины на BtbN-автобилды), локально — по желанию.
 
-Редактор (npm, MIT): `react`, `vite`, `typescript`, `three`, `@react-three/fiber`, `@react-three/drei`, `zustand`, `@microsoft/signalr`, `leva`; Playwright для e2e.
+Редактор (npm, MIT/Apache): `react`, `vite`, `typescript`, `three`, `@react-three/fiber`, `@react-three/drei`, `zustand`; Playwright для e2e. Панель свойств — свои поля, не `leva`.
 
 ## Фазы (по одному PR на фазу)
 1. **Каркас и растеризатор.** Модель мира, генерация мешей, `SoftwareRasterizer`, snapshot JPEG одной фиксированной камеры, MJPEG-эндпоинт. Проверка производительности на целевой сцене — отсюда решение о разрешении/fps по умолчанию.

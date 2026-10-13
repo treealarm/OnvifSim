@@ -1,0 +1,164 @@
+// The world as the server stores it (World/WorldModel.cs), with the terrain heights decoded. Coordinates
+// follow three.js: X east, Y up, Z south, metres; object and camera Y is the height above the ground.
+
+export interface Vec3 {
+  x: number;
+  y: number;
+  z: number;
+}
+
+export interface Terrain {
+  size: number;
+  resolution: number;
+  // (resolution + 1)^2 samples, row-major from -X,-Z.
+  heights: Float32Array;
+}
+
+export interface Environment {
+  sunAzimuth: number;
+  sunElevation: number;
+  skyZenith: string;
+  skyHorizon: string;
+  fogStart: number;
+  fogEnd: number;
+}
+
+export const objectTypes = ['tree.pine', 'tree.oak', 'house', 'rock', 'box'] as const;
+export type ObjectType = (typeof objectTypes)[number];
+
+export interface WorldObject {
+  id: string;
+  type: ObjectType;
+  position: Vec3;
+  rotationY: number;
+  scale: Vec3;
+  color: string | null;
+  color2: string | null;
+  seed: number;
+}
+
+export type CameraKind = 'fixed' | 'ptz';
+
+export interface PtzPosition {
+  pan: number;
+  tilt: number;
+  zoom: number;
+}
+
+export interface PtzSettings {
+  panMin: number;
+  panMax: number;
+  tiltMin: number;
+  tiltMax: number;
+  fovWide: number;
+  fovTele: number;
+  panSpeed: number;
+  tiltSpeed: number;
+  zoomSpeed: number;
+  pan: number;
+  tilt: number;
+  zoom: number;
+  home: PtzPosition;
+  presets: { token: string; name: string; position: PtzPosition }[];
+}
+
+export interface CameraModel {
+  id: string;
+  name: string;
+  kind: CameraKind;
+  position: Vec3;
+  heading: number;
+  pitch: number;
+  roll: number;
+  hFov: number;
+  angleGrid: boolean;
+  video: { width: number; height: number; fps: number; quality: number };
+  h264: { width: number; height: number; fps: number; bitrateKbps: number; govLength: number };
+  imaging: { brightness: number; contrast: number; colorSaturation: number };
+  ptz: PtzSettings | null;
+  onvifPort: number;
+  users: { username: string; password: string }[];
+}
+
+export interface World {
+  version: number;
+  terrain: Terrain;
+  environment: Environment;
+  objects: WorldObject[];
+  cameras: CameraModel[];
+}
+
+// What the server says about the running services.
+export interface ServerStatus {
+  rtspPort: number;
+  h264: boolean;
+  // Null for a camera whose port could not be opened.
+  onvifPorts: Partial<Record<string, number | null>>;
+}
+
+// Where a PTZ head points right now, which may be ahead of the world while it moves.
+export interface Head extends PtzPosition {
+  moving: boolean;
+}
+
+// The world as JSON carries the heights as base64 of little-endian float32.
+type WireWorld = Omit<World, 'terrain'> & { terrain: Omit<Terrain, 'heights'> & { heights: string } };
+
+export function decodeWorld(json: string): World {
+  const wire = JSON.parse(json) as WireWorld;
+  return { ...wire, terrain: decodeTerrain(wire.terrain) };
+}
+
+function decodeTerrain(wire: WireWorld['terrain']): Terrain {
+  const samples = (wire.resolution + 1) ** 2;
+  const bytes = Uint8Array.from(atob(wire.heights), (c) => c.charCodeAt(0));
+  const decoded = new Float32Array(bytes.buffer);
+  // No heights is a flat terrain.
+  return { ...wire, heights: decoded.length === samples ? decoded : new Float32Array(samples) };
+}
+
+export function encodeTerrain(terrain: Terrain) {
+  const bytes = new Uint8Array(terrain.heights.buffer, terrain.heights.byteOffset, terrain.heights.byteLength);
+  let binary = '';
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return { size: terrain.size, resolution: terrain.resolution, heights: btoa(binary) };
+}
+
+// Height of the ground under (x, z), bilinear over the cell, clamped to the edge: as Terrain.cs does.
+export function heightAt(terrain: Terrain, x: number, z: number): number {
+  const { resolution, size, heights } = terrain;
+  const cell = size / resolution;
+  const fx = clamp((x + size / 2) / cell, 0, resolution);
+  const fz = clamp((z + size / 2) / cell, 0, resolution);
+  const ix = Math.min(Math.floor(fx), resolution - 1);
+  const iz = Math.min(Math.floor(fz), resolution - 1);
+  const tx = fx - ix;
+  const tz = fz - iz;
+  const row = resolution + 1;
+  const sample = (cx: number, cz: number) => heights[cz * row + cx];
+  const h0 = sample(ix, iz) + (sample(ix + 1, iz) - sample(ix, iz)) * tx;
+  const h1 = sample(ix, iz + 1) + (sample(ix + 1, iz + 1) - sample(ix, iz + 1)) * tx;
+  return h0 + (h1 - h0) * tz;
+}
+
+// The horizontal field of view at a zoom position: focal length goes geometrically from the wide to
+// the tele end, as CameraPose.ZoomToHFov does.
+export function zoomToHFov(zoom: number, fovWide: number, fovTele: number): number {
+  const focal = (fov: number) => 1 / Math.tan((fov * Math.PI) / 360);
+  const f = focal(fovWide) * Math.pow(focal(fovTele) / focal(fovWide), clamp(zoom, 0, 1));
+  return (2 * Math.atan(1 / f) * 180) / Math.PI;
+}
+
+export function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+// The next free id like "o12" or "cam3" for a prefix.
+export function nextId(prefix: string, taken: readonly string[]): string {
+  let highest = 0;
+  for (const id of taken) {
+    const number = id.startsWith(prefix) ? Number(id.slice(prefix.length)) : NaN;
+    if (Number.isInteger(number)) highest = Math.max(highest, number);
+  }
+  return `${prefix}${highest + 1}`;
+}

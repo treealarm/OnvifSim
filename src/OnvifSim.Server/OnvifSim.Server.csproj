@@ -16,4 +16,38 @@
   <ItemGroup>
     <InternalsVisibleTo Include="OnvifSim.Tests" />
   </ItemGroup>
+
+  <!-- The browser editor (src/OnvifSim.Web) is built with npm when its sources change and served from
+       wwwroot next to the binary. Without Node.js the server still builds, with a warning, and serves
+       the API alone; -p:BuildEditor=false skips npm and takes whatever dist/ holds. -->
+  <PropertyGroup>
+    <EditorDir>$(MSBuildThisFileDirectory)..\OnvifSim.Web\</EditorDir>
+    <BuildEditor Condition="'$(BuildEditor)' == ''">true</BuildEditor>
+  </PropertyGroup>
+  <ItemGroup>
+    <EditorSource Include="$(EditorDir)src\**;$(EditorDir)index.html;$(EditorDir)package.json;$(EditorDir)package-lock.json;$(EditorDir)tsconfig.json;$(EditorDir)vite.config.ts" />
+  </ItemGroup>
+  <Target Name="BuildEditor" BeforeTargets="Build" Condition="'$(BuildEditor)' == 'true'" Inputs="@(EditorSource)" Outputs="$(EditorDir)dist\index.html">
+    <Exec Command="npm ci" WorkingDirectory="$(EditorDir)" Condition="!Exists('$(EditorDir)node_modules')" ContinueOnError="true">
+      <Output TaskParameter="ExitCode" PropertyName="EditorExitCode" />
+    </Exec>
+    <Exec Command="npm run build" WorkingDirectory="$(EditorDir)" Condition="'$(EditorExitCode)' == '' Or '$(EditorExitCode)' == '0'" ContinueOnError="true">
+      <Output TaskParameter="ExitCode" PropertyName="EditorExitCode" />
+    </Exec>
+    <Warning Condition="'$(EditorExitCode)' != '0'" Text="The editor was not built (see npm above; it needs Node.js 20.19 or later); the server will serve the API only." />
+  </Target>
+  <Target Name="CopyEditor" AfterTargets="Build" Condition="Exists('$(EditorDir)dist\index.html')">
+    <ItemGroup>
+      <EditorFile Include="$(EditorDir)dist\**" />
+    </ItemGroup>
+    <!-- Bundle names carry a content hash: clear the old ones out instead of piling them up. -->
+    <RemoveDir Directories="$(OutDir)wwwroot" />
+    <Copy SourceFiles="@(EditorFile)" DestinationFiles="@(EditorFile->'$(OutDir)wwwroot\%(RecursiveDir)%(Filename)%(Extension)')" />
+  </Target>
+  <Target Name="PublishEditor" AfterTargets="ComputeResolvedFilesToPublishList" Condition="Exists('$(EditorDir)dist\index.html')">
+    <ItemGroup>
+      <EditorFile Include="$(EditorDir)dist\**" />
+      <ResolvedFileToPublish Include="@(EditorFile)" RelativePath="wwwroot\%(EditorFile.RecursiveDir)%(EditorFile.Filename)%(EditorFile.Extension)" CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+  </Target>
 </Project>

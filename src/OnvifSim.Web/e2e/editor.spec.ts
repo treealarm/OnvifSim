@@ -1,0 +1,94 @@
+import { createSocket } from 'node:dgram';
+import { randomUUID } from 'node:crypto';
+import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
+import { discoveryPort } from './ports';
+
+// The plan's acceptance check for the editor: a camera and a tree added in the browser show up as an
+// ONVIF device on WS-Discovery and in the camera's picture.
+test('a camera and a tree placed in the editor are live at once', async ({ page, request }) => {
+  await page.goto('/');
+  await expect(page.getByText('124 objects, 2 cameras.')).toBeVisible();
+  // The viewport takes clicks once it has drawn a frame.
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+
+  // A fixed camera, then aimed by hand: 3 m up at (0, 100), looking north with a narrow view.
+  await placeOnGround(page, 'Fixed camera');
+  await expect(page.getByRole('heading', { level: 2 })).toContainText('cam3');
+  await page.getByLabel('Name').fill('E2E camera');
+  await setNumber(page, 'X (east)', 0);
+  await setNumber(page, 'Z (south)', 100);
+  await setNumber(page, 'Above ground', 3);
+  await setNumber(page, 'Heading', 0);
+  await setNumber(page, 'Pitch', 0);
+  await setNumber(page, 'Field of view', 30);
+  await expect.poll(async () => (await cameraOf(request, 'cam3'))?.name).toBe('E2E camera');
+  await expect.poll(async () => (await cameraOf(request, 'cam3'))?.hFov).toBe(30);
+  const before = await snapshot(request, 'cam3');
+
+  // A pine 20 m in front of it.
+  await placeOnGround(page, 'Pine');
+  await expect(page.getByRole('heading', { level: 2 })).toContainText('Pine');
+  await setNumber(page, 'X (east)', 0);
+  await setNumber(page, 'Z (south)', 80);
+  await expect.poll(async () => (await objectAt(request, 0, 80))?.type).toBe('tree.pine');
+
+  // The picture is deterministic, so the tree is the only thing that can have changed it.
+  expect(Buffer.compare(await snapshot(request, 'cam3'), before)).not.toBe(0);
+
+  const matches = await probe();
+  expect(matches.some((m) => m.includes('onvif://www.onvif.org/name/E2E%20camera'))).toBe(true);
+});
+
+async function placeOnGround(page: Page, tool: string) {
+  await page.getByRole('button', { name: tool, exact: true }).click();
+  const viewport = page.locator('.viewport canvas');
+  const box = await viewport.boundingBox();
+  if (!box) throw new Error('The viewport is not on screen.');
+  // The lower middle of the default view is open ground.
+  await page.mouse.click(box.x + box.width * 0.5, box.y + box.height * 0.85);
+}
+
+async function setNumber(page: Page, label: string, value: number) {
+  const field = page.getByLabel(label, { exact: true });
+  await field.fill(String(value));
+  await field.blur();
+}
+
+async function world(request: APIRequestContext) {
+  return (await (await request.get('/api/world')).json()) as {
+    cameras: { id: string; name: string; hFov: number }[];
+    objects: { type: string; position: { x: number; z: number } }[];
+  };
+}
+
+async function cameraOf(request: APIRequestContext, id: string) {
+  return (await world(request)).cameras.find((c) => c.id === id);
+}
+
+async function objectAt(request: APIRequestContext, x: number, z: number) {
+  return (await world(request)).objects.find((o) => o.position.x === x && o.position.z === z);
+}
+
+async function snapshot(request: APIRequestContext, id: string): Promise<Buffer> {
+  const response = await request.get(`/api/cameras/${id}/snapshot.jpg`);
+  expect(response.ok()).toBe(true);
+  return await response.body();
+}
+
+// A WS-Discovery Probe sent straight to the simulator's discovery port; every camera answers with a
+// ProbeMatches message of its own.
+async function probe(): Promise<string[]> {
+  const socket = createSocket('udp4');
+  const matches: string[] = [];
+  socket.on('message', (message) => matches.push(message.toString()));
+  const envelope =
+    '<?xml version="1.0" encoding="UTF-8"?>' +
+    '<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:d="http://schemas.xmlsoap.org/ws/2005/04/discovery" xmlns:dn="http://www.onvif.org/ver10/network/wsdl">' +
+    `<s:Header><a:Action>http://schemas.xmlsoap.org/ws/2005/04/discovery/Probe</a:Action><a:MessageID>uuid:${randomUUID()}</a:MessageID>` +
+    '<a:To>urn:schemas-xmlsoap-org:ws:2005:04:discovery</a:To></s:Header>' +
+    '<s:Body><d:Probe><d:Types>dn:NetworkVideoTransmitter</d:Types></d:Probe></s:Body></s:Envelope>';
+  await new Promise<void>((resolve, reject) => socket.send(envelope, discoveryPort, '127.0.0.1', (e) => (e ? reject(e) : resolve())));
+  await new Promise((resolve) => setTimeout(resolve, 1500));
+  socket.close();
+  return matches;
+}

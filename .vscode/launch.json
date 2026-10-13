@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      // F5: build and debug the simulator with the world in ./data (git-ignored). Opens the cam1 preview
+      // F5: build and debug the simulator with the world in ./data (git-ignored). Opens the editor
       // once the server is up; RTSP is at rtsp://admin:admin@localhost:8554/cam1.
       "name": "OnvifSim",
       "type": "coreclr",
@@ -16,7 +16,7 @@
       "serverReadyAction": {
         "action": "openExternally",
         "pattern": "editor at (http://localhost:\\d+)/",
-        "uriFormat": "%s/api/cameras/cam1/mjpeg"
+        "uriFormat": "%s/"
       },
       "env": {
         "ASPNETCORE_ENVIRONMENT": "Development"

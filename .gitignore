@@ -8,3 +8,5 @@ node_modules/
 dist/
 # Local world data when running with --data ./data
 data/
+test-results/
+playwright-report/

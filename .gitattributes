@@ -1,2 +1,3 @@
 # Generated from the ONVIF WSDL by src/OnvifSim.Server/Onvif/Wsdl/generate.sh
 src/OnvifSim.Server/Onvif/Wsdl/OnvifContracts.cs linguist-generated=true
+src/OnvifSim.Web/package-lock.json linguist-generated

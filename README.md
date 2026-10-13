@@ -6,8 +6,8 @@ serves RTSP and takes PTZ commands — including AbsoluteMove — like real hard
 Device Manager, an NVR or your own client at it; no cameras needed.
 
 > **Status: early development.** Done so far: world model, software renderer, snapshots and MJPEG
-> over HTTP, RTSP with RTP/JPEG and H.264, ONVIF Device + Media + Media2 + PTZ + Imaging and
-> WS-Discovery. Coming next: the browser editor, Docker image and installers (MSI, winget, snap).
+> over HTTP, RTSP with RTP/JPEG and H.264, ONVIF Device + Media + Media2 + PTZ + Imaging,
+> WS-Discovery and the browser editor. Coming next: Docker image and installers (MSI, winget, snap).
 
 ## Run
 
@@ -15,14 +15,42 @@ Device Manager, an NVR or your own client at it; no cameras needed.
 dotnet run -c Release --project src/OnvifSim.Server -- --data ./data --port 8080
 ```
 
-On first start a default world is written to `./data/world.json`.
+On first start a default world is written to `./data/world.json`. Open http://localhost:8080/ for the
+editor. Building it needs Node.js 20.19 or later: `dotnet build` runs `npm` for it when its sources
+change. Without Node.js the server still builds and serves everything except the editor.
+
+## Editor
+
+The browser editor shows the world in 3D and changes it live; there is no Save button, every edit
+reaches the cameras within a moment.
+
+- **Place** trees, houses, rocks, boxes and fixed or PTZ cameras: pick one on the toolbar and click
+  the ground. Click anything to select it; drag the gizmo to move it (G) or turn it (R), or type
+  exact values in the panel. Delete removes the selection, Escape drops it.
+- **Sculpt** the terrain with the Raise, Lower, Smooth and Flatten brushes.
+- **Cameras** show what they see (the server's own picture, the same as RTSP), their ONVIF and RTSP
+  addresses and every setting: mount, field of view, PTZ limits and speeds, both streams, image
+  adjustments, users and port. A PTZ camera gets a joystick (drag it, or focus it and hold the arrow
+  keys), zoom buttons and pan/tilt/zoom boxes that drive the same PTZ head as ONVIF clients.
+- **World**: sun, sky colours, fog and terrain size.
+
+ONVIF clients' changes (a new resolution, a preset, where a PTZ camera stopped) show up in the editor
+too. `npm run dev` in `src/OnvifSim.Web` serves the editor with hot reload against a simulator on
+port 8080; `npm run e2e` runs the browser test.
 
 | Endpoint | |
 |---|---|
 | `GET /api/world`, `PUT /api/world` | the world as JSON |
+| `PUT`, `DELETE /api/objects/{id}`, `/api/cameras/{id}` | add, replace or remove one object or camera |
+| `PUT /api/terrain`, `PUT /api/environment` | the terrain or the sun, sky and fog |
+| `POST /api/cameras/{id}/ptz/move`, `goto`, `stop`, `home` | drive a PTZ head |
+| `GET /api/events` | server-sent events: the world, ports and PTZ positions as they change |
 | `GET /api/cameras` | camera list |
 | `GET /api/cameras/{id}/snapshot.jpg` | one rendered frame |
 | `GET /api/cameras/{id}/mjpeg` | live Motion JPEG (open it in a browser) |
+
+A change the simulator cannot run with (an unknown object type, a frame size that is not a
+multiple of 8, two cameras on one port…) is refused with 400 and the reason.
 
 ## RTSP
 
@@ -71,9 +99,6 @@ WS-Discovery, so ONVIF Device Manager, an NVR or `OnvifLib.Probe --discovery` li
   its home are saved to `world.json`.
 - **Imaging** (ver20): brightness, contrast and colour saturation, applied to the picture and saved.
 
-`angleGrid: true` on a camera in `world.json` draws a pan/tilt degree grid over its picture, relative
-to the mount (pan 0, tilt 0 is where the camera points at rest), with labels every 15° that get
-finer as the camera zooms in. The default world turns it on for the PTZ camera.
 - **Authentication** as on real cameras: WS-Security UsernameToken or HTTP Digest/Basic with the
   camera's `users`; `GetSystemDateAndTime`, `GetCapabilities`, `GetServices` and `GetHostname` answer
   without credentials.
@@ -82,11 +107,16 @@ XAddrs and stream URIs use the address the client connected to. WS-Discovery adv
 of the route towards the client, or `--advertise-host` (`ONVIFSIM_ADVERTISE_HOST`) when that is not
 reachable from outside, e.g. in a container.
 
+The **degree grid** (`angleGrid` in `world.json`, a checkbox in the editor) draws pan/tilt lines over
+a camera's picture, relative to the mount (pan 0, tilt 0 is where the camera points at rest), with
+labels every 15° that get finer as the camera zooms in. The default world turns it on for the PTZ
+camera.
+
 ## Ports
 
 | Port | |
 |---|---|
-| 8080/tcp | web UI and API (`--port`, `ONVIFSIM_PORT`) |
+| 8080/tcp | editor and API (`--port`, `ONVIFSIM_PORT`) |
 | 8001…/tcp | ONVIF, one port per camera (`--onvif-base-port`, `ONVIFSIM_ONVIF_BASE_PORT`) |
 | 8554/tcp | RTSP for all cameras (`--rtsp-port`, `ONVIFSIM_RTSP_PORT`) |
 | 6970-6971/udp | RTP and RTCP of every UDP session (`--rtp-port`, `ONVIFSIM_RTP_PORT`) |

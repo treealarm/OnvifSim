@@ -81,6 +81,9 @@ public static class SceneBuilder
         return ((h ^ (h >> 16)) & 0xffff) / 65535f;
     }
 
+    // The object types ObjectMesh knows.
+    public static readonly string[] ObjectTypes = ["tree.pine", "tree.oak", "house", "rock", "box"];
+
     public static Mesh ObjectMesh(WorldObject o)
     {
         var m = new Mesh();
