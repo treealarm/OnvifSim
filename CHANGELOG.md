@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1 (2026-10-13)
+
+- Snap: an OnvifSim entry in the applications menu (and an icon in App Center) that opens the editor
+  in the browser.
+
 ## 0.2.0 (2026-10-13)
 
 - Analytics: every camera reports the people it sees in the ONVIF metadata track of its RTSP
