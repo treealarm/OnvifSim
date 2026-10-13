@@ -1,6 +1,6 @@
 # OnvifSim: виртуальный 3D-мир, камеры в котором работают как ONVIF-устройства
 
-> Temporary working plan (agreed 2026-10-13). Status: phases 1–6 and 2b done, plus roads and walking people from phase 7. Will be removed or turned into a roadmap once the MVP ships.
+> Temporary working plan (agreed 2026-10-13). Status: phases 1–6 and 2b done, 6b built and dry-run in CI (first tag, snap name and winget pending), plus roads and walking people from phase 7. Will be removed or turned into a roadmap once the MVP ships.
 
 ## Context
 Нужен мультиплатформенный тестовый ONVIF-сервер. В браузерном редакторе собирается примитивный 3D-мир (рельеф, деревья, дома), в нём расставляются фиксированные и PTZ-камеры. Каждая камера становится отдельным ONVIF-устройством: отвечает на discovery, отдаёт RTSP H.264 с рендером мира и управляется по PTZ, обязательно с AbsoluteMove. Всё запускается в Docker. Основная польза: на этом стенде можно гонять OnvifLib, Probe, GUI, ODM и NVR без железа, детерминированно, в том числе в CI.
@@ -90,7 +90,7 @@ Vite + React + TS + @react-three/fiber + drei + zustand. `dotnet build` соби
 ## Дистрибуция и публичный проект
 Цель — публичный open source наравне с OnvifLib: всё, что OnvifLib даёт пользователям, есть и здесь.
 
-- **Форма поставки для десктопа.** `OnvifSim` — один self-contained бинарник (`PublishSingleFile`, wwwroot встроена как ресурсы), при старте печатает URL редактора и открывает браузер; `--no-browser`, `--data <dir>`, `--port`. Так MSI/snap/winget ставят его как обычную программу, Docker не обязателен.
+- **Форма поставки для десктопа.** `OnvifSim` — один self-contained бинарник (`PublishSingleFile`; редактор — папка `wwwroot` рядом с ним, а не ресурсы: zip, MSI и snap всё равно ставят папку, а встраивание потребовало бы своего файлового провайдера), при старте печатает URL редактора и открывает браузер; `--no-browser`, `--data <dir>`, `--port`. Так MSI/snap/winget ставят его как обычную программу, Docker не обязателен.
 - **GitHub Release** по тегу `v X.Y.Z` (workflow `release.yml`, как `release-gui.yml`): linux-x64 и linux-arm64 zip, win-x64 zip, **WiX MSI** (`packaging/msi`, как `OnvifLib.Gui.Setup`), `workflow_dispatch` с input `tag` для пересборки.
 - **Snap** `onvifsim` (`packaging/snap`, strict, `daemon: simple`, plugs `network`, `network-bind`; данные в `$SNAP_COMMON`): job в release-workflow публикует в stable через `snapcore/action-publish`. Имя регистрирует пользователь, секрет `SNAPCRAFT_STORE_CREDENTIALS` — тот же порядок, что для onviflib-gui.
 - **winget** `treealarm.OnvifSim` (`packaging/winget`, ManifestVersion 1.12.0): после релиза обновляем манифесты и отправляем PR в microsoft/winget-pkgs из форка treealarm/winget-pkgs; отправка — только по команде.
