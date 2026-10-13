@@ -7,18 +7,30 @@ import {
   type CameraModel,
   type Environment,
   type Head,
+  type GroundPoint,
   type ObjectType,
+  type Road,
   type ServerStatus,
   type Terrain,
   type Vec3,
+  type Walker,
   type World,
   type WorldObject,
 } from './model';
 
-export type Selection = { kind: 'object' | 'camera'; id: string };
+export type Selection = { kind: 'object' | 'camera' | 'road' | 'walker'; id: string };
 export type Placeable = ObjectType | 'camera.fixed' | 'camera.ptz';
 export type BrushKind = 'raise' | 'lower' | 'smooth' | 'flatten';
-export type Tool = { kind: 'select' } | { kind: 'place'; what: Placeable } | { kind: 'brush'; brush: BrushKind };
+export type Drawable = 'road' | 'walker';
+// Drawing a road or a walker's route point by point; extending adds the points to the end of an
+// existing one instead of making a new one.
+export interface DrawTool {
+  kind: 'draw';
+  what: Drawable;
+  points: GroundPoint[];
+  extending?: string;
+}
+export type Tool = { kind: 'select' } | { kind: 'place'; what: Placeable } | { kind: 'brush'; brush: BrushKind } | DrawTool;
 
 interface EditorState {
   connected: boolean;
@@ -32,6 +44,8 @@ interface EditorState {
   gizmo: 'move' | 'rotate';
   brushRadius: number;
   brushStrength: number;
+  // The point of the selected road or route being dragged over the ground.
+  draggedPoint: number | null;
   error: string | null;
   undoSteps: number;
   redoSteps: number;
@@ -47,6 +61,7 @@ export const useEditor = create<EditorState>()(() => ({
   gizmo: 'move',
   brushRadius: 12,
   brushStrength: 0.5,
+  draggedPoint: null,
   error: null,
   undoSteps: 0,
   redoSteps: 0,
@@ -148,6 +163,8 @@ async function flush(key: string) {
 type Part =
   | { kind: 'object'; id: string; value: WorldObject | null }
   | { kind: 'camera'; id: string; value: CameraModel | null }
+  | { kind: 'road'; id: string; value: Road | null }
+  | { kind: 'walker'; id: string; value: Walker | null }
   | { kind: 'terrain'; value: Terrain }
   | { kind: 'environment'; value: Environment };
 
@@ -165,7 +182,7 @@ const undoStack: HistoryEntry[] = [];
 const redoStack: HistoryEntry[] = [];
 
 function keyOf(part: Part): string {
-  return part.kind === 'object' || part.kind === 'camera' ? `${part.kind}:${part.id}` : part.kind;
+  return part.kind === 'terrain' || part.kind === 'environment' ? part.kind : `${part.kind}:${part.id}`;
 }
 
 // The same part as it is in the world now.
@@ -175,6 +192,10 @@ function currentOf(world: World, part: Part): Part {
       return { ...part, value: world.objects.find((o) => o.id === part.id) ?? null };
     case 'camera':
       return { ...part, value: world.cameras.find((c) => c.id === part.id) ?? null };
+    case 'road':
+      return { ...part, value: world.roads.find((r) => r.id === part.id) ?? null };
+    case 'walker':
+      return { ...part, value: world.walkers.find((w) => w.id === part.id) ?? null };
     case 'terrain':
       return { kind: 'terrain', value: world.terrain };
     case 'environment':
@@ -193,6 +214,10 @@ function applyPart(world: World, part: Part): World {
       return { ...world, objects: upsert(world.objects, part.id, part.value) };
     case 'camera':
       return { ...world, cameras: upsert(world.cameras, part.id, part.value) };
+    case 'road':
+      return { ...world, roads: upsert(world.roads, part.id, part.value) };
+    case 'walker':
+      return { ...world, walkers: upsert(world.walkers, part.id, part.value) };
     case 'terrain':
       return { ...world, terrain: part.value };
     case 'environment':
@@ -206,6 +231,10 @@ async function sendPart(part: Part): Promise<unknown> {
       return part.value ? api.putObject(part.value) : ignoreMissing(api.deleteObject(part.id));
     case 'camera':
       return part.value ? api.putCamera(part.value) : ignoreMissing(api.deleteCamera(part.id));
+    case 'road':
+      return part.value ? api.putRoad(part.value) : ignoreMissing(api.deleteRoad(part.id));
+    case 'walker':
+      return part.value ? api.putWalker(part.value) : ignoreMissing(api.deleteWalker(part.id));
     case 'terrain':
       return api.putTerrain(part.value);
     case 'environment':
@@ -273,6 +302,14 @@ export function updateCamera(camera: CameraModel) {
   change({ kind: 'camera', id: camera.id, value: camera });
 }
 
+export function updateRoad(road: Road) {
+  change({ kind: 'road', id: road.id, value: road });
+}
+
+export function updateWalker(walker: Walker) {
+  change({ kind: 'walker', id: walker.id, value: walker });
+}
+
 // Every stroke of a brush is a step of its own, however quickly the next one follows.
 export function updateTerrain(terrain: Terrain) {
   change({ kind: 'terrain', value: terrain }, { merge: false });
@@ -337,6 +374,74 @@ export async function place(what: Placeable, x: number, z: number) {
     }
   } catch (error) {
     showError(error);
+  }
+}
+
+// ---- Drawing roads and routes ----
+
+export function startDrawing(what: Drawable, extending?: string) {
+  set({ tool: { kind: 'draw', what, points: [], extending } });
+}
+
+export function addDrawingPoint(point: GroundPoint) {
+  const { tool } = useEditor.getState();
+  if (tool.kind !== 'draw') return;
+  const last = tool.points.at(-1);
+  // The two clicks of a double click land on one spot; one point is enough.
+  if (last && Math.hypot(last.x - point.x, last.z - point.z) < 0.5) return;
+  set({ tool: { ...tool, points: [...tool.points, point] } });
+}
+
+export function cancelDrawing() {
+  set({ tool: { kind: 'select' } });
+}
+
+// A road needs two points, a walker one (standing there); fewer just ends the drawing.
+export async function finishDrawing() {
+  const { tool, world } = useEditor.getState();
+  if (tool.kind !== 'draw' || !world) return;
+  set({ tool: { kind: 'select' } });
+  const { what, points, extending } = tool;
+  if (points.length === 0) return;
+  if (extending) {
+    if (what === 'road') {
+      const road = world.roads.find((r) => r.id === extending);
+      if (road) updateRoad({ ...road, points: [...road.points, ...points] });
+    } else {
+      const walker = world.walkers.find((w) => w.id === extending);
+      if (walker) updateWalker({ ...walker, route: [...walker.route, ...points] });
+    }
+    return;
+  }
+  if (what === 'road' && points.length < 2) return;
+  try {
+    if (what === 'road') {
+      const id = nextId('r', world.roads.map((r) => r.id));
+      await api.putRoad({ id, points });
+      remember({ kind: 'road', id, value: null }, false);
+      select({ kind: 'road', id });
+    } else {
+      const id = nextId('w', world.walkers.map((w) => w.id));
+      await api.putWalker({ id, route: points });
+      remember({ kind: 'walker', id, value: null }, false);
+      select({ kind: 'walker', id });
+    }
+  } catch (error) {
+    showError(error);
+  }
+}
+
+// Moves one point of the selected road or route, as its handle is dragged over the ground.
+export function movePoint(selection: Selection, index: number, point: GroundPoint) {
+  const world = useEditor.getState().world;
+  if (!world) return;
+  const replace = (points: GroundPoint[]) => points.map((p, i) => (i === index ? point : p));
+  if (selection.kind === 'road') {
+    const road = world.roads.find((r) => r.id === selection.id);
+    if (road) updateRoad({ ...road, points: replace(road.points) });
+  } else if (selection.kind === 'walker') {
+    const walker = world.walkers.find((w) => w.id === selection.id);
+    if (walker) updateWalker({ ...walker, route: replace(walker.route) });
   }
 }
 

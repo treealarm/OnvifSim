@@ -29,6 +29,10 @@ Ctrl+Y) step back and forth through the last 100 edits; turning a PTZ camera is 
   the ground. Click anything to select it; drag the gizmo to move it (G) or turn it (R), or type
   exact values in the panel. Delete removes the selection, Escape drops it.
 - **Sculpt** the terrain with the Raise, Lower, Smooth and Flatten brushes.
+- **Roads and people**: pick Road or Person, click the ground point by point and finish with a
+  double-click or Enter. A person walks their route over and over, round in a loop or there and
+  back, at the speed you set, and every camera sees them walking: where they are follows from the
+  clock, so all streams and snapshots agree. Drag the points of a selected road or route to reshape it.
 - **Cameras** show what they see (the server's own picture, the same as RTSP), their ONVIF and RTSP
   addresses and every setting: mount, field of view, PTZ limits and speeds, both streams, image
   adjustments, users and port. A PTZ camera gets a joystick (drag it, or focus it and hold the arrow
@@ -42,7 +46,7 @@ port 8080; `npm run e2e` runs the browser test.
 | Endpoint | |
 |---|---|
 | `GET /api/world`, `PUT /api/world` | the world as JSON |
-| `PUT`, `DELETE /api/objects/{id}`, `/api/cameras/{id}` | add, replace or remove one object or camera |
+| `PUT`, `DELETE /api/objects/{id}`, `/api/roads/{id}`, `/api/walkers/{id}`, `/api/cameras/{id}` | add, replace or remove one object, road, walker or camera |
 | `PUT /api/terrain`, `PUT /api/environment` | the terrain or the sun, sky and fog |
 | `POST /api/cameras/{id}/ptz/move`, `goto`, `stop`, `home` | drive a PTZ head |
 | `GET /api/events` | server-sent events: the world, ports and PTZ positions as they change |
@@ -129,7 +133,8 @@ camera.
 
 One .NET 10 process, no native dependencies: the world is rendered by a built-in CPU rasterizer
 (a 640×360 frame takes about 5 ms), encoded to JPEG in-process, and a camera only renders while
-someone is watching it. H.264 is the one optional extra: raw frames piped through an ffmpeg process.
+someone is watching it, and then only when its picture changes: a still camera with nobody walking
+in view sends the same frame again. H.264 is the one optional extra: raw frames piped through an ffmpeg process.
 
 ONVIF requests and responses are (de)serialized with types generated from the official ONVIF WSDL
 ([onvif/specs](https://github.com/onvif/specs)); `src/OnvifSim.Server/Onvif/Wsdl/generate.sh`

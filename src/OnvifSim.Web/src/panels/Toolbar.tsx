@@ -1,4 +1,4 @@
-import { redo, setTool, undo, useEditor, type BrushKind, type Placeable, type Tool } from '../store';
+import { cancelDrawing, finishDrawing, redo, setTool, startDrawing, undo, useEditor, type BrushKind, type Drawable, type Placeable, type Tool } from '../store';
 
 const placeables: { what: Placeable; label: string }[] = [
   { what: 'tree.pine', label: 'Pine' },
@@ -17,9 +17,15 @@ const brushes: { brush: BrushKind; label: string }[] = [
   { brush: 'flatten', label: 'Flatten' },
 ];
 
+const drawables: { what: Drawable; label: string }[] = [
+  { what: 'road', label: 'Road' },
+  { what: 'walker', label: 'Person' },
+];
+
 function sameTool(a: Tool, b: Tool): boolean {
   if (a.kind === 'place' && b.kind === 'place') return a.what === b.what;
   if (a.kind === 'brush' && b.kind === 'brush') return a.brush === b.brush;
+  if (a.kind === 'draw' && b.kind === 'draw') return a.what === b.what;
   return a.kind === b.kind;
 }
 
@@ -64,6 +70,31 @@ export function Toolbar() {
         {placeables.map((p) => (
           <ToolButton current={tool} key={p.what} value={{ kind: 'place', what: p.what }} label={p.label} />
         ))}
+      </div>
+      <div className="group" role="group" aria-label="Draw">
+        {drawables.map((d) => {
+          const active = tool.kind === 'draw' && tool.what === d.what;
+          return (
+            <button key={d.what} type="button" aria-pressed={active} onClick={() => (active ? cancelDrawing() : startDrawing(d.what))}>
+              {d.label}
+            </button>
+          );
+        })}
+        {tool.kind === 'draw' && (
+          <>
+            <span className="hint">
+              {tool.points.length === 0
+                ? 'Click the ground to set the first point'
+                : `${tool.points.length} point${tool.points.length > 1 ? 's' : ''}; double-click or Enter to finish`}
+            </span>
+            <button type="button" onClick={() => void finishDrawing()}>
+              Finish
+            </button>
+            <button type="button" onClick={cancelDrawing}>
+              Cancel
+            </button>
+          </>
+        )}
       </div>
       <div className="group" role="group" aria-label="Terrain brushes">
         {brushes.map((b) => (

@@ -13,14 +13,13 @@ namespace OnvifSim.Streaming.H264;
 // Unlike JPEG frames, access units depend on the ones before them, so a subscriber must not lose one
 // in the middle of a group of pictures: a new subscriber starts at the next key frame, and one too slow
 // to keep its queue from filling up skips to the next key frame rather than decode garbage.
-public sealed class H264Feed(string cameraId, SceneState scene, PtzSimulator ptz, string ffmpegPath, ILogger logger)
+public sealed class H264Feed(string cameraId, SceneState scene, PtzSimulator ptz, CachingFrameRenderer renderer, string ffmpegPath, ILogger logger)
 {
     // About two seconds at 30 fps; a reader that falls further behind skips ahead.
     private const int SubscriberQueueLength = 64;
 
     private readonly Lock _gate = new();
     private readonly List<Subscriber> _subscribers = [];
-    private readonly CachingFrameRenderer _renderer = new();
     private CancellationTokenSource? _cts;
     private (H264Model Settings, byte[] Sps, byte[] Pps)? _parameterSets;
 
@@ -82,7 +81,7 @@ public sealed class H264Feed(string cameraId, SceneState scene, PtzSimulator ptz
                     if (encoder != null) await encoder.DisposeAsync();
                     encoder = new FfmpegH264Encoder(ffmpegPath, settings, unit => Publish(unit, settings), logger);
                 }
-                var frame = _renderer.RenderFrame(snap, cam, ptz.PositionOf(cam), settings.Width, settings.Height);
+                var frame = renderer.RenderFrame(snap, cam, ptz.PositionOf(cam), settings.Width, settings.Height);
                 await encoder.WriteFrameAsync(frame.Rgba, next, token);
 
                 // Fixed-rate schedule; if rendering or encoding falls behind, skip ahead instead of bursting.

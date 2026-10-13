@@ -8,7 +8,7 @@ namespace OnvifSim.Rendering;
 // the output is bit-for-bit deterministic for a given scene and pose.
 public sealed class SoftwareRasterizer : ICameraRenderer
 {
-    private const float Near = 0.3f;
+    private const float Near = ViewFrustum.Near;
 
     private float[] _depth = [];
     private Vector4[] _clip = [];
@@ -18,15 +18,16 @@ public sealed class SoftwareRasterizer : ICameraRenderer
     private readonly Vector4[] _polyPos = new Vector4[4];
     private readonly Vector3[] _polyCol = new Vector3[4];
 
-    public void Render(RenderScene scene, in CameraPose pose, Frame frame)
+    public void Render(RenderScene scene, IReadOnlyList<RenderScene.Chunk> moving, in CameraPose pose, Frame frame)
     {
         int w = frame.Width, h = frame.Height;
         if (_depth.Length != w * h) _depth = new float[w * h];
         Array.Fill(_depth, 1f);
-        if (_clip.Length < scene.MaxChunkVertices)
+        int maxVertices = Math.Max(scene.MaxChunkVertices, moving.Count == 0 ? 0 : moving.Max(c => c.Positions.Length));
+        if (_clip.Length < maxVertices)
         {
-            _clip = new Vector4[scene.MaxChunkVertices];
-            _color = new Vector3[scene.MaxChunkVertices];
+            _clip = new Vector4[maxVertices];
+            _color = new Vector3[maxVertices];
         }
 
         var (fwd, right, up) = pose.Basis();
@@ -46,21 +47,14 @@ public sealed class SoftwareRasterizer : ICameraRenderer
         var proj = Matrix4x4.CreatePerspectiveFieldOfView(2 * MathF.Atan(tanV), aspect, Near, far);
         var viewProj = view * proj;
 
-        // Side planes of the view frustum in view space, for sphere culling.
-        float cosH = 1 / MathF.Sqrt(1 + tanH * tanH), sinH = tanH * cosH;
-        float cosV = 1 / MathF.Sqrt(1 + tanV * tanV), sinV = tanV * cosV;
+        var frustum = new ViewFrustum(pose, aspect, far);
 
         var fog = scene.SkyHorizon;
         float fogStart = scene.FogStart, fogInv = 1 / (scene.FogEnd - scene.FogStart);
 
-        foreach (var chunk in scene.Chunks)
+        foreach (var chunk in scene.Chunks.Concat(moving))
         {
-            var c = Vector3.Transform(chunk.Center, view);
-            float r = chunk.Radius;
-            if (c.Z - r > -Near || -c.Z - r > far ||
-                c.X * cosH + c.Z * sinH > r || -c.X * cosH + c.Z * sinH > r ||
-                c.Y * cosV + c.Z * sinV > r || -c.Y * cosV + c.Z * sinV > r)
-                continue;
+            if (!frustum.Sees(chunk.Center, chunk.Radius)) continue;
 
             var pos = chunk.Positions;
             var col = chunk.Colors;

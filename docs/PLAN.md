@@ -1,6 +1,6 @@
 # OnvifSim: виртуальный 3D-мир, камеры в котором работают как ONVIF-устройства
 
-> Temporary working plan (agreed 2026-10-13). Status: phases 1–5 and 2b done. Will be removed or turned into a roadmap once the MVP ships.
+> Temporary working plan (agreed 2026-10-13). Status: phases 1–5 and 2b done, plus roads and walking people from phase 7. Will be removed or turned into a roadmap once the MVP ships.
 
 ## Context
 Нужен мультиплатформенный тестовый ONVIF-сервер. В браузерном редакторе собирается примитивный 3D-мир (рельеф, деревья, дома), в нём расставляются фиксированные и PTZ-камеры. Каждая камера становится отдельным ONVIF-устройством: отвечает на discovery, отдаёт RTSP H.264 с рендером мира и управляется по PTZ, обязательно с AbsoluteMove. Всё запускается в Docker. Основная польза: на этом стенде можно гонять OnvifLib, Probe, GUI, ODM и NVR без железа, детерминированно, в том числе в CI.
@@ -85,7 +85,7 @@ Vite + React + TS + @react-three/fiber + drei + zustand. `dotnet build` соби
 5. **Веб-редактор**: terrain, объекты, камеры, превью, PTZ-управление, live-обновление.
 6. **Docker и CI**: multi-stage образ (node → dotnet publish → aspnet:10.0 + ffmpeg), amd64/arm64, `docker-compose.yml` с `network_mode: host` (Linux, discovery работает) и вариант с port mapping (Win/Mac, без discovery), публикация в ghcr и Docker Hub; `ci.yml`.
 6b. **Пакеты и витрина**: single-file бинарник с открытием браузера, GitHub Release (zip, MSI), snap, winget, README/бейджи/баннер, PRIVACY/SECURITY/FUNDING/CONTRIBUTING, ffmpeg-mirror.
-7. **Опционально, по надобности**: движущиеся объекты по waypoint-путям; Events/PullPoint (симулированная детекция движения при попадании объекта во фрустум); OSD-оверлей; день/ночь, шум; fault injection (задержки, 401, сдвиг часов, обрыв RTSP, битые ответы); Profile G; OpenGL/Unity-бэкенд рендера.
+7. **Опционально, по надобности**: ~~движущиеся объекты по waypoint-путям~~ (сделано раньше, по запросу: дороги и люди, которые ходят по маршруту, по кругу или туда-обратно; положение — функция времени, кадр перерисовывается, только если человек в поле зрения камеры); машины по тем же маршрутам; Events/PullPoint (симулированная детекция движения при попадании объекта во фрустум); OSD-оверлей; день/ночь, шум; fault injection (задержки, 401, сдвиг часов, обрыв RTSP, битые ответы); Profile G; OpenGL/Unity-бэкенд рендера.
 
 ## Дистрибуция и публичный проект
 Цель — публичный open source наравне с OnvifLib: всё, что OnvifLib даёт пользователям, есть и здесь.

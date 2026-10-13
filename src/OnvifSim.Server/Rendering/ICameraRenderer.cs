@@ -4,9 +4,9 @@ namespace OnvifSim.Rendering;
 // a GPU or game-engine backend can stand behind the same interface later.
 public interface ICameraRenderer
 {
-    // Draws into frame.Rgba (Width * Height * 4 bytes, top row first). Not thread-safe: use one
-    // renderer per thread.
-    void Render(RenderScene scene, in CameraPose pose, Frame frame);
+    // Draws the scene and what moves in it (lit with RenderScene.Light) into frame.Rgba (Width * Height
+    // * 4 bytes, top row first). Not thread-safe: use one renderer per thread.
+    void Render(RenderScene scene, IReadOnlyList<RenderScene.Chunk> moving, in CameraPose pose, Frame frame);
 }
 
 public sealed class Frame(int width, int height)

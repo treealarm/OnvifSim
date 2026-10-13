@@ -29,6 +29,10 @@ public static partial class WorldValidation
         CheckEnvironment(world.Environment);
         foreach (var obj in world.Objects) CheckObject(obj);
         RequireUnique(world.Objects.Select(o => o.Id), "Object id");
+        foreach (var road in world.Roads) CheckRoad(road);
+        RequireUnique(world.Roads.Select(r => r.Id), "Road id");
+        foreach (var walker in world.Walkers) CheckWalker(walker);
+        RequireUnique(world.Walkers.Select(w => w.Id), "Walker id");
         foreach (var camera in world.Cameras) CheckCamera(camera);
         RequireUnique(world.Cameras.Select(c => c.Id), "Camera id");
         RequireUnique(
@@ -60,6 +64,23 @@ public static partial class WorldValidation
         Require(IsFinite(obj.Position) && float.IsFinite(obj.RotationY), $"Object {obj.Id}: position and rotation must be finite.");
         Require(obj.Scale is { X: > 0 and <= MaxObjectSize, Y: > 0 and <= MaxObjectSize, Z: > 0 and <= MaxObjectSize },
             $"Object {obj.Id}: every size must be above 0 and at most {MaxObjectSize} m.");
+    }
+
+    private static void CheckRoad(RoadModel road)
+    {
+        Require(road.Id.Length > 0, "A road has no id.");
+        Require(road.Points.Count >= 2, $"Road {road.Id} needs at least two points.");
+        Require(road.Points.All(IsFinite), $"Road {road.Id}: points must be finite.");
+        Require(road.Width is >= 0.5f and <= 50, $"Road {road.Id}: width {road.Width} m is outside 0.5..50.");
+    }
+
+    private static void CheckWalker(WalkerModel walker)
+    {
+        Require(walker.Id.Length > 0, "A walker has no id.");
+        Require(walker.Route.Count >= 1, $"Walker {walker.Id} needs at least one point to stand on.");
+        Require(walker.Route.All(IsFinite), $"Walker {walker.Id}: route points must be finite.");
+        Require(walker.Speed is >= 0 and <= 10, $"Walker {walker.Id}: speed {walker.Speed} m/s is outside 0..10.");
+        Require(walker.Height is >= 0.5f and <= 3, $"Walker {walker.Id}: height {walker.Height} m is outside 0.5..3.");
     }
 
     private static void CheckCamera(CameraModel camera)
@@ -122,6 +143,8 @@ public static partial class WorldValidation
     }
 
     private static bool IsFinite(Vec3 v) => float.IsFinite(v.X) && float.IsFinite(v.Y) && float.IsFinite(v.Z);
+
+    private static bool IsFinite(GroundPoint p) => float.IsFinite(p.X) && float.IsFinite(p.Z);
 
     private static void Require(bool condition, string message)
     {

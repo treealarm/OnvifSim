@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Time.Testing;
 using OnvifSim.Ptz;
 using OnvifSim.Streaming;
 using OnvifSim.Streaming.H264;
@@ -6,15 +7,18 @@ using OnvifSim.World;
 
 namespace OnvifSim.Tests;
 
+// The clock stands still unless a test moves it: the default world has someone walking in it.
 public class CachingFrameRendererTests
 {
+    private readonly FakeTimeProvider _time = new(DateTimeOffset.UnixEpoch.AddDays(20000));
+
     [Fact]
     public void UnchangedWorld_IsRenderedOnce_AndAnyChangeRendersAgain()
     {
         using var dir = new TempDir();
         var store = new WorldStore(dir.Path);
         var scene = new SceneState(store);
-        var renderer = new CachingFrameRenderer();
+        var renderer = new CachingFrameRenderer(_time);
         CameraModel Cam1() => scene.Current.World.Cameras.Single(c => c.Id == "cam1");
 
         var first = renderer.Render(scene.Current, Cam1(), default);
@@ -37,7 +41,7 @@ public class CachingFrameRendererTests
         using var dir = new TempDir();
         var store = new WorldStore(dir.Path);
         var scene = new SceneState(store);
-        var renderer = new CachingFrameRenderer();
+        var renderer = new CachingFrameRenderer(_time);
         CameraModel Cam2() => scene.Current.World.Cameras.Single(c => c.Id == "cam2");
 
         var stored = renderer.Render(scene.Current, Cam2(), Cam2().Ptz!.Position);
@@ -55,7 +59,7 @@ public class CachingFrameRendererTests
         using var dir = new TempDir();
         var store = new WorldStore(dir.Path);
         var scene = new SceneState(store);
-        var renderer = new CachingFrameRenderer();
+        var renderer = new CachingFrameRenderer(_time);
         CameraModel Cam1() => scene.Current.World.Cameras.Single(c => c.Id == "cam1");
 
         var plain = renderer.RenderFrame(scene.Current, Cam1(), default, 640, 360).Rgba.ToArray();
@@ -75,8 +79,48 @@ public class CachingFrameRendererTests
         using var dir = new TempDir();
         var store = new WorldStore(dir.Path);
         var scene = new SceneState(store);
-        var feeds = new FeedManager(scene, new PtzSimulator(store, TimeProvider.System, NullLogger<PtzSimulator>.Instance), H264Support.Unavailable, NullLoggerFactory.Instance);
+        var feeds = new FeedManager(scene, new PtzSimulator(store, TimeProvider.System, NullLogger<PtzSimulator>.Instance), H264Support.Unavailable, _time, NullLoggerFactory.Instance);
         Assert.NotEqual(feeds.Snapshot("cam1"), feeds.Snapshot("cam2"));
         Assert.Same(feeds.Snapshot("cam1"), feeds.Snapshot("cam1"));
+    }
+
+    [Fact]
+    public void Walkers_AreDrawnWhereTheClockPutsThem()
+    {
+        using var dir = new TempDir();
+        var store = new WorldStore(dir.Path);
+        store.Update(w =>
+        {
+            w.Walkers = [new WalkerModel { Id = "w", Route = [new(-4, 8), new(4, 8)], Speed = 2 }];
+            w.Cameras.Single(c => c.Id == "cam1").Position = new Vec3(0, 1.6f, 16);
+            w.Cameras.Single(c => c.Id == "cam1").Pitch = 0;
+        });
+        var scene = new SceneState(store);
+        var renderer = new CachingFrameRenderer(_time);
+        CameraModel Cam1() => scene.Current.World.Cameras.Single(c => c.Id == "cam1");
+
+        var now = renderer.RenderFrame(scene.Current, Cam1(), default, 320, 180).Rgba.ToArray();
+        Assert.Equal(now, renderer.RenderFrame(scene.Current, Cam1(), default, 320, 180).Rgba);
+        Assert.Equal(1, renderer.RenderCount);
+
+        _time.Advance(TimeSpan.FromSeconds(1));
+        Assert.NotEqual(now, renderer.RenderFrame(scene.Current, Cam1(), default, 320, 180).Rgba);
+    }
+
+    [Fact]
+    public void WalkersOutOfView_DoNotMakeACameraDrawAgain()
+    {
+        using var dir = new TempDir();
+        var store = new WorldStore(dir.Path);
+        // cam1 looks north; the walker is behind it.
+        store.Update(w => w.Walkers = [new WalkerModel { Id = "w", Route = [new(-4, 80), new(4, 80)], Speed = 2 }]);
+        var scene = new SceneState(store);
+        var renderer = new CachingFrameRenderer(_time);
+        var cam1 = scene.Current.World.Cameras.Single(c => c.Id == "cam1");
+
+        renderer.Render(scene.Current, cam1, default);
+        _time.Advance(TimeSpan.FromSeconds(1));
+        renderer.Render(scene.Current, cam1, default);
+        Assert.Equal(1, renderer.RenderCount);
     }
 }

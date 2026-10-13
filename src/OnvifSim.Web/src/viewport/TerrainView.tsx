@@ -2,7 +2,7 @@ import { useThree, type ThreeEvent } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import { BufferAttribute, BufferGeometry, Color, type Mesh } from 'three';
 import { heightAt, type Terrain } from '../model';
-import { place, select, updateTerrain, useEditor } from '../store';
+import { addDrawingPoint, finishDrawing, movePoint, place, select, updateTerrain, useEditor } from '../store';
 import { applyBrush, type BrushDab } from './brush';
 
 interface Stroke {
@@ -52,18 +52,27 @@ export function TerrainView({ terrain }: { terrain: Terrain }) {
   function onPointerMove(e: ThreeEvent<PointerEvent>) {
     ring.current?.position.set(e.point.x, e.point.y + 0.3, e.point.z);
     if (stroke.current) dab(e.point.x, e.point.z);
+    const { draggedPoint, selection } = useEditor.getState();
+    if (draggedPoint !== null && selection) movePoint(selection, draggedPoint, { x: round(e.point.x), z: round(e.point.z) });
   }
 
   function onClick(e: ThreeEvent<MouseEvent>) {
     // A drag that turned the view is not a click.
     if (e.delta > 4) return;
     if (tool.kind === 'place') void place(tool.what, e.point.x, e.point.z);
+    else if (tool.kind === 'draw') addDrawingPoint({ x: round(e.point.x), z: round(e.point.z) });
     else if (tool.kind === 'select') select(null);
+  }
+
+  function onDoubleClick(e: ThreeEvent<MouseEvent>) {
+    if (tool.kind !== 'draw') return;
+    e.stopPropagation();
+    void finishDrawing();
   }
 
   return (
     <>
-      <mesh name="terrain" geometry={geometry} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onClick={onClick}>
+      <mesh name="terrain" geometry={geometry} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onClick={onClick} onDoubleClick={onDoubleClick}>
         <meshLambertMaterial vertexColors />
       </mesh>
       {tool.kind === 'brush' && (
@@ -74,6 +83,11 @@ export function TerrainView({ terrain }: { terrain: Terrain }) {
       )}
     </>
   );
+}
+
+// Points to the centimetre: plenty for a route, and readable in the panel.
+function round(value: number): number {
+  return Math.round(value * 100) / 100;
 }
 
 const grass = new Color(92 / 255, 128 / 255, 60 / 255).convertSRGBToLinear();

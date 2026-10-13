@@ -21,10 +21,10 @@ public static class Bench
             {
                 var frame = new Frame(w, h);
                 var pose = CameraPose.From(cam, scene.Terrain);
-                for (int i = 0; i < 5; i++) renderer.Render(scene, pose, frame);
+                for (int i = 0; i < 5; i++) renderer.Render(scene, [], pose, frame);
                 const int n = 30;
                 sw.Restart();
-                for (int i = 0; i < n; i++) renderer.Render(scene, pose, frame);
+                for (int i = 0; i < n; i++) renderer.Render(scene, [], pose, frame);
                 double render = sw.Elapsed.TotalMilliseconds / n;
                 sw.Restart();
                 int size = 0;

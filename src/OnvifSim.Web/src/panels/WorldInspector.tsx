@@ -38,7 +38,7 @@ export function WorldInspector({ world }: { world: World }) {
         <NumberField label="Size, m" value={world.terrain.size} min={10} max={10000} step={10} onChange={(size) => updateTerrain({ ...world.terrain, size })} />
       </Section>
       <p className="muted">
-        {world.objects.length} objects, {world.cameras.length} cameras.
+        {world.objects.length} objects, {world.roads.length} roads, {world.walkers.length} people, {world.cameras.length} cameras.
       </p>
     </>
   );

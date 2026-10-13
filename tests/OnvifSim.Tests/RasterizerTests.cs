@@ -21,7 +21,7 @@ public class RasterizerTests
     {
         var scene = RenderScene.Build(world);
         var frame = new Frame(w, h);
-        new SoftwareRasterizer().Render(scene, pose ?? CameraPose.From(world.Cameras[0], scene.Terrain), frame);
+        new SoftwareRasterizer().Render(scene, [], pose ?? CameraPose.From(world.Cameras[0], scene.Terrain), frame);
         return frame;
     }
 

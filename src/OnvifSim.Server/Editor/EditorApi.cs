@@ -65,7 +65,7 @@ public static class EditorApi
         app.MapPut("/api/environment", (EnvironmentModel environment, WorldStore store, SimOptions options) =>
             Change(store, options, world => world.Environment = environment));
 
-        // PUT adds the object or replaces the one with that id.
+        // PUT adds the object (road, walker, camera) or replaces the one with that id.
         app.MapPut("/api/objects/{id}", (string id, WorldObject obj, WorldStore store, SimOptions options) =>
         {
             obj.Id = id;
@@ -74,6 +74,24 @@ public static class EditorApi
 
         app.MapDelete("/api/objects/{id}", (string id, WorldStore store, SimOptions options) =>
             Remove(store, options, world => world.Objects, o => o.Id == id));
+
+        app.MapPut("/api/roads/{id}", (string id, RoadModel road, WorldStore store, SimOptions options) =>
+        {
+            road.Id = id;
+            return Change(store, options, world => Upsert(world.Roads, road, r => r.Id == id));
+        });
+
+        app.MapDelete("/api/roads/{id}", (string id, WorldStore store, SimOptions options) =>
+            Remove(store, options, world => world.Roads, r => r.Id == id));
+
+        app.MapPut("/api/walkers/{id}", (string id, WalkerModel walker, WorldStore store, SimOptions options) =>
+        {
+            walker.Id = id;
+            return Change(store, options, world => Upsert(world.Walkers, walker, w => w.Id == id));
+        });
+
+        app.MapDelete("/api/walkers/{id}", (string id, WorldStore store, SimOptions options) =>
+            Remove(store, options, world => world.Walkers, w => w.Id == id));
 
         app.MapPut("/api/cameras/{id}", (string id, CameraModel camera, WorldStore store, SimOptions options) =>
         {

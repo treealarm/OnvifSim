@@ -35,7 +35,95 @@ public static class SceneBuilder
             mesh.Append(local, transform);
             chunks.Add(Chunk(obj.Id, mesh));
         }
+
+        foreach (var road in world.Roads)
+        {
+            var mesh = RoadMesh(road, terrain);
+            if (mesh.VertexCount > 0) chunks.Add(Chunk(road.Id, mesh));
+        }
         return chunks;
+    }
+
+    // A walker at a pose, in world coordinates; drawn anew every frame, as walkers move.
+    public static SceneChunk WalkerChunk(WalkerModel walker, WalkerPose pose, Terrain terrain)
+    {
+        var person = PersonMesh.Build(walker.Height, pose.StridePhase,
+            ColorUtil.Parse(walker.Color, ColorUtil.Rgb(59, 110, 168)), ColorUtil.Parse(walker.Color2, ColorUtil.Rgb(58, 58, 68)));
+        var mesh = new Mesh();
+        mesh.Append(person, Matrix4x4.CreateRotationY(-pose.Heading * MathF.PI / 180) *
+                            Matrix4x4.CreateTranslation(pose.X, terrain.HeightAt(pose.X, pose.Z), pose.Z));
+        return Chunk(walker.Id, mesh);
+    }
+
+    // How far apart the strip of a road takes the ground's height, along it and across it, and how high
+    // above the ground it lies so the terrain does not show through.
+    private const float RoadSampleSpacing = 2;
+    private const float RoadLift = 0.12f;
+
+    private static Mesh RoadMesh(RoadModel road, Terrain terrain)
+    {
+        var mesh = new Mesh();
+        var points = road.Points.Select(p => new Vector2(p.X, p.Z)).ToList();
+        if (points.Count < 2) return mesh;
+        var color = ColorUtil.Parse(road.Color, ColorUtil.Rgb(85, 87, 90));
+        float half = road.Width / 2;
+        int across = Math.Max(2, (int)MathF.Ceiling(road.Width / RoadSampleSpacing));
+        int previousRow = -1;
+        for (int i = 0; i < points.Count - 1; i++)
+        {
+            var (a, b) = (points[i], points[i + 1]);
+            float length = Vector2.Distance(a, b);
+            if (length == 0) continue;
+            int steps = Math.Max(1, (int)MathF.Ceiling(length / RoadSampleSpacing));
+            // The last row of a segment is the first of the next one, turned halfway between the two.
+            for (int s = previousRow < 0 ? 0 : 1; s <= steps; s++)
+            {
+                float t = (float)s / steps;
+                var centre = Vector2.Lerp(a, b, t);
+                var side = Side(points, i, s == steps ? i + 1 : -1);
+                int row = mesh.VertexCount;
+                for (int k = 0; k <= across; k++)
+                {
+                    var at = centre + side * (half * (2f * k / across - 1));
+                    mesh.AddVertex(new Vector3(at.X, terrain.HeightAt(at.X, at.Y) + RoadLift, at.Y), Vector3.UnitY, color);
+                }
+                if (previousRow >= 0)
+                    for (int k = 0; k < across; k++)
+                    {
+                        // Counter-clockwise seen from above whichever way the road runs.
+                        int p0 = previousRow + k, p1 = p0 + 1, q0 = row + k, q1 = q0 + 1;
+                        AddUpward(mesh, p0, p1, q0);
+                        AddUpward(mesh, p1, q1, q0);
+                    }
+                previousRow = row;
+            }
+        }
+        return mesh;
+    }
+
+    // The unit vector pointing across the road (to the right of travel) on segment i, or at a joint the
+    // average of the segments meeting there.
+    private static Vector2 Side(List<Vector2> points, int segment, int joint)
+    {
+        static Vector2 Across(Vector2 from, Vector2 to)
+        {
+            var d = Vector2.Normalize(to - from);
+            return new Vector2(-d.Y, d.X);
+        }
+        var side = Across(points[segment], points[segment + 1]);
+        if (joint > 0 && joint < points.Count - 1 && points[joint + 1] != points[joint])
+        {
+            var averaged = side + Across(points[joint], points[joint + 1]);
+            if (averaged.LengthSquared() > 1e-6f) side = Vector2.Normalize(averaged);
+        }
+        return side;
+    }
+
+    private static void AddUpward(Mesh mesh, int a, int b, int c)
+    {
+        var (pa, pb, pc) = (mesh.Positions[a], mesh.Positions[b], mesh.Positions[c]);
+        if (Vector3.Cross(pb - pa, pc - pa).Y >= 0) mesh.AddTriangle(a, b, c);
+        else mesh.AddTriangle(a, c, b);
     }
 
     private static SceneChunk Chunk(string name, Mesh mesh)

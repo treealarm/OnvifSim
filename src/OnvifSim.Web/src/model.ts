@@ -37,6 +37,32 @@ export interface WorldObject {
   seed: number;
 }
 
+// A spot on the ground; the height comes from the terrain.
+export interface GroundPoint {
+  x: number;
+  z: number;
+}
+
+export interface Road {
+  id: string;
+  points: GroundPoint[];
+  width: number;
+  color: string | null;
+}
+
+// Loop: from the last point back to the first; reverse: back the same way.
+export type WalkerReturn = 'loop' | 'reverse';
+
+export interface Walker {
+  id: string;
+  route: GroundPoint[];
+  speed: number;
+  return: WalkerReturn;
+  height: number;
+  color: string | null;
+  color2: string | null;
+}
+
 export type CameraKind = 'fixed' | 'ptz';
 
 export interface PtzPosition {
@@ -85,6 +111,8 @@ export interface World {
   terrain: Terrain;
   environment: Environment;
   objects: WorldObject[];
+  roads: Road[];
+  walkers: Walker[];
   cameras: CameraModel[];
 }
 
@@ -161,4 +189,36 @@ export function nextId(prefix: string, taken: readonly string[]): string {
     if (Number.isInteger(number)) highest = Math.max(highest, number);
   }
   return `${prefix}${highest + 1}`;
+}
+
+export interface WalkerPose {
+  x: number;
+  z: number;
+  // Degrees clockwise from north (-Z).
+  heading: number;
+}
+
+// Where a walker is at a moment, as WalkerMotion.cs works it out: the route walked at a steady pace
+// from the start of the clock, round in a loop or there and back.
+export function walkerPoseAt(walker: Walker, timeMs: number): WalkerPose {
+  const route = walker.route;
+  if (route.length === 0) return { x: 0, z: 0, heading: 0 };
+  const path = route.length < 2 ? route : walker.return === 'loop' ? [...route, route[0]] : [...route, ...route.slice(0, -1).reverse()];
+  const segments = path.slice(1).map((to, i) => ({ from: path[i], to, length: Math.hypot(to.x - path[i].x, to.z - path[i].z) }));
+  const total = segments.reduce((sum, s) => sum + s.length, 0);
+  if (total === 0 || walker.speed <= 0) return { ...route[0], heading: route.length > 1 ? headingOf(route[0], route[1]) : 0 };
+  let along = ((timeMs / 1000) * walker.speed) % total;
+  for (const { from, to, length } of segments) {
+    if (along > length) {
+      along -= length;
+      continue;
+    }
+    const t = length === 0 ? 0 : along / length;
+    return { x: from.x + (to.x - from.x) * t, z: from.z + (to.z - from.z) * t, heading: headingOf(from, to) };
+  }
+  return { ...route[0], heading: 0 };
+}
+
+function headingOf(from: GroundPoint, to: GroundPoint): number {
+  return (Math.atan2(to.x - from.x, -(to.z - from.z)) * 180) / Math.PI;
 }

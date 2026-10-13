@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
 import { CameraInspector } from './panels/CameraInspector';
 import { ObjectInspector } from './panels/ObjectInspector';
+import { RoadInspector, WalkerInspector } from './panels/RouteInspectors';
 import { Toolbar } from './panels/Toolbar';
 import { WorldInspector } from './panels/WorldInspector';
-import { connect, redo, removeSelected, select, undo, useEditor } from './store';
+import { cancelDrawing, connect, finishDrawing, redo, removeSelected, select, undo, useEditor } from './store';
 import { Viewport } from './viewport/Viewport';
 
 export function App() {
@@ -56,6 +57,14 @@ function Inspector() {
     const obj = world.objects.find((o) => o.id === selection.id);
     if (obj) return <ObjectInspector key={obj.id} obj={obj} />;
   }
+  if (selection?.kind === 'road') {
+    const road = world.roads.find((r) => r.id === selection.id);
+    if (road) return <RoadInspector key={road.id} road={road} />;
+  }
+  if (selection?.kind === 'walker') {
+    const walker = world.walkers.find((w) => w.id === selection.id);
+    if (walker) return <WalkerInspector key={walker.id} walker={walker} />;
+  }
   if (selection?.kind === 'camera') {
     const camera = world.cameras.find((c) => c.id === selection.id);
     if (camera) return <CameraInspector key={camera.id} camera={camera} />;
@@ -63,8 +72,9 @@ function Inspector() {
   return <WorldInspector world={world} />;
 }
 
-// Ctrl+Z undoes, Ctrl+Shift+Z and Ctrl+Y redo, Delete removes the selection, Escape drops it, G and R
-// switch the gizmo. Not while typing in a field, where the keys belong to the field.
+// Ctrl+Z undoes, Ctrl+Shift+Z and Ctrl+Y redo, Delete removes the selection, Escape drops it (or the
+// road or route being drawn), Enter finishes the drawing, G and R switch the gizmo. Not while typing in
+// a field, where the keys belong to the field.
 function onShortcut(e: KeyboardEvent) {
   if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement || e.target instanceof HTMLTextAreaElement) return;
   const key = e.key.toLowerCase();
@@ -74,7 +84,11 @@ function onShortcut(e: KeyboardEvent) {
     else return;
     e.preventDefault();
   } else if (e.key === 'Delete') removeSelected();
-  else if (e.key === 'Escape') select(null);
+  else if (e.key === 'Enter') void finishDrawing();
+  else if (e.key === 'Escape') {
+    if (useEditor.getState().tool.kind === 'draw') cancelDrawing();
+    else select(null);
+  }
   else if (key === 'g') useEditor.setState({ gizmo: 'move' });
   else if (key === 'r') useEditor.setState({ gizmo: 'rotate' });
 }

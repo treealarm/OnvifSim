@@ -11,6 +11,8 @@ public sealed class WorldModel
     public TerrainModel Terrain { get; set; } = new();
     public EnvironmentModel Environment { get; set; } = new();
     public List<WorldObject> Objects { get; set; } = [];
+    public List<RoadModel> Roads { get; set; } = [];
+    public List<WalkerModel> Walkers { get; set; } = [];
     public List<CameraModel> Cameras { get; set; } = [];
 }
 
@@ -50,6 +52,34 @@ public sealed class WorldObject
     public string? Color2 { get; set; }
     public int Seed { get; set; }
 }
+
+// A road or a footpath: a strip of the given width laid on the ground along a line of points.
+public sealed class RoadModel
+{
+    public string Id { get; set; } = "";
+    public List<GroundPoint> Points { get; set; } = [];
+    public float Width { get; set; } = 4;
+    public string? Color { get; set; }
+}
+
+// A person walking a route over and over, at a steady pace. Where they are follows from the clock, so
+// every camera and every client sees them at the same spot.
+public sealed class WalkerModel
+{
+    public string Id { get; set; } = "";
+    // One point is a person standing still.
+    public List<GroundPoint> Route { get; set; } = [];
+    // Metres per second; 1.4 is an ordinary walk.
+    public float Speed { get; set; } = 1.4f;
+    // Back from the last point to the first and round again, or there and back the same way.
+    public WalkerReturn Return { get; set; } = WalkerReturn.Loop;
+    public float Height { get; set; } = 1.75f;
+    // Clothes: the top and the trousers.
+    public string? Color { get; set; }
+    public string? Color2 { get; set; }
+}
+
+public enum WalkerReturn { Loop, Reverse }
 
 public enum CameraKind { Fixed, Ptz }
 
@@ -160,3 +190,6 @@ public sealed class PtzPresetModel
 public readonly record struct PtzPosition(float Pan, float Tilt, float Zoom);
 
 public readonly record struct Vec3(float X, float Y, float Z);
+
+// A spot on the ground: X east, Z south; the height comes from the terrain.
+public readonly record struct GroundPoint(float X, float Z);

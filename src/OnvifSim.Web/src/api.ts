@@ -1,5 +1,5 @@
 import { BufferAttribute, BufferGeometry } from 'three';
-import { encodeTerrain, type CameraModel, type Environment, type PtzPosition, type PtzSettings, type Terrain, type WorldObject } from './model';
+import { encodeTerrain, type CameraModel, type Environment, type PtzPosition, type PtzSettings, type Road, type Terrain, type Walker, type WorldObject } from './model';
 
 // What PUT takes: anything left out gets the server's default.
 export type ObjectDraft = Partial<WorldObject> & Pick<WorldObject, 'id'>;
@@ -42,6 +42,10 @@ export const api = {
   putCamera: (camera: CameraDraft) =>
     send('PUT', `/api/cameras/${encodeURIComponent(camera.id)}`, camera),
   deleteCamera: (id: string) => send('DELETE', `/api/cameras/${encodeURIComponent(id)}`),
+  putRoad: (road: Partial<Road> & Pick<Road, 'id'>) => send('PUT', `/api/roads/${encodeURIComponent(road.id)}`, road),
+  deleteRoad: (id: string) => send('DELETE', `/api/roads/${encodeURIComponent(id)}`),
+  putWalker: (walker: Partial<Walker> & Pick<Walker, 'id'>) => send('PUT', `/api/walkers/${encodeURIComponent(walker.id)}`, walker),
+  deleteWalker: (id: string) => send('DELETE', `/api/walkers/${encodeURIComponent(id)}`),
   putTerrain: (terrain: Terrain) => send('PUT', '/api/terrain', encodeTerrain(terrain)),
   putEnvironment: (environment: Environment) => send('PUT', '/api/environment', environment),
 

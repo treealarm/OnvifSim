@@ -5,6 +5,7 @@ import type { Environment, World } from '../model';
 import { useEditor } from '../store';
 import { CameraGizmo } from './CameraGizmo';
 import { ObjectsView } from './ObjectsView';
+import { RoutesView } from './RoutesView';
 import { TerrainView } from './TerrainView';
 
 // The 3D view of the world, drawn by the browser for interactive speed. What a camera actually sees is
@@ -27,6 +28,7 @@ export function Viewport({ world }: { world: World }) {
       <OrbitControls makeDefault maxPolarAngle={Math.PI / 2 - 0.02} />
       <TerrainView terrain={world.terrain} />
       <ObjectsView objects={world.objects} terrain={world.terrain} />
+      <RoutesView roads={world.roads} walkers={world.walkers} terrain={world.terrain} />
       {world.cameras.map((camera) => (
         <CameraGizmo
           key={camera.id}

@@ -36,6 +36,25 @@ public class EditorApiTests(SimFactory factory) : IClassFixture<SimFactory>
     }
 
     [Fact]
+    public async Task RoadsAndWalkers_AreAddedAndDeleted_ByTheirId()
+    {
+        var client = factory.CreateClient();
+        Assert.Equal(HttpStatusCode.NoContent, (await client.PutAsync("/api/roads/test-road", Json(new { points = new[] { new { x = 0, z = 0 }, new { x = 20, z = 5 } }, width = 3 }))).StatusCode);
+        Assert.Equal(3, Store.Current.Roads.Single(r => r.Id == "test-road").Width);
+        Assert.Equal(HttpStatusCode.NoContent, (await client.PutAsync("/api/walkers/test-walker", Json(new { route = new[] { new { x = 1, z = 2 } }, @return = "reverse" }))).StatusCode);
+        Assert.Equal(WalkerReturn.Reverse, Store.Current.Walkers.Single(w => w.Id == "test-walker").Return);
+
+        // A road of one point is no road.
+        var single = await client.PutAsync("/api/roads/test-road", Json(new { points = new[] { new { x = 0, z = 0 } } }));
+        Assert.Equal(HttpStatusCode.BadRequest, single.StatusCode);
+
+        Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync("/api/roads/test-road")).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync("/api/walkers/test-walker")).StatusCode);
+        Assert.DoesNotContain(Store.Current.Roads, r => r.Id == "test-road");
+        Assert.DoesNotContain(Store.Current.Walkers, w => w.Id == "test-walker");
+    }
+
+    [Fact]
     public async Task AnInvalidChange_IsRefusedWithTheReason_AndChangesNothing()
     {
         var client = factory.CreateClient();

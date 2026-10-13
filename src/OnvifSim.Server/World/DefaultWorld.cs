@@ -60,6 +60,18 @@ public static class DefaultWorld
         // A bright target box, handy for checking where a PTZ camera points.
         Add("box", 0, -45, new(3, 3, 3), 0, "#e8452c");
 
+        // A road through the village between the two rows of houses, and someone walking along it.
+        world.Roads.Add(new RoadModel
+        {
+            Id = "r1", Width = 5,
+            Points = [new(-160, 40), new(-70, 8), new(0, 5), new(70, 3), new(160, -30)],
+        });
+        world.Walkers.Add(new WalkerModel
+        {
+            Id = "w1", Return = WalkerReturn.Reverse,
+            Route = [new(-45, 6), new(0, 4.5f), new(45, 3.5f)],
+        });
+
         world.Cameras.Add(new CameraModel
         {
             Id = "cam1", Name = "Village fixed", Kind = CameraKind.Fixed,

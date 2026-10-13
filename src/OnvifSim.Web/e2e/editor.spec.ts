@@ -8,14 +8,15 @@ import { discoveryPort } from './ports';
 test('a camera and a tree placed in the editor are live at once', async ({ page, request }) => {
   await openEditor(page);
 
-  // A fixed camera, then aimed by hand: 3 m up at (0, 100), looking north with a narrow view.
+  // A fixed camera, then aimed by hand: 3 m up at (0, 150), looking south with a narrow view, away
+  // from the village and the person walking through it.
   await placeOnGround(page, 'Fixed camera');
   await expect(page.getByRole('heading', { level: 2 })).toContainText('cam3');
   await page.getByLabel('Name').fill('E2E camera');
   await setNumber(page, 'X (east)', 0);
-  await setNumber(page, 'Z (south)', 100);
+  await setNumber(page, 'Z (south)', 150);
   await setNumber(page, 'Above ground', 3);
-  await setNumber(page, 'Heading', 0);
+  await setNumber(page, 'Heading', 180);
   await setNumber(page, 'Pitch', 0);
   await setNumber(page, 'Field of view', 30);
   await expect.poll(async () => (await cameraOf(request, 'cam3'))?.name).toBe('E2E camera');
@@ -26,8 +27,8 @@ test('a camera and a tree placed in the editor are live at once', async ({ page,
   await placeOnGround(page, 'Pine');
   await expect(page.getByRole('heading', { level: 2 })).toContainText('Pine');
   await setNumber(page, 'X (east)', 0);
-  await setNumber(page, 'Z (south)', 80);
-  await expect.poll(async () => (await objectAt(request, 0, 80))?.type).toBe('tree.pine');
+  await setNumber(page, 'Z (south)', 170);
+  await expect.poll(async () => (await objectAt(request, 0, 170))?.type).toBe('tree.pine');
 
   // The picture is deterministic, so the tree is the only thing that can have changed it.
   expect(Buffer.compare(await snapshot(request, 'cam3'), before)).not.toBe(0);
@@ -81,11 +82,30 @@ test('undo walks back through several edits and redo forward again', async ({ pa
   await expect.poll(() => terrainHeights(request)).toBe(heights);
 });
 
+test('a person drawn point by point walks the route', async ({ page, request }) => {
+  await openEditor(page);
+  const before = (await world(request)).walkers.length;
+
+  await page.getByRole('button', { name: 'Person', exact: true }).click();
+  const box = await page.locator('.viewport canvas').boundingBox();
+  if (!box) throw new Error('The viewport is not on screen.');
+  for (const [fx, fy] of [[0.3, 0.85], [0.45, 0.88], [0.4, 0.75]]) await page.mouse.click(box.x + box.width * fx, box.y + box.height * fy);
+  await expect(page.getByText('3 points; double-click or Enter to finish')).toBeVisible();
+  await page.keyboard.press('Enter');
+
+  await expect(page.getByRole('heading', { level: 2 })).toContainText('Person');
+  await expect.poll(async () => (await world(request)).walkers.length).toBe(before + 1);
+  expect((await world(request)).walkers.at(-1)?.route).toHaveLength(3);
+  await page.getByLabel('At the end').selectOption('reverse');
+  await expect.poll(async () => (await world(request)).walkers.at(-1)?.return).toBe('reverse');
+});
+
 async function openEditor(page: Page) {
   await page.goto('/');
-  await expect(page.getByText(/\d+ objects, \d+ cameras\./)).toBeVisible();
-  // The viewport takes clicks once it has drawn a frame.
+  await expect(page.getByText(/\d+ objects, .* cameras\./)).toBeVisible();
+  // The viewport takes clicks once it has drawn a frame and seen the pointer move.
   await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  await page.mouse.move(10, 200);
 }
 
 async function placeOnGround(page: Page, tool: string) {
@@ -107,6 +127,7 @@ async function world(request: APIRequestContext) {
   return (await (await request.get('/api/world')).json()) as {
     cameras: { id: string; name: string; hFov: number }[];
     objects: { id: string; type: string; position: { x: number; z: number } }[];
+    walkers: { id: string; route: unknown[]; return: string }[];
     terrain: { heights: string };
   };
 }

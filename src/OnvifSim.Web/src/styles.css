@@ -330,3 +330,19 @@ input.pending {
 .camera-list li {
   margin: 3px 0;
 }
+
+.hint {
+  color: var(--muted);
+}
+
+.points {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.points li {
+  border-left: 2px solid var(--border);
+  padding-left: 8px;
+  margin: 6px 0;
+}
