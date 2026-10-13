@@ -60,7 +60,8 @@ public static class DefaultWorld
         // A bright target box, handy for checking where a PTZ camera points.
         Add("box", 0, -45, new(3, 3, 3), 0, "#e8452c");
 
-        // A road through the village between the two rows of houses, and someone walking along it.
+        // A road through the village between the two rows of houses, and people walking along it: one
+        // down the middle, one on the south side the other way, one the whole length of the village.
         world.Roads.Add(new RoadModel
         {
             Id = "r1", Width = 5,
@@ -70,6 +71,16 @@ public static class DefaultWorld
         {
             Id = "w1", Return = WalkerReturn.Reverse,
             Route = [new(-45, 6), new(0, 4.5f), new(45, 3.5f)],
+        });
+        world.Walkers.Add(new WalkerModel
+        {
+            Id = "w2", Return = WalkerReturn.Reverse, Speed = 1.6f, Height = 1.8f, Color = "#d9c27a", Color2 = "#4a3b2a",
+            Route = [new(50, 4.6f), new(0, 6), new(-50, 8.1f)],
+        });
+        world.Walkers.Add(new WalkerModel
+        {
+            Id = "w3", Return = WalkerReturn.Reverse, Speed = 1.1f, Height = 1.65f, Color = "#a83b3b", Color2 = "#2f4a6b",
+            Route = [new(-90, 14.1f), new(-70, 7), new(0, 4), new(70, 2), new(110, -12.7f)],
         });
 
         world.Cameras.Add(new CameraModel
