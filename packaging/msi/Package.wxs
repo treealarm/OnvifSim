@@ -1,0 +1,59 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <!--
+    Per-machine install into Program Files, with a Start menu entry that starts the simulator and
+    opens the editor. The world is kept per user under %LOCALAPPDATA%\OnvifSim, not here.
+  -->
+  <Package
+    Name="OnvifSim"
+    Manufacturer="TreeAlarm"
+    Version="$(var.ProductVersion)"
+    UpgradeCode="6e71d55d-2326-49de-ad5c-cebd27e420ca"
+    Language="1033"
+    Scope="perMachine">
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of OnvifSim is already installed." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Property Id="ARPHELPLINK" Value="https://github.com/treealarm/OnvifSim" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/treealarm/OnvifSim" />
+    <Property Id="ARPCOMMENTS" Value="Simulated ONVIF cameras in a 3D world" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="CompanyFolder" Name="TreeAlarm">
+        <Directory Id="INSTALLFOLDER" Name="OnvifSim" />
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder" />
+
+    <!-- Everything in the release zip: the server, wwwroot\ and ffmpeg\. -->
+    <Feature Id="App" Title="OnvifSim" Level="1">
+      <Files Include="!(bindpath.Payload)**" Directory="INSTALLFOLDER" />
+      <ComponentGroupRef Id="Shortcuts" />
+    </Feature>
+
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+    <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
+  </Package>
+
+  <Fragment>
+    <ComponentGroup Id="Shortcuts" Directory="ProgramMenuFolder">
+      <Component Id="StartMenuShortcut" Guid="23876019-dce0-4286-9f59-c7707e50189a">
+        <Shortcut
+          Id="AppStartMenuShortcut"
+          Name="OnvifSim"
+          Description="Start the simulated ONVIF cameras and open the editor"
+          Target="[INSTALLFOLDER]OnvifSim.exe"
+          WorkingDirectory="INSTALLFOLDER" />
+        <RegistryValue
+          Root="HKCU"
+          Key="Software\TreeAlarm\OnvifSim"
+          Name="Installed"
+          Type="integer"
+          Value="1"
+          KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+</Wix>

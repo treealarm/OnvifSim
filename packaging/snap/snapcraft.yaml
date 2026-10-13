@@ -1,0 +1,66 @@
+# Snap of OnvifSim for the Snap Store: https://snapcraft.io/onvifsim
+#
+# Nothing is compiled here. The snap repackages the linux-x64 release zip (OnvifSim-linux-x64.zip on
+# GitHub Releases): the self-contained single-file server, the editor and the bundled ffmpeg. Run
+# ./stage.sh <zip-or-directory> <version> first; it fills payload/ (gitignored), the only input this
+# file reads. The release workflow does that in its "snap" job; README.md has the local recipe.
+name: onvifsim
+title: OnvifSim
+summary: Simulated ONVIF cameras in a 3D world you edit in the browser
+description: |
+  OnvifSim is a virtual landscape (terrain, trees, houses, roads, people walking) whose cameras are
+  ONVIF devices. Every camera answers WS-Discovery, streams RTSP (Motion JPEG and H.264) and takes
+  PTZ commands, AbsoluteMove included, like real hardware: point ONVIF Device Manager, an NVR or your
+  own client at it, no cameras needed.
+
+  The snap runs as a service. Open the editor at http://localhost:8080/ to build the world and place
+  cameras; they appear on ports 8001 and up, RTSP on 8554. The world is kept in
+  /var/snap/onvifsim/common/world.json.
+
+  OnvifSim is MIT. The bundled ffmpeg (for the H.264 streams) is a GPL build from BtbN/FFmpeg-Builds.
+  Source and issues: https://github.com/treealarm/OnvifSim
+
+# The version is the vX.Y.Z tag, written to payload/version by stage.sh and adopted below.
+adopt-info: server
+base: core24
+confinement: strict
+grade: stable
+license: MIT AND GPL-3.0-or-later
+website: https://github.com/treealarm/OnvifSim
+source-code: https://github.com/treealarm/OnvifSim
+issues: https://github.com/treealarm/OnvifSim/issues
+contact: https://github.com/treealarm/OnvifSim/issues
+
+platforms:
+  amd64:
+
+lint:
+  ignore:
+    # The single-file host extracts nothing; these come with the .NET runtime it carries.
+    - library
+
+apps:
+  onvifsim:
+    command: app/OnvifSim
+    daemon: simple
+    restart-condition: always
+    environment:
+      ONVIFSIM_DATA: $SNAP_COMMON
+      # .NET looks for ICU; without it the server would need invariant globalization anyway.
+      DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: "1"
+    plugs:
+      # Editor, ONVIF, RTSP and RTP on their ports; WS-Discovery on UDP 3702.
+      - network
+      - network-bind
+
+parts:
+  server:
+    # The release zip as it is: OnvifSim, wwwroot/ and ffmpeg/ffmpeg, which the server finds next to
+    # itself before looking on PATH.
+    plugin: dump
+    source: payload/app
+    organize:
+      "*": app/
+    override-build: |
+      craftctl default
+      craftctl set version="$(cat "$CRAFT_PROJECT_DIR/payload/version")"

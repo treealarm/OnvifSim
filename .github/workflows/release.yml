@@ -1,39 +1,232 @@
 name: Release
 
-# A tag vX.Y.Z publishes that version; running the workflow by hand publishes an existing tag again.
+# A vX.Y.Z tag builds every package and publishes it: the GitHub release (zips and the MSI), the
+# Docker image, the snap. Run by hand with a tag to publish that tag again, or without one for a dry
+# run that only builds the packages, as workflow artifacts, from the chosen branch.
 on:
   push:
     tags: ["v*"]
   workflow_dispatch:
     inputs:
       tag:
-        description: "Existing tag to publish again (e.g. v0.1.0)"
-        required: true
+        description: "Existing tag to publish again (e.g. v0.1.0); empty for a dry run"
+        required: false
+        default: ""
 
 permissions:
-  contents: read
+  contents: write
   packages: write
 
+env:
+  # The GPL FFmpeg bundled with the packages (libx264 encodes the H.264 streams): BtbN's n8.1.3 build,
+  # copied to this repository's ffmpeg-mirror release by mirror-ffmpeg.yml.
+  FFMPEG_MIRROR: https://github.com/treealarm/OnvifSim/releases/download/ffmpeg-mirror
+  FFMPEG_BUILD: ffmpeg-n8.1.3-18-g46d899d7a0
+
 jobs:
-  docker:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.v.outputs.tag }}
+      ref: ${{ steps.v.outputs.ref }}
+      version: ${{ steps.v.outputs.version }}
+      publish: ${{ steps.v.outputs.publish }}
+    steps:
+      - id: v
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          tag="$INPUT_TAG"
+          if [ -z "$tag" ] && [ "$GITHUB_REF_TYPE" = tag ]; then tag="$GITHUB_REF_NAME"; fi
+          if [ -n "$tag" ]; then
+            version="${tag#v}"
+            echo "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' || { echo "tag '$tag' is not vX.Y.Z"; exit 1; }
+            echo "tag=$tag" >> "$GITHUB_OUTPUT"
+            echo "ref=$tag" >> "$GITHUB_OUTPUT"
+            echo "version=$version" >> "$GITHUB_OUTPUT"
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Dry run: packages are built as artifacts, nothing is published"
+            echo "ref=$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+            echo "version=0.0.0" >> "$GITHUB_OUTPUT"
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    needs: version
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - rid: linux-x64
+            ffmpeg_archive: linux64-gpl-8.1.tar.xz
+            ffmpeg_sha: b3506f47a71a2f8cff8c0775112bf02a8a49035e3994232aa5f218058328e0e7
+            ffmpeg_exe: ffmpeg
+          - rid: linux-arm64
+            ffmpeg_archive: linuxarm64-gpl-8.1.tar.xz
+            ffmpeg_sha: bb5477906594f7b02f84fedaa2dc3d503bb14166fc4acb2f3175be0488967e43
+            ffmpeg_exe: ffmpeg
+          - rid: win-x64
+            ffmpeg_archive: win64-gpl-8.1.zip
+            ffmpeg_sha: f328d719f8805ea9ab76b8e99dc4a52537e92c6d6f5f8302f297988b9a928bb6
+            ffmpeg_exe: ffmpeg.exe
     runs-on: ubuntu-latest
     env:
-      TAG: ${{ inputs.tag || github.ref_name }}
+      OUT: artifacts/OnvifSim-${{ matrix.rid }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.version.outputs.ref }}
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      # For the editor, which the publish builds through npm.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: src/OnvifSim.Web/package-lock.json
+
+      - name: Publish (${{ matrix.rid }})
+        run: |
+          dotnet publish src/OnvifSim.Server -c Release -r "${{ matrix.rid }}" --self-contained \
+            -p:PublishSingleFile=true -p:DebugType=None -p:Version=${{ needs.version.outputs.version }} \
+            -p:ContinuousIntegrationBuild=true -o "$OUT" --nologo
+          cp LICENSE "$OUT/LICENSE.txt"
+
+      - name: Bundle ffmpeg
+        run: |
+          set -euo pipefail
+          archive="$FFMPEG_BUILD-${{ matrix.ffmpeg_archive }}"
+          curl -fsSL -o "$RUNNER_TEMP/$archive" "$FFMPEG_MIRROR/$archive"
+          echo "${{ matrix.ffmpeg_sha }}  $RUNNER_TEMP/$archive" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/ffmpeg"
+          case "$archive" in
+            *.zip) unzip -q "$RUNNER_TEMP/$archive" -d "$RUNNER_TEMP/ffmpeg" ;;
+            *) tar -xJf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP/ffmpeg" ;;
+          esac
+          mkdir -p "$OUT/ffmpeg"
+          cp "$(find "$RUNNER_TEMP/ffmpeg" -type f -path '*/bin/${{ matrix.ffmpeg_exe }}' | head -n1)" "$OUT/ffmpeg/"
+          cp "$(find "$RUNNER_TEMP/ffmpeg" -maxdepth 2 -type f -name LICENSE.txt | head -n1)" "$OUT/ffmpeg/LICENSE.txt"
+          chmod +x "$OUT/ffmpeg/${{ matrix.ffmpeg_exe }}"
+          cat > "$OUT/ffmpeg/README.txt" <<EOF
+          This ffmpeg encodes the H.264 streams. It is a separate program: a GPL build of FFmpeg
+          ($FFMPEG_BUILD) from https://github.com/BtbN/FFmpeg-Builds, licensed under the GNU GPL
+          version 3 or later (LICENSE.txt). Source: https://ffmpeg.org/download.html and the build
+          scripts at https://github.com/BtbN/FFmpeg-Builds. OnvifSim itself is MIT (../LICENSE.txt).
+          EOF
+
+      - name: Zip
+        run: |
+          cd artifacts
+          zip -qr "OnvifSim-${{ matrix.rid }}.zip" "OnvifSim-${{ matrix.rid }}"
+          ls -lh "OnvifSim-${{ matrix.rid }}.zip"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: OnvifSim-${{ matrix.rid }}
+          path: artifacts/OnvifSim-${{ matrix.rid }}.zip
+          if-no-files-found: error
+
+  msi:
+    needs: [version, build]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.version.outputs.ref }}
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: OnvifSim-win-x64
+          path: dist
+
+      - name: Build the MSI
+        shell: pwsh
+        run: |
+          Expand-Archive -LiteralPath dist/OnvifSim-win-x64.zip -DestinationPath payload
+          # Forward slashes: MSBuild -p: values ending in a backslash lose their closing quote.
+          $payload = (Resolve-Path payload/OnvifSim-win-x64).Path -replace '\\', '/'
+          dotnet build packaging/msi/OnvifSim.Setup.wixproj -c Release -p:Platform=x64 `
+            "-p:PayloadDir=$payload/" "-p:Version=${{ needs.version.outputs.version }}" --nologo
+          $msi = Get-ChildItem -Recurse packaging/msi/bin -Filter OnvifSim.msi | Select-Object -First 1
+          if (-not $msi) { throw "The WiX build produced no OnvifSim.msi" }
+          Copy-Item $msi.FullName dist/OnvifSim-win-x64.msi
+          Get-Item dist/OnvifSim-win-x64.msi | Format-List Name, Length
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: OnvifSim-win-x64-msi
+          path: dist/OnvifSim-win-x64.msi
+          if-no-files-found: error
+
+  snap:
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    env:
+      # Set once the snap name is registered (packaging/snap/README.md); without it nothing is published.
+      SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.version.outputs.ref }}
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: OnvifSim-linux-x64
+          path: dist
+
+      # The same payload as the zip: the snap is a repackaging, not a second build.
+      - name: Stage
+        run: |
+          version="${{ needs.version.outputs.version }}"
+          if [ "${{ needs.version.outputs.publish }}" != true ]; then version="0.0.0+git${GITHUB_SHA::7}"; fi
+          packaging/snap/stage.sh dist/OnvifSim-linux-x64.zip "$version"
+
+      - id: snap
+        uses: snapcore/action-build@v1
+        with:
+          path: packaging/snap
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: OnvifSim-linux-x64-snap
+          path: ${{ steps.snap.outputs.snap }}
+          if-no-files-found: error
+
+      - name: Publish to the Snap Store (stable)
+        if: needs.version.outputs.publish == 'true' && env.SNAPCRAFT_STORE_CREDENTIALS != ''
+        uses: snapcore/action-publish@v1
+        with:
+          snap: ${{ steps.snap.outputs.snap }}
+          release: stable
+
+  docker:
+    needs: version
+    if: needs.version.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
       # Docker Hub is published to only when its credentials are set as repository secrets.
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ env.TAG }}
+          ref: ${{ needs.version.outputs.ref }}
 
-      - name: Version and image names
+      - name: Image names
         run: |
-          version="${TAG#v}"
-          tags="ghcr.io/treealarm/onvifsim:$version,ghcr.io/treealarm/onvifsim:latest"
+          tags="ghcr.io/treealarm/onvifsim:$VERSION,ghcr.io/treealarm/onvifsim:latest"
           if [ -n "$DOCKERHUB_USERNAME" ]; then
-            tags="$tags,treealarm/onvifsim:$version,treealarm/onvifsim:latest"
+            tags="$tags,treealarm/onvifsim:$VERSION,treealarm/onvifsim:latest"
           fi
-          echo "VERSION=$version" >> "$GITHUB_ENV"
           echo "IMAGE_TAGS=$tags" >> "$GITHUB_ENV"
 
       - uses: docker/setup-qemu-action@v4
@@ -60,3 +253,36 @@ jobs:
           push: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  release:
+    needs: [version, build, msi]
+    if: needs.version.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: dist
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ needs.version.outputs.tag }}
+          name: OnvifSim ${{ needs.version.outputs.version }}
+          fail_on_unmatched_files: true
+          files: |
+            dist/OnvifSim-linux-x64.zip
+            dist/OnvifSim-linux-arm64.zip
+            dist/OnvifSim-win-x64.zip
+            dist/OnvifSim-win-x64.msi
+          body: |
+            Simulated ONVIF cameras in a 3D world you edit in the browser.
+
+            ### Downloads
+            - **OnvifSim-win-x64.msi**: Windows x64 installer (Program Files, Start menu entry that starts the simulator and opens the editor).
+            - **OnvifSim-win-x64.zip**, **OnvifSim-linux-x64.zip**, **OnvifSim-linux-arm64.zip**: portable; unzip and run `OnvifSim` (`OnvifSim.exe`).
+            - Docker: `docker pull ghcr.io/treealarm/onvifsim:${{ needs.version.outputs.version }}`, or `docker compose up -d` with the repository's `docker-compose.yml`.
+            - Snap: `sudo snap install onvifsim` (runs as a service).
+
+            The editor opens at http://localhost:8080/; cameras answer ONVIF on ports 8001 and up and stream RTSP on 8554. The world is kept in `%LOCALAPPDATA%\OnvifSim` (Windows) or `~/.local/share/OnvifSim` (Linux); `--data <dir>` moves it.
+
+            Every package bundles a GPL build of ffmpeg (from BtbN/FFmpeg-Builds) under `ffmpeg/` for the H.264 streams; OnvifSim itself is MIT.

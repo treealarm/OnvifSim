@@ -1,0 +1,29 @@
+<Project Sdk="WixToolset.Sdk/5.0.2">
+  <!--
+    MSI for the win-x64 release build. Not part of OnvifSim.slnx: it builds only on Windows, from the
+    unpacked OnvifSim-win-x64.zip (server, wwwroot\ and ffmpeg\), which the release workflow passes in
+    as PayloadDir.
+  -->
+  <PropertyGroup>
+    <OutputType>Package</OutputType>
+    <OutputName>OnvifSim</OutputName>
+    <InstallerPlatform>x64</InstallerPlatform>
+    <!-- MSI versions are major.minor.build; the release workflow passes the vX.Y.Z tag. -->
+    <Version Condition="'$(Version)' == ''">0.0.0</Version>
+    <DefineConstants>ProductVersion=$(Version)</DefineConstants>
+    <PayloadDir Condition="!HasTrailingSlash('$(PayloadDir)')">$(PayloadDir)\</PayloadDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <BindPath Include="$(PayloadDir)">
+      <BindName>Payload</BindName>
+    </BindPath>
+    <PackageReference Include="WixToolset.UI.wixext" Version="5.0.2" />
+  </ItemGroup>
+
+  <Target Name="RequirePayload" BeforeTargets="BeforeBuild">
+    <Error Condition="!Exists('$(PayloadDir)OnvifSim.exe')" Text="No OnvifSim.exe in PayloadDir '$(PayloadDir)': unpack OnvifSim-win-x64.zip there." />
+    <Error Condition="!Exists('$(PayloadDir)wwwroot\index.html')" Text="No editor (wwwroot\index.html) in PayloadDir '$(PayloadDir)'." />
+    <Error Condition="!Exists('$(PayloadDir)ffmpeg\ffmpeg.exe')" Text="No ffmpeg\ffmpeg.exe in PayloadDir '$(PayloadDir)': the cameras would have no H.264." />
+  </Target>
+</Project>
