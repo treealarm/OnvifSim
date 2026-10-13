@@ -19,7 +19,7 @@ public readonly struct ViewFrustum
         (_forward, _right, _up) = pose.Basis();
         _eye = pose.Position;
         _far = far;
-        float tanH = MathF.Tan(Math.Clamp(pose.HFov, 0.5f, 170f) * MathF.PI / 360);
+        float tanH = pose.HalfTangent;
         float tanV = tanH / aspect;
         _cosH = 1 / MathF.Sqrt(1 + tanH * tanH);
         _sinH = tanH * _cosH;

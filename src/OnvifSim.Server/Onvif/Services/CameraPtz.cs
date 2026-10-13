@@ -1,4 +1,5 @@
 using OnvifSim.Onvif.Wsdl;
+using OnvifSim.Ptz;
 using OnvifSim.World;
 
 namespace OnvifSim.Onvif.Services;
@@ -83,6 +84,18 @@ public static class CameraPtz
             space = PanTiltPositionSpace,
         },
         Zoom = new Vector1D { x = position.Zoom, space = ZoomPositionSpace },
+    };
+
+    // Where the head is and whether it moves, in the generic spaces: GetStatus and the metadata stream.
+    public static PTZStatus Status(PtzModel ptz, PtzState state, System.DateTime utcTime) => new()
+    {
+        Position = ToGeneric(ptz, state.Position),
+        MoveStatus = new PTZMoveStatus
+        {
+            PanTilt = state.PanTiltMoving ? MoveStatus.MOVING : MoveStatus.IDLE, PanTiltSpecified = true,
+            Zoom = state.ZoomMoving ? MoveStatus.MOVING : MoveStatus.IDLE, ZoomSpecified = true,
+        },
+        UtcTime = utcTime,
     };
 
     public static float PanFromGeneric(PtzModel ptz, float x) => ptz.PanMin + (x + 1) / 2 * PanSpan(ptz);

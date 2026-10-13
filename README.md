@@ -42,6 +42,13 @@ turns towards what you asked for, and a person walks out of one camera's view in
 - Snapshot URIs, and a live Motion JPEG page for the browser.
 - Two streams per camera with their own resolution, frame rate and quality, as ONVIF profiles.
 
+**Analytics with exact answers**
+- Every camera reports the people it sees, as a camera's own analytics would: boxes with object ids
+  in the ONVIF metadata track of its RTSP streams (`vnd.onvif.metadata`), five times a second.
+- The boxes are exact, to the pixel of the picture, and people hidden behind a house or a hill are
+  not reported, so a VMS's overlay, tracking or rules can be checked against the truth.
+- Optionally the PTZ position too, in the same track.
+
 **PTZ you can see**
 - AbsoluteMove, RelativeMove, ContinuousMove, Stop, GetStatus, presets and home.
 - The head turns at the camera's set speeds and the stream shows it turning; AbsoluteMove ends exactly
@@ -51,7 +58,8 @@ turns towards what you asked for, and a person walks out of one camera's view in
 **A world you edit in the browser**
 - Place trees, houses, rocks, cameras; sculpt the terrain; draw roads and routes for people who walk
   them over and over.
-- See each camera's picture beside the 3D view and drive PTZ cameras with a joystick.
+- See each camera's picture beside the 3D view, with the people its analytics reports boxed, and drive
+  PTZ cameras with a joystick.
 - Every edit is live, on all streams within a moment; undo and redo; no Save button.
 - The world is one JSON file you can keep in git; an HTTP API changes it from scripts and tests.
 
@@ -144,6 +152,9 @@ Ctrl+Y) step back and forth through the last 100 edits; turning a PTZ camera is 
   addresses and every setting: mount, field of view, PTZ limits and speeds, both streams, image
   adjustments, users and port. A PTZ camera gets a joystick (drag it, or focus it and hold the arrow
   keys), zoom buttons and pan/tilt/zoom boxes that drive the same PTZ head as ONVIF clients.
+- **Analytics**: the camera's picture boxes the people its analytics reports, with their object ids,
+  exactly as the metadata stream sends them; the panel turns people detection and the PTZ position in
+  the metadata on and off.
 - **World**: sun, sky colours, fog and terrain size.
 
 ONVIF clients' changes (a new resolution, a preset, where a PTZ camera stopped) show up in the editor
@@ -160,6 +171,7 @@ port 8080; `npm run e2e` runs the browser test.
 | `GET /api/cameras` | camera list |
 | `GET /api/cameras/{id}/snapshot.jpg` | one rendered frame |
 | `GET /api/cameras/{id}/mjpeg` | live Motion JPEG (open it in a browser) |
+| `GET /api/cameras/{id}/analytics` | server-sent events: the people the camera's analytics sees, five times a second |
 
 A change the simulator cannot run with (an unknown object type, a frame size that is not a
 multiple of 8, two cameras on one port…) is refused with 400 and the reason.
@@ -180,6 +192,20 @@ camera with no users accepts anyone. Resolution, frame rate and JPEG quality are
 
 ffmpeg-based players need about 20 frames to start (they measure the frame rate first): ~2 s at the
 default 10 fps, ~7 s at 3 fps. VLC and GStreamer show the first frame at once.
+
+### Metadata
+
+Both streams of a camera carry a second track, the ONVIF metadata stream (`m=application`,
+`vnd.onvif.metadata/90000`, `{stream}/track2`), as cameras with analytics do. Each document is a
+`tt:MetadataStream` with a scene frame: every person the camera sees is a `tt:Object` with an
+`ObjectId` that stays the same while they stay in view, a `BoundingBox` and `CenterOfGravity` in
+ONVIF's normalized frame coordinates (-1..1, y up) and the class `Human`. A document goes out with
+every look of the analytics (five a second) while someone is in view, one more when the last person
+leaves, and once a second otherwise. With `ptzStatus` on, a PTZ camera adds its `tt:PTZStatus`.
+
+The boxes are where the picture draws the people, and someone hidden behind a house, a tree or a hill
+is not reported; a person shorter than 2.5% of the frame is too small to detect. Clients that do not
+want the track simply do not set it up; ffmpeg shows it as a data stream (`-map 0:d`).
 
 ### H.264
 
@@ -204,7 +230,9 @@ WS-Discovery, so ONVIF Device Manager, an NVR or `OnvifLib.Probe --discovery` li
 - **Media** (ver10) and **Media2** (ver20): `Profile_1` with the JPEG stream and, when H.264 is on,
   `Profile_2` with the H.264 one, each with its RTSP and snapshot URIs.
   `SetVideoEncoderConfiguration` changes resolution, frame rate, JPEG quality, H.264 bitrate and GOV
-  length within the offered options and is saved to `world.json`.
+  length within the offered options and is saved to `world.json`. Both profiles share the metadata
+  configuration `Metadata_1` (`SetMetadataConfiguration` turns analytics and the PTZ status on and
+  off, saved as `metadata` in `world.json`) and the analytics configuration `VideoAnalytics_1`.
 - **PTZ** (ver20, PTZ cameras only): AbsoluteMove, RelativeMove, ContinuousMove, Stop and
   GetStatus in the generic spaces, presets and a home position. The head moves at the camera's top
   speeds (`ptz` in `world.json`), the stream shows it turning, and where it stops, its presets and

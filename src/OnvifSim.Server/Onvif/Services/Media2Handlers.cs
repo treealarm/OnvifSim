@@ -7,8 +7,8 @@ using static OnvifSim.Onvif.Services.CameraMedia;
 
 namespace OnvifSim.Onvif.Services;
 
-// Media2 (ver20): the same profiles and encoders as Media1 in the Media2 shapes, which OnvifLib and most
-// current clients prefer. Audio, metadata and OSDs are empty, as in Media1.
+// Media2 (ver20): the same profiles, encoders and metadata as Media1 in the Media2 shapes, which OnvifLib
+// and most current clients prefer. Audio and OSDs are empty, as in Media1.
 [OnvifService(typeof(Media2), "media2_service", 21, 12)]
 public sealed class Media2Handlers(OnvifRequestContext context)
 {
@@ -27,7 +27,9 @@ public sealed class Media2Handlers(OnvifRequestContext context)
             ProfileCapabilities = new ProfileCapabilities2
             {
                 MaximumNumberOfProfiles = Codecs(context).Count, MaximumNumberOfProfilesSpecified = true,
-                ConfigurationsSupported = context.HasPtz ? ["VideoSource", "VideoEncoder", "PTZ"] : ["VideoSource", "VideoEncoder"],
+                ConfigurationsSupported = context.HasPtz
+                    ? ["VideoSource", "VideoEncoder", "Analytics", "Metadata", "PTZ"]
+                    : ["VideoSource", "VideoEncoder", "Analytics", "Metadata"],
             },
             StreamingCapabilities = new StreamingCapabilities1
             {
@@ -51,6 +53,8 @@ public sealed class Media2Handlers(OnvifRequestContext context)
         bool videoSource = all || types.Contains("VideoSource");
         bool videoEncoder = all || types.Contains("VideoEncoder");
         bool ptz = context.HasPtz && (all || types.Contains("PTZ"));
+        bool analytics = all || types.Contains("Analytics");
+        bool metadata = all || types.Contains("Metadata");
         return new GetProfilesResponse
         {
             Profiles = codecs.Select(codec => new MediaProfile
@@ -59,12 +63,14 @@ public sealed class Media2Handlers(OnvifRequestContext context)
                 @fixed = true,
                 fixedSpecified = true,
                 Name = ProfileNameOf(codec),
-                Configurations = videoSource || videoEncoder || ptz
+                Configurations = videoSource || videoEncoder || ptz || analytics || metadata
                     ? new ConfigurationSet
                     {
                         VideoSource = videoSource ? VideoSourceConfiguration(context) : null,
                         VideoEncoder = videoEncoder ? VideoEncoderConfiguration(codec) : null,
+                        Analytics = analytics ? AnalyticsConfiguration(context) : null,
                         PTZ = ptz ? CameraPtz.Configuration() : null,
+                        Metadata = metadata ? MetadataConfiguration(context) : null,
                     }
                     : null,
             }).ToArray(),
@@ -124,11 +130,32 @@ public sealed class Media2Handlers(OnvifRequestContext context)
     public GetAudioEncoderConfigurationsResponse GetAudioEncoderConfigurations(GetAudioEncoderConfigurationsRequest request) =>
         new() { Configurations = [] };
 
-    public GetMetadataConfigurationsResponse GetMetadataConfigurations(GetMetadataConfigurationsRequest request) =>
-        new() { Configurations = [] };
+    public GetMetadataConfigurationsResponse GetMetadataConfigurations(GetMetadataConfigurationsRequest request)
+    {
+        CheckMetadataConfiguration(request.ConfigurationToken);
+        CheckProfile(context, request.ProfileToken);
+        return new GetMetadataConfigurationsResponse { Configurations = [MetadataConfiguration(context)] };
+    }
 
-    public GetAnalyticsConfigurationsResponse GetAnalyticsConfigurations(GetAnalyticsConfigurationsRequest request) =>
-        new() { Configurations = [] };
+    public GetMetadataConfigurationOptionsResponse GetMetadataConfigurationOptions(GetMetadataConfigurationOptionsRequest request)
+    {
+        CheckMetadataConfiguration(request.ConfigurationToken);
+        CheckProfile(context, request.ProfileToken);
+        return new GetMetadataConfigurationOptionsResponse { Options = MetadataConfigurationOptions(context) };
+    }
+
+    public SetMetadataConfigurationResponse SetMetadataConfiguration(SetMetadataConfigurationRequest request)
+    {
+        ApplyMetadataSettings(context, request.Configuration);
+        return new SetMetadataConfigurationResponse();
+    }
+
+    public GetAnalyticsConfigurationsResponse GetAnalyticsConfigurations(GetAnalyticsConfigurationsRequest request)
+    {
+        CheckAnalyticsConfiguration(request.ConfigurationToken);
+        CheckProfile(context, request.ProfileToken);
+        return new GetAnalyticsConfigurationsResponse { Configurations = [AnalyticsConfiguration(context)] };
+    }
 
     public GetOSDsResponse GetOSDs(GetOSDsRequest request) => new() { OSDs = [] };
 

@@ -123,6 +123,52 @@ public class RtspServerTests(SimFactory factory) : IClassFixture<SimFactory>
     }
 
     [Fact]
+    public async Task MetadataTrack_IsInTheSdp_AndPlaysBesideTheVideo()
+    {
+        await using var client = await ConnectAsync();
+        var describe = await client.RequestAsync("DESCRIBE", Url("cam1"));
+        Assert.Contains("m=application 0 RTP/AVP 107\r\na=rtpmap:107 vnd.onvif.metadata/90000\r\n", describe.Body);
+        Assert.Contains($"a=control:{Url("cam1")}/track2\r\n", describe.Body);
+
+        var session = (await client.RequestAsync("SETUP", Url("cam1/track1"), ("Transport", "RTP/AVP/TCP;unicast;interleaved=0-1"))).SessionId!;
+        // Not on the video's channels; without channels asked for, the second track takes the next pair.
+        Assert.Equal(461, (await client.RequestAsync("SETUP", Url("cam1/track2"), ("Transport", "RTP/AVP/TCP;unicast;interleaved=0-1"), ("Session", session))).Status);
+        var metadata = await client.RequestAsync("SETUP", Url("cam1/track2"), ("Transport", "RTP/AVP/TCP;unicast"), ("Session", session));
+        Assert.Equal(200, metadata.Status);
+        Assert.Equal(session, metadata.SessionId);
+        Assert.StartsWith("RTP/AVP/TCP;unicast;interleaved=2-3;ssrc=", metadata.Header("Transport"));
+
+        var play = await client.RequestAsync("PLAY", Url("cam1"), ("Session", session));
+        var rtpInfo = play.Header("RTP-Info")!.Split(',');
+        Assert.Equal(2, rtpInfo.Length);
+        Assert.StartsWith($"url={Url("cam1/track1")};seq=", rtpInfo[0]);
+        Assert.StartsWith($"url={Url("cam1/track2")};seq=", rtpInfo[1]);
+
+        var document = await client.ReadFrameAsync(channel: 2, anyPacketStartsFrame: true);
+        Assert.Equal(107, document[0][1] & 0x7f);
+        var xml = System.Text.Encoding.UTF8.GetString(document.SelectMany(packet => packet[12..]).ToArray());
+        Assert.Equal("MetadataStream", System.Xml.Linq.XDocument.Parse(xml).Root!.Name.LocalName);
+        Assert.NotEmpty(await client.ReadFrameAsync(channel: 0));
+
+        Assert.Equal(200, (await client.RequestAsync("TEARDOWN", Url("cam1"), ("Session", session))).Status);
+    }
+
+    [Fact]
+    public async Task MetadataTrack_PlaysAlone()
+    {
+        await using var client = await ConnectAsync();
+        var setup = await client.RequestAsync("SETUP", Url("cam2/track2"), ("Transport", "RTP/AVP/TCP;unicast;interleaved=4-5"));
+        Assert.Equal(200, setup.Status);
+        Assert.Equal(200, (await client.RequestAsync("PLAY", Url("cam2"), ("Session", setup.SessionId!))).Status);
+        var document = await client.ReadFrameAsync(channel: 4, anyPacketStartsFrame: true);
+        Assert.StartsWith("<?xml", System.Text.Encoding.UTF8.GetString(document[0], 12, document[0].Length - 12));
+
+        // Tracks are set up before PLAY.
+        var late = await client.RequestAsync("SETUP", Url("cam2/track1"), ("Transport", "RTP/AVP/TCP;unicast"), ("Session", setup.SessionId!));
+        Assert.Equal(455, late.Status);
+    }
+
+    [Fact]
     public async Task PlayOverUdp_DeliversFramesToTheClientPort()
     {
         using var rtp = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));

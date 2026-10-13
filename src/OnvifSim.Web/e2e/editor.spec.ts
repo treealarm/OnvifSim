@@ -100,6 +100,24 @@ test('a person drawn point by point walks the route', async ({ page, request }) 
   await expect.poll(async () => (await world(request)).walkers.at(-1)?.return).toBe('reverse');
 });
 
+// Someone standing 15 m in front of the village camera is boxed over its picture, where the metadata
+// stream puts them.
+test('the camera picture boxes the people its analytics sees', async ({ page, request }) => {
+  const standing = { id: 'e2e-standing', route: [{ x: 1, z: 45 }] };
+  expect((await request.put(`/api/walkers/${standing.id}`, { data: standing })).ok()).toBe(true);
+  try {
+    await openEditor(page);
+    await page.getByRole('button', { name: /Village fixed/ }).click();
+    const boxes = page.locator('.preview .seen');
+    await expect(boxes.first()).toBeVisible();
+
+    await page.getByLabel('Boxes on the picture').uncheck();
+    await expect(boxes).toHaveCount(0);
+  } finally {
+    await request.delete(`/api/walkers/${standing.id}`);
+  }
+});
+
 async function openEditor(page: Page) {
   await page.goto('/');
   await expect(page.getByText(/\d+ objects, .* cameras\./)).toBeVisible();

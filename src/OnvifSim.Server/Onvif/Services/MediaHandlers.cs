@@ -8,8 +8,8 @@ using static OnvifSim.Onvif.Services.CameraMedia;
 namespace OnvifSim.Onvif.Services;
 
 // Media (ver10, Profile S): the JPEG profile and, with ffmpeg, the H.264 one; their stream and snapshot
-// URIs and encoder settings. Audio, metadata and OSDs exist only as empty lists, so clients that walk
-// them get an answer.
+// URIs, encoder settings and the metadata configuration both share. Audio and OSDs exist only as empty
+// lists, so clients that walk them get an answer.
 [OnvifService(typeof(Media), "media_service", 21, 12)]
 public sealed class MediaHandlers(OnvifRequestContext context)
 {
@@ -132,10 +132,41 @@ public sealed class MediaHandlers(OnvifRequestContext context)
         new() { Configurations = [] };
 
     public GetMetadataConfigurationsResponse GetMetadataConfigurations(GetMetadataConfigurationsRequest request) =>
-        new() { Configurations = [] };
+        new() { Configurations = [MetadataConfiguration(context)] };
+
+    public GetMetadataConfigurationResponse GetMetadataConfiguration(GetMetadataConfigurationRequest request)
+    {
+        if (request.ConfigurationToken != MetadataConfigurationToken) throw OnvifFault.NoConfig(request.ConfigurationToken);
+        return new GetMetadataConfigurationResponse { Configuration = MetadataConfiguration(context) };
+    }
+
+    public GetCompatibleMetadataConfigurationsResponse GetCompatibleMetadataConfigurations(GetCompatibleMetadataConfigurationsRequest request)
+    {
+        CodecOfProfile(context, request.ProfileToken);
+        return new GetCompatibleMetadataConfigurationsResponse { Configurations = [MetadataConfiguration(context)] };
+    }
+
+    public GetMetadataConfigurationOptionsResponse GetMetadataConfigurationOptions(GetMetadataConfigurationOptionsRequest request)
+    {
+        CheckMetadataConfiguration(request.ConfigurationToken);
+        CheckProfile(context, request.ProfileToken);
+        return new GetMetadataConfigurationOptionsResponse { Options = MetadataConfigurationOptions(context) };
+    }
+
+    public SetMetadataConfigurationResponse SetMetadataConfiguration(SetMetadataConfigurationRequest request)
+    {
+        ApplyMetadataSettings(context, request.Configuration);
+        return new SetMetadataConfigurationResponse();
+    }
 
     public GetVideoAnalyticsConfigurationsResponse GetVideoAnalyticsConfigurations(GetVideoAnalyticsConfigurationsRequest request) =>
-        new() { Configurations = [] };
+        new() { Configurations = [AnalyticsConfiguration(context)] };
+
+    public GetVideoAnalyticsConfigurationResponse GetVideoAnalyticsConfiguration(GetVideoAnalyticsConfigurationRequest request)
+    {
+        if (request.ConfigurationToken != AnalyticsConfigurationToken) throw OnvifFault.NoConfig(request.ConfigurationToken);
+        return new GetVideoAnalyticsConfigurationResponse { Configuration = AnalyticsConfiguration(context) };
+    }
 
     public GetOSDsResponse GetOSDs(GetOSDsRequest request) => new() { OSDs = [] };
 
@@ -154,6 +185,8 @@ public sealed class MediaHandlers(OnvifRequestContext context)
         VideoSourceConfiguration = VideoSourceConfiguration(context),
         VideoEncoderConfiguration = VideoEncoderConfiguration(codec),
         PTZConfiguration = context.HasPtz ? CameraPtz.Configuration() : null,
+        VideoAnalyticsConfiguration = AnalyticsConfiguration(context),
+        MetadataConfiguration = MetadataConfiguration(context),
     };
 
     private VideoEncoderConfiguration VideoEncoderConfiguration(VideoCodec codec) =>

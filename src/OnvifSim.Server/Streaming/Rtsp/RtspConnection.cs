@@ -12,11 +12,13 @@ namespace OnvifSim.Streaming.Rtsp;
 // the socket, so every write goes through one lock.
 //
 // URLs: rtsp://host:port/{cameraId} is the JPEG stream and {cameraId}/h264 the H.264 one (when ffmpeg is
-// available); {stream}/track1 is a stream's only track. A session set up on this connection over TCP
-// ends with it; a UDP session outlives it until TEARDOWN or timeout, as RFC 2326 intends.
+// available); {stream}/track1 is a stream's video and {stream}/track2 the camera's ONVIF metadata. A
+// session set up on this connection over TCP ends with it; a UDP session outlives it until TEARDOWN or
+// timeout, as RFC 2326 intends.
 public sealed class RtspConnection : IAsyncDisposable
 {
-    private const string TrackName = "track1";
+    private const string VideoTrackName = "track1";
+    private const string MetadataTrackName = "track2";
     private const string H264Path = "h264";
     // Constrained Baseline, level 4.1: what FfmpegH264Encoder asks x264 for. Taken from the SPS itself
     // once the camera has encoded a key frame.
@@ -143,34 +145,38 @@ public sealed class RtspConnection : IAsyncDisposable
 
     private RtspResponse Describe(RtspRequest request)
     {
-        if (!TryResolve(request.Url, out var camera, out var codec, out var streamUrl)) return new RtspResponse(404);
+        if (!TryResolve(request.Url, out var camera, out var codec, out _, out var streamUrl)) return new RtspResponse(404);
         if (!IsAuthorized(request, camera)) return Unauthorized();
         return new RtspResponse(200)
             .With("Content-Base", streamUrl + "/")
             .WithBody("application/sdp", BuildSdp(camera, codec, streamUrl));
     }
 
+    // A new session with its first track, or another track of the same stream added to a session.
+    // Every track of a session goes over the same lower transport, and tracks are added before PLAY.
     private (RtspResponse, RtspSession?) Setup(RtspRequest request, RtspSession? existing)
     {
-        if (!TryResolve(request.Url, out var camera, out var codec, out _)) return (new RtspResponse(404), existing);
+        if (!TryResolve(request.Url, out var camera, out var codec, out var kind, out _)) return (new RtspResponse(404), existing);
         if (existing != null)
         {
-            // One track only, so a repeated SETUP can only confirm what is already set up.
-            var confirmation = string.Equals(existing.CameraId, camera.Id, StringComparison.OrdinalIgnoreCase) && existing.Codec == codec
-                ? new RtspResponse(200).With("Transport", existing.TransportHeader)
-                : new RtspResponse(459);
-            return (confirmation, existing);
+            if (!string.Equals(existing.CameraId, camera.Id, StringComparison.OrdinalIgnoreCase) || existing.Codec != codec)
+                return (new RtspResponse(459), existing);
+            // A repeated SETUP of a track confirms what is set up.
+            if (existing.TrackOf(kind) is { } same) return (new RtspResponse(200).With("Transport", same.TransportHeader), existing);
+            if (existing.IsPlaying) return (new RtspResponse(455), existing);
         }
-        if (!IsAuthorized(request, camera)) return (Unauthorized(), null);
+        if (!IsAuthorized(request, camera)) return (Unauthorized(), existing);
 
-        var transport = NegotiateTransport(request.Header("Transport"));
-        if (transport == null) return (new RtspResponse(461), null);
+        var transport = NegotiateTransport(request.Header("Transport"), existing?.Tracks.Count ?? 0);
+        if (transport == null || (existing != null && ((transport is UdpTransport) != existing.IsUdp || existing.SharesChannel(transport))))
+            return (new RtspResponse(461), existing);
 
-        var session = new RtspSession(camera.Id, codec, request.Url, transport, _logger);
-        _server.AddSession(session);
-        _logger.LogInformation("RTSP {Client}: session {Session} for {Camera} ({Codec}) over {Transport}",
-            RemoteEndPoint, session.Id, camera.Id, codec, transport is InterleavedTransport ? "TCP" : "UDP");
-        return (new RtspResponse(200).With("Transport", session.TransportHeader), session);
+        var session = existing ?? new RtspSession(camera.Id, codec, _logger);
+        var track = session.AddTrack(kind, request.Url, transport);
+        if (existing == null) _server.AddSession(session);
+        _logger.LogInformation("RTSP {Client}: session {Session} for {Camera} ({Codec}): {Track} over {Transport}",
+            RemoteEndPoint, session.Id, camera.Id, codec, kind, transport is InterleavedTransport ? "TCP" : "UDP");
+        return (new RtspResponse(200).With("Transport", track.TransportHeader), session);
     }
 
     private RtspResponse Play(RtspSession? session)
@@ -178,21 +184,26 @@ public sealed class RtspConnection : IAsyncDisposable
         if (session == null) return new RtspResponse(454);
         if (_server.Scene.FindCamera(session.CameraId) == null) return new RtspResponse(404);
 
-        var stream = session.Stream;
-        uint rtpTime = stream.HasSentFrames ? stream.RtpTimeAt(Stopwatch.GetTimestamp()) : stream.InitialTimestamp;
+        long now = Stopwatch.GetTimestamp();
+        var rtpInfo = session.Tracks.Select(track =>
+        {
+            var stream = track.Stream;
+            uint rtpTime = stream.HasSentFrames ? stream.RtpTimeAt(now) : stream.InitialTimestamp;
+            return $"url={track.Url};seq={stream.NextSequenceNumber};rtptime={rtpTime}";
+        });
         return new RtspResponse(200)
             .With("Range", "npt=0.000-")
-            .With("RTP-Info", $"url={session.TrackUrl};seq={stream.NextSequenceNumber};rtptime={rtpTime}");
+            .With("RTP-Info", string.Join(",", rtpInfo));
     }
 
     private void StartPlaying(RtspSession session)
     {
-        session.Play(_server.Feeds, failed =>
+        session.Play(_server.Feeds, _server.Analytics, failed =>
         {
             _ = _server.CloseSessionAsync(failed);
             // Over TCP the stream and the control connection are one: a client whose stream ended
             // learns it from the connection closing.
-            if (failed.Transport is InterleavedTransport) Close();
+            if (!failed.IsUdp) Close();
         });
     }
 
@@ -211,7 +222,8 @@ public sealed class RtspConnection : IAsyncDisposable
     }
 
     // Takes the first transport the client offers that the server can do; multicast is not offered.
-    private IRtpTransport? NegotiateTransport(string? header)
+    // A client that leaves the interleaved channels to the server gets the next free pair.
+    private IRtpTransport? NegotiateTransport(string? header, int tracksSetUp)
     {
         if (header == null) return null;
         foreach (var spec in header.Split(','))
@@ -227,7 +239,7 @@ public sealed class RtspConnection : IAsyncDisposable
                 case "RTP/AVP/TCP":
                     var (rtpChannel, rtcpChannel) = parameters.TryGetValue("interleaved", out var channels)
                         ? ParseRange(channels, 255) ?? (-1, -1)
-                        : (0, 1);
+                        : (2 * tracksSetUp, 2 * tracksSetUp + 1);
                     if (rtpChannel < 0) continue;
                     return new InterleavedTransport(this, (byte)rtpChannel, (byte)rtcpChannel);
 
@@ -265,13 +277,14 @@ public sealed class RtspConnection : IAsyncDisposable
         return response;
     }
 
-    // Maps a request URL to a camera and codec. streamUrl is the URL of the stream as the client
-    // addresses this server (scheme, host and port from the request, no credentials or query), so the
-    // control URLs in the SDP work through NAT and port mapping.
-    private bool TryResolve(string url, out CameraModel camera, out VideoCodec codec, out string streamUrl)
+    // Maps a request URL to a camera, codec and track (the video when the URL names none). streamUrl is
+    // the URL of the stream as the client addresses this server (scheme, host and port from the request,
+    // no credentials or query), so the control URLs in the SDP work through NAT and port mapping.
+    private bool TryResolve(string url, out CameraModel camera, out VideoCodec codec, out TrackKind track, out string streamUrl)
     {
         camera = null!;
         codec = VideoCodec.Jpeg;
+        track = TrackKind.Video;
         streamUrl = "";
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return false;
         var segments = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
@@ -284,7 +297,8 @@ public sealed class RtspConnection : IAsyncDisposable
             codec = VideoCodec.H264;
             rest = rest[1..];
         }
-        if (rest is not ([] or [TrackName])) return false;
+        if (rest is [MetadataTrackName]) track = TrackKind.Metadata;
+        else if (rest is not ([] or [VideoTrackName])) return false;
         camera = found;
         streamUrl = $"{uri.Scheme}://{uri.Authority}/{segments[0]}" + (codec == VideoCodec.H264 ? $"/{H264Path}" : "");
         return true;
@@ -311,7 +325,10 @@ public sealed class RtspConnection : IAsyncDisposable
             sdp.Append($"m=video 0 RTP/AVP {JpegPacketizer.PayloadType}\r\n")
                 .Append($"a=rtpmap:{JpegPacketizer.PayloadType} JPEG/{RtpStream.ClockRate}\r\n")
                 .Append($"a=framerate:{camera.Video.Fps}\r\n");
-        sdp.Append($"a=control:{streamUrl}/{TrackName}\r\n");
+        sdp.Append($"a=control:{streamUrl}/{VideoTrackName}\r\n")
+            .Append($"m=application 0 RTP/AVP {MetadataPacketizer.PayloadType}\r\n")
+            .Append($"a=rtpmap:{MetadataPacketizer.PayloadType} {MetadataPacketizer.EncodingName}/{RtpStream.ClockRate}\r\n")
+            .Append($"a=control:{streamUrl}/{MetadataTrackName}\r\n");
         return sdp.ToString();
     }
 

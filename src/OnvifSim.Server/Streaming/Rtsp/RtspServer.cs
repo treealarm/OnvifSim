@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
+using OnvifSim.Analytics;
 using OnvifSim.Security;
 using OnvifSim.World;
 
@@ -9,7 +10,8 @@ namespace OnvifSim.Streaming.Rtsp;
 // The RTSP server: one TCP port for every camera (rtsp://host:8554/{cameraId}) and one shared UDP port
 // pair for RTP/RTCP. Owns the sessions, which may outlive the connection that created them (UDP).
 public sealed class RtspServer(
-    SimOptions options, SceneState scene, FeedManager feeds, HttpAuthenticator authenticator, ILogger<RtspServer> logger) : BackgroundService
+    SimOptions options, SceneState scene, FeedManager feeds, AnalyticsManager analytics, HttpAuthenticator authenticator,
+    ILogger<RtspServer> logger) : BackgroundService
 {
     private static readonly TimeSpan TimeoutCheckInterval = TimeSpan.FromSeconds(5);
 
@@ -22,6 +24,7 @@ public sealed class RtspServer(
 
     public SceneState Scene => scene;
     public FeedManager Feeds => feeds;
+    public AnalyticsManager Analytics => analytics;
     public HttpAuthenticator Authenticator => authenticator;
     // Null when the UDP port pair could not be bound; SETUP then offers TCP only.
     public RtpUdpSockets? Udp { get; private set; }
@@ -76,7 +79,7 @@ public sealed class RtspServer(
     // A TCP session cannot outlive its connection: its packets have nowhere else to go.
     public Task CloseSessionsOfAsync(RtspConnection connection) =>
         Task.WhenAll(_sessions.Values
-            .Where(s => s.Transport is InterleavedTransport t && t.Connection == connection)
+            .Where(s => s.BelongsTo(connection))
             .Select(CloseSessionAsync));
 
     private async Task AcceptConnectionsAsync(CancellationToken stoppingToken)
@@ -116,7 +119,7 @@ public sealed class RtspServer(
     private void OnDatagram(IPEndPoint sender)
     {
         foreach (var session in _sessions.Values)
-            if (session.Transport is UdpTransport udp && udp.IsFromClient(sender))
+            if (session.IsFromClient(sender))
                 session.Touch();
     }
 
@@ -129,7 +132,7 @@ public sealed class RtspServer(
             {
                 long now = Environment.TickCount64;
                 foreach (var session in _sessions.Values)
-                    if (session.Transport is UdpTransport && session.HasTimedOut(now))
+                    if (session.IsUdp && session.HasTimedOut(now))
                     {
                         logger.LogInformation("RTSP session {Session}: no keep-alive for {Timeout} s", session.Id, RtspSession.TimeoutSeconds);
                         await CloseSessionAsync(session);

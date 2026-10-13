@@ -103,6 +103,7 @@ public sealed class CameraModel
     // The H.264 stream, served when ffmpeg is available; its settings are independent of the JPEG ones.
     public H264Model H264 { get; set; } = new();
     public ImagingModel Imaging { get; set; } = new();
+    public MetadataModel Metadata { get; set; } = new();
     public PtzModel? Ptz { get; set; }
     // Port of the camera's ONVIF service; 0 means automatic: 8001 for the first camera, 8002 for the
     // second and so on (--onvif-base-port moves the start).
@@ -115,6 +116,14 @@ public sealed class UserModel
 {
     public string Username { get; set; } = "";
     public string Password { get; set; } = "";
+}
+
+// What the camera's metadata track (in both RTSP streams, ONVIF's metadata configuration) carries:
+// the people its analytics sees, as boxes with object ids, and where its PTZ head is.
+public sealed class MetadataModel
+{
+    public bool Analytics { get; set; } = true;
+    public bool PtzStatus { get; set; }
 }
 
 public sealed class VideoModel

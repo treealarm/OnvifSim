@@ -9,7 +9,9 @@ namespace OnvifSim.Onvif.Services;
 // source and one fixed profile per encoder. Profile_1 with the JPEG encoder is always there; Profile_2
 // with the H.264 encoder is there when ffmpeg is. The encoder settings are the camera's VideoModel and
 // H264Model in world.json, so a change made over ONVIF is what the streams, the snapshot and the editor
-// show.
+// show. Both profiles share one metadata configuration (the camera's MetadataModel: what the metadata
+// track of their streams carries) and one video analytics configuration, the people detector, which
+// has no modules or rules to configure.
 public static class CameraMedia
 {
     public const string JpegProfileToken = "Profile_1";
@@ -18,6 +20,8 @@ public static class CameraMedia
     public const string H264EncoderToken = "VideoEncoder_2";
     public const string VideoSourceToken = "VideoSource_1";
     public const string VideoSourceConfigurationToken = "VideoSourceConfig_1";
+    public const string MetadataConfigurationToken = "Metadata_1";
+    public const string AnalyticsConfigurationToken = "VideoAnalytics_1";
     public const string SessionTimeout = "PT60S";
 
     public const int MinFrameRate = 1;
@@ -105,6 +109,66 @@ public static class CameraMedia
         SourceToken = VideoSourceToken,
         Bounds = new IntRectangle { x = 0, y = 0, width = context.Camera.Video.Width, height = context.Camera.Video.Height },
     };
+
+    public static MetadataConfiguration MetadataConfiguration(OnvifRequestContext context)
+    {
+        var metadata = context.Camera.Metadata;
+        return new MetadataConfiguration
+        {
+            token = MetadataConfigurationToken,
+            Name = "Metadata",
+            UseCount = Codecs(context).Count,
+            Analytics = metadata.Analytics, AnalyticsSpecified = true,
+            // Absent means no PTZ data in the stream, which clients read more reliably than a filter of falses.
+            PTZStatus = context.HasPtz && metadata.PtzStatus ? new PTZFilter { Status = true, Position = true } : null,
+            Multicast = NoMulticast(),
+            SessionTimeout = SessionTimeout,
+        };
+    }
+
+    // PTZ status and position come together, on a PTZ camera only.
+    public static MetadataConfigurationOptions MetadataConfigurationOptions(OnvifRequestContext context) => new()
+    {
+        PTZStatusFilterOptions = new PTZStatusFilterOptions
+        {
+            PanTiltStatusSupported = context.HasPtz,
+            ZoomStatusSupported = context.HasPtz,
+            PanTiltPositionSupported = context.HasPtz, PanTiltPositionSupportedSpecified = true,
+            ZoomPositionSupported = context.HasPtz, ZoomPositionSupportedSpecified = true,
+        },
+    };
+
+    public static void CheckMetadataConfiguration(string? token)
+    {
+        if (!string.IsNullOrEmpty(token) && token != MetadataConfigurationToken) throw OnvifFault.NoConfig(token);
+    }
+
+    // SetMetadataConfiguration, either Media version: whether the track carries the analytics and the
+    // PTZ status. Asking for PTZ status from a fixed camera is refused, as its options said.
+    public static void ApplyMetadataSettings(OnvifRequestContext context, MetadataConfiguration? configuration)
+    {
+        if (configuration == null) throw OnvifFault.InvalidArgValue("The request has no configuration.");
+        if (configuration.token != MetadataConfigurationToken) throw OnvifFault.NoConfig(configuration.token ?? "");
+        bool analytics = configuration.AnalyticsSpecified ? configuration.Analytics : context.Camera.Metadata.Analytics;
+        bool ptzStatus = configuration.PTZStatus is { } filter && (filter.Status || filter.Position);
+        if (ptzStatus && !context.HasPtz) throw OnvifFault.ConfigModify("A fixed camera has no PTZ status to stream.");
+        context.Store.Update(world =>
+            world.Cameras.Single(c => c.Id == context.Camera.Id).Metadata = new MetadataModel { Analytics = analytics, PtzStatus = ptzStatus });
+    }
+
+    public static VideoAnalyticsConfiguration AnalyticsConfiguration(OnvifRequestContext context) => new()
+    {
+        token = AnalyticsConfigurationToken,
+        Name = "PeopleDetector",
+        UseCount = Codecs(context).Count,
+        AnalyticsEngineConfiguration = new AnalyticsEngineConfiguration { AnalyticsModule = [] },
+        RuleEngineConfiguration = new RuleEngineConfiguration { Rule = [] },
+    };
+
+    public static void CheckAnalyticsConfiguration(string? token)
+    {
+        if (!string.IsNullOrEmpty(token) && token != AnalyticsConfigurationToken) throw OnvifFault.NoConfig(token);
+    }
 
     // Encoder configurations must carry a multicast section; this one is unused.
     public static MulticastConfiguration NoMulticast() => new()

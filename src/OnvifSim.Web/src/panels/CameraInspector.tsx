@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import type { CameraModel, PtzSettings, ServerStatus, Vec3 } from '../model';
 import { changeCameraKind, removeSelected, updateCamera, useEditor } from '../store';
+import { CameraPicture } from './CameraPicture';
 import { CheckboxField, NumberField, Section, SelectField, TextField } from './fields';
 import { PtzControl } from './PtzControl';
 
@@ -16,14 +18,15 @@ export function CameraInspector({ camera }: { camera: CameraModel }) {
   const status = useEditor((s) => s.status);
   const change = (patch: Partial<CameraModel>) => updateCamera({ ...camera, ...patch });
   const changePosition = (patch: Partial<Vec3>) => change({ position: { ...camera.position, ...patch } });
+  const changeMetadata = (patch: Partial<CameraModel['metadata']>) => change({ metadata: { ...camera.metadata, ...patch } });
+  const [showBoxes, setShowBoxes] = useState(true);
 
   return (
     <>
       <h2>
         {camera.name || camera.id} <span className="muted">{camera.id}</span>
       </h2>
-      {/* The server's own picture: exactly what RTSP and ONVIF clients get. */}
-      <img className="preview" src={`/api/cameras/${encodeURIComponent(camera.id)}/mjpeg`} alt={`What ${camera.name || camera.id} sees`} />
+      <CameraPicture camera={camera} showBoxes={showBoxes} />
       {camera.kind === 'ptz' && camera.ptz && <PtzControl camera={camera} ptz={camera.ptz} head={head} />}
       {status && <Addresses camera={camera} status={status} />}
 
@@ -64,6 +67,14 @@ export function CameraInspector({ camera }: { camera: CameraModel }) {
         <NumberField label="Brightness" value={camera.imaging.brightness} min={0} max={100} slider onChange={(brightness) => change({ imaging: { ...camera.imaging, brightness } })} />
         <NumberField label="Contrast" value={camera.imaging.contrast} min={0} max={100} slider onChange={(contrast) => change({ imaging: { ...camera.imaging, contrast } })} />
         <NumberField label="Saturation" value={camera.imaging.colorSaturation} min={0} max={100} slider onChange={(colorSaturation) => change({ imaging: { ...camera.imaging, colorSaturation } })} />
+      </Section>
+
+      <Section title="Analytics">
+        <CheckboxField label="Detect people" checked={camera.metadata.analytics} onChange={(analytics) => changeMetadata({ analytics })} />
+        {camera.kind === 'ptz' && (
+          <CheckboxField label="PTZ position in metadata" checked={camera.metadata.ptzStatus} onChange={(ptzStatus) => changeMetadata({ ptzStatus })} />
+        )}
+        <CheckboxField label="Boxes on the picture" checked={showBoxes} onChange={setShowBoxes} />
       </Section>
 
       <Section title="Access">

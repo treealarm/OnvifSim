@@ -101,6 +101,8 @@ export interface CameraModel {
   video: { width: number; height: number; fps: number; quality: number };
   h264: { width: number; height: number; fps: number; bitrateKbps: number; govLength: number };
   imaging: { brightness: number; contrast: number; colorSaturation: number };
+  // What the metadata track of the camera's RTSP streams carries: people as boxes, the PTZ position.
+  metadata: { analytics: boolean; ptzStatus: boolean };
   ptz: PtzSettings | null;
   onvifPort: number;
   users: { username: string; password: string }[];

@@ -8,8 +8,6 @@ namespace OnvifSim.Rendering;
 // the output is bit-for-bit deterministic for a given scene and pose.
 public sealed class SoftwareRasterizer : ICameraRenderer
 {
-    private const float Near = ViewFrustum.Near;
-
     private float[] _depth = [];
     private Vector4[] _clip = [];
     private Vector3[] _color = [];
@@ -32,20 +30,13 @@ public sealed class SoftwareRasterizer : ICameraRenderer
 
         var (fwd, right, up) = pose.Basis();
         float aspect = (float)w / h;
-        float tanH = MathF.Tan(Math.Clamp(pose.HFov, 0.5f, 170f) * MathF.PI / 360);
+        float tanH = pose.HalfTangent;
         float tanV = tanH / aspect;
         float far = scene.FogEnd;
 
         DrawSky(scene, frame, fwd, right, up, tanH, tanV);
 
-        var eye = pose.Position;
-        var view = new Matrix4x4(
-            right.X, up.X, -fwd.X, 0,
-            right.Y, up.Y, -fwd.Y, 0,
-            right.Z, up.Z, -fwd.Z, 0,
-            -Vector3.Dot(right, eye), -Vector3.Dot(up, eye), Vector3.Dot(fwd, eye), 1);
-        var proj = Matrix4x4.CreatePerspectiveFieldOfView(2 * MathF.Atan(tanV), aspect, Near, far);
-        var viewProj = view * proj;
+        var viewProj = pose.ViewProjection(aspect, far);
 
         var frustum = new ViewFrustum(pose, aspect, far);
 

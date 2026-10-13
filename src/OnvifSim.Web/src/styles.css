@@ -246,13 +246,37 @@ input.pending {
   font-weight: normal;
 }
 
+/* The camera's picture, sized to its frame so the analytics boxes land where the picture shows them. */
 .preview {
-  display: block;
+  position: relative;
   width: 100%;
-  aspect-ratio: 16 / 9;
-  object-fit: contain;
   background: #000;
   border-radius: 4px;
+  overflow: hidden;
+}
+
+.preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.preview .seen {
+  position: absolute;
+  box-sizing: border-box;
+  border: 2px solid #ff4d4d;
+  pointer-events: none;
+}
+
+.preview .seen span {
+  position: absolute;
+  left: -2px;
+  bottom: 100%;
+  padding: 0 3px;
+  background: #ff4d4d;
+  color: #fff;
+  font-size: 10px;
+  line-height: 13px;
 }
 
 .addresses {

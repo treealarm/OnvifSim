@@ -1,4 +1,5 @@
 using OnvifSim;
+using OnvifSim.Analytics;
 using OnvifSim.Editor;
 using OnvifSim.Onvif;
 using OnvifSim.Onvif.Services;
@@ -31,6 +32,7 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<PtzSimulator>();
 builder.Services.AddSingleton(sp => H264Support.Detect(options, sp.GetRequiredService<ILogger<H264Support>>()));
 builder.Services.AddSingleton<FeedManager>();
+builder.Services.AddSingleton<AnalyticsManager>();
 builder.Services.AddSingleton<HttpAuthenticator>();
 builder.Services.AddSingleton<RtspServer>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<RtspServer>());

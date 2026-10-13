@@ -19,6 +19,12 @@ public sealed class InterleavedTransport(RtspConnection connection, byte rtpChan
 
     public string ResponseHeader => $"RTP/AVP/TCP;unicast;interleaved={rtpChannel}-{rtcpChannel}";
 
+    public bool Overlaps(InterleavedTransport other) =>
+        other.Connection == connection && new[] { rtpChannel, rtcpChannel }.Intersect([other.RtpChannel, other.RtcpChannel]).Any();
+
+    private byte RtpChannel => rtpChannel;
+    private byte RtcpChannel => rtcpChannel;
+
     public ValueTask SendAsync(RtpPacketBatch batch, bool isRtcp, CancellationToken cancellationToken) =>
         connection.WriteAsync(batch.FrameForInterleaved(isRtcp ? rtcpChannel : rtpChannel), cancellationToken);
 }

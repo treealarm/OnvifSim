@@ -142,20 +142,7 @@ public sealed class PtzHandlers(OnvifRequestContext context)
     public GetStatusResponse GetStatus(GetStatusRequest request)
     {
         RequireProfile(request.ProfileToken);
-        var state = context.Ptz.StateOf(Camera);
-        return new GetStatusResponse
-        {
-            PTZStatus = new PTZStatus
-            {
-                Position = ToGeneric(Ptz, state.Position),
-                MoveStatus = new PTZMoveStatus
-                {
-                    PanTilt = state.PanTiltMoving ? MoveStatus.MOVING : MoveStatus.IDLE, PanTiltSpecified = true,
-                    Zoom = state.ZoomMoving ? MoveStatus.MOVING : MoveStatus.IDLE, ZoomSpecified = true,
-                },
-                UtcTime = System.DateTime.UtcNow,
-            },
-        };
+        return new GetStatusResponse { PTZStatus = Status(Ptz, context.Ptz.StateOf(Camera), System.DateTime.UtcNow) };
     }
 
     public GetPresetsResponse GetPresets(GetPresetsRequest request)

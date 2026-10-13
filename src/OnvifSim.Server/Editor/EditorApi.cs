@@ -4,6 +4,8 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Channels;
+using OnvifSim.Analytics;
 using OnvifSim.Geometry;
 using OnvifSim.Onvif;
 using OnvifSim.Ptz;
@@ -31,6 +33,7 @@ public static class EditorApi
         MapWorld(app);
         MapCameraStreams(app);
         MapPtz(app);
+        MapAnalytics(app);
 
         app.MapPost("/api/meshes", (List<WorldObject> objects) =>
             objects.DistinctBy(o => o.Id).ToDictionary(o => o.Id, o => MeshData.From(SceneBuilder.ObjectMesh(o))));
@@ -153,6 +156,38 @@ public static class EditorApi
             }
             catch (OperationCanceledException) { }
         });
+    }
+
+    // What the camera's analytics sees, look by look: the boxes and object ids its metadata stream sends,
+    // for the editor to draw over the camera's picture.
+    private static void MapAnalytics(WebApplication app) =>
+        app.MapGet("/api/cameras/{id}/analytics", (string id, AnalyticsManager analytics, IHostApplicationLifetime lifetime, CancellationToken requestAborted) =>
+            analytics.Get(id) is { } camera
+                ? (IResult)TypedResults.ServerSentEvents(Looks(camera, lifetime.ApplicationStopping, requestAborted))
+                : Results.NotFound());
+
+    private static async IAsyncEnumerable<SseItem<string>> Looks(
+        CameraAnalytics camera, CancellationToken stopping, [EnumeratorCancellation] CancellationToken requestAborted = default)
+    {
+        using var stop = CancellationTokenSource.CreateLinkedTokenSource(requestAborted, stopping);
+        using var looks = camera.Subscribe();
+        while (await WaitToReadAsync(looks.Frames, stop.Token))
+            while (looks.Frames.TryRead(out var frame))
+                yield return new SseItem<string>(JsonSerializer.Serialize(
+                    frame.Objects.Select(o => new { id = o.ObjectId, walker = o.WalkerId, o.Box.Left, o.Box.Top, o.Box.Right, o.Box.Bottom }),
+                    CompactJson), "objects");
+    }
+
+    private static async Task<bool> WaitToReadAsync<T>(ChannelReader<T> reader, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await reader.WaitToReadAsync(cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            return false;
+        }
     }
 
     // The editor's joystick, sliders and home button drive the same simulator as ONVIF clients do.

@@ -29,6 +29,23 @@ public readonly record struct CameraPose(Vector3 Position, float Heading, float 
         return 2 * MathF.Atan(1 / f) * 180 / MathF.PI;
     }
 
+    // World to clip space for a picture of the given aspect (width / height), out to far: x and y of
+    // clip / w run -1..1 from left to right and from bottom to top.
+    public Matrix4x4 ViewProjection(float aspect, float far)
+    {
+        var (fwd, right, up) = Basis();
+        var view = new Matrix4x4(
+            right.X, up.X, -fwd.X, 0,
+            right.Y, up.Y, -fwd.Y, 0,
+            right.Z, up.Z, -fwd.Z, 0,
+            -Vector3.Dot(right, Position), -Vector3.Dot(up, Position), Vector3.Dot(fwd, Position), 1);
+        float tanV = HalfTangent / aspect;
+        return view * Matrix4x4.CreatePerspectiveFieldOfView(2 * MathF.Atan(tanV), aspect, ViewFrustum.Near, far);
+    }
+
+    // Tangent of half the horizontal field of view, which is kept to a range the projection can take.
+    public float HalfTangent => MathF.Tan(Math.Clamp(HFov, 0.5f, 170f) * MathF.PI / 360);
+
     // Camera basis: forward, right and up unit vectors in world space.
     public (Vector3 Forward, Vector3 Right, Vector3 Up) Basis()
     {
