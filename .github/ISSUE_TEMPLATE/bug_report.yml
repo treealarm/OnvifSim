@@ -1,0 +1,29 @@
+name: Bug report
+description: Something does not work as it should
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected and what happened instead.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version and package
+      description: e.g. 0.1.0, MSI / zip / Docker / snap / built from source
+    validations:
+      required: true
+  - type: input
+    id: client
+    attributes:
+      label: Client
+      description: The ONVIF client, NVR or player involved, with its version, if any.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log
+      description: The simulator's console output around the problem. Remove real addresses and passwords.
+      render: text

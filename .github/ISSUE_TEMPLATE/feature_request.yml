@@ -1,0 +1,15 @@
+name: Feature request
+description: Something the simulator should do or simulate
+labels: [enhancement]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: What you want to test
+      description: The client, NVR or scenario, and what the simulator would need to do for it.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: How it could work

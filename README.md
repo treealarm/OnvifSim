@@ -1,23 +1,70 @@
 # OnvifSim
 
-A virtual world whose cameras are ONVIF devices. Build a low-poly landscape (terrain, trees,
-houses) in the browser, put fixed and PTZ cameras into it, and every camera answers WS-Discovery,
-serves RTSP and takes PTZ commands — including AbsoluteMove — like real hardware. Point ONVIF
-Device Manager, an NVR or your own client at it; no cameras needed.
+<p align="center">
+  <img src="docs/images/banner.jpg" alt="OnvifSim: a village with roads and people walking, rendered by the simulator" width="100%">
+</p>
 
-> **Status: early development.** Done so far: world model, software renderer, snapshots and MJPEG
-> over HTTP, RTSP with RTP/JPEG and H.264, ONVIF Device + Media + Media2 + PTZ + Imaging,
-> WS-Discovery and the browser editor. Coming next: Docker image and installers (MSI, winget, snap).
+<p align="center">
+  <a href="https://github.com/treealarm/OnvifSim/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/treealarm/OnvifSim/ci.yml?branch=main&style=flat-square&label=CI" alt="CI"></a>
+  <a href="https://github.com/treealarm/OnvifSim/releases"><img src="https://img.shields.io/github/v/release/treealarm/OnvifSim?filter=v*&style=flat-square" alt="Release"></a>
+  <a href="https://github.com/treealarm/OnvifSim/pkgs/container/onvifsim"><img src="https://img.shields.io/badge/docker-ghcr.io%2Ftreealarm%2Fonvifsim-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="MIT"></a>
+</p>
+
+A virtual world whose cameras are ONVIF devices. Build a low-poly landscape (terrain, trees,
+houses, roads, people walking their routes) in the browser, put fixed and PTZ cameras into it, and
+every camera answers WS-Discovery, serves RTSP and takes PTZ commands — including AbsoluteMove —
+like real hardware. Point ONVIF Device Manager, an NVR or your own client at it; no cameras needed.
+
+<p align="center">
+  <img src="docs/images/editor.gif" alt="The editor: a PTZ camera turned with the joystick and zoomed in, its picture beside the 3D view" width="90%">
+</p>
+
+## Why a simulator
+
+There are good ONVIF servers already; they turn a real camera, a video file or an RTSP stream into
+an ONVIF device, which is what they are for. OnvifSim has no video source: it renders a world, so
+what the cameras show depends on where they are and where they point.
+
+| | OnvifSim |
+|---|---|
+| Video | Rendered from the world, per camera; no camera, file or stream needed |
+| PTZ | Moves the picture: the head turns at its set speed and the stream shows it turning; AbsoluteMove ends exactly where asked, which a test can check on the picture |
+| Several cameras | One world seen from different places: overlapping views, a person walking from one camera's view into the next |
+| Repeatable | The picture is a function of the world and the clock: the same world file gives the same frames, in CI too |
+| Setup | One program, one Docker image or one installer; the world is a JSON file you can keep in git |
+
+> **Status: first release on the way.** Everything below works and is tested against real clients
+> (OnvifLib and its Probe and GUI, onvif-zeep, ffmpeg, VLC, GStreamer, go2rtc); what changes is
+> listed in the [changelog](CHANGELOG.md).
 
 ## Run
 
-```bash
-dotnet run -c Release --project src/OnvifSim.Server -- --data ./data --port 8080
-```
+- **Windows**: the MSI from [Releases](https://github.com/treealarm/OnvifSim/releases) puts OnvifSim in
+  the Start menu; starting it opens the editor in the browser.
+- **Windows, Linux (x64, arm64)**: the portable zips from Releases; unzip and run `OnvifSim`.
+- **Docker**: see [below](#docker).
+- **Snap**: `sudo snap install onvifsim` runs it as a service, with the world in
+  `/var/snap/onvifsim/common`.
 
-On first start a default world is written to `./data/world.json`. Open http://localhost:8080/ for the
-editor. Building it needs Node.js 20.19 or later: `dotnet build` runs `npm` for it when its sources
-change. Without Node.js the server still builds and serves everything except the editor.
+Every package carries ffmpeg for the H.264 streams. The world is kept in `%LOCALAPPDATA%\OnvifSim`
+or `~/.local/share/OnvifSim`; on first start a default world is written there. The editor is at
+http://localhost:8080/.
+
+| Option | |
+|---|---|
+| `--data <dir>` | where `world.json` is kept |
+| `--port <port>` | the editor and API (8080) |
+| `--no-browser` | do not open the editor on start (it opens only where there is a desktop anyway) |
+| `--ffmpeg <path\|none>` | the ffmpeg for H.264; by default the bundled one, then the one on PATH |
+
+Ports are under [Ports](#ports). From source, with the .NET 10 SDK and Node.js 20.19 or later
+(`dotnet build` runs `npm` for the editor when its sources change; without Node.js the server still
+builds and serves everything except the editor):
+
+```bash
+dotnet run -c Release --project src/OnvifSim.Server -- --data ./data
+```
 
 ## Docker
 
