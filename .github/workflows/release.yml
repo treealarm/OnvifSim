@@ -54,6 +54,7 @@ jobs:
           fi
 
   build:
+    name: build ${{ matrix.rid }}
     needs: version
     strategy:
       fail-fast: false
@@ -119,6 +120,18 @@ jobs:
           scripts at https://github.com/BtbN/FFmpeg-Builds. OnvifSim itself is MIT (../LICENSE.txt).
           EOF
 
+      # The package must start, serve the editor and find its own ffmpeg; the runner can run only
+      # the linux-x64 one (the msi job tries the Windows one).
+      - name: Smoke test
+        if: matrix.rid == 'linux-x64'
+        run: |
+          "$OUT/OnvifSim" --no-browser --data "$RUNNER_TEMP/data" > "$RUNNER_TEMP/server.log" 2>&1 &
+          for i in $(seq 30); do curl -fs http://localhost:8080/api/world > /dev/null && break; sleep 1; done
+          curl -fs http://localhost:8080/ | grep -q '<div id="root">'
+          curl -fs -o /dev/null http://localhost:8080/api/cameras/cam1/snapshot.jpg
+          grep -q 'H.264 is on, encoded by .*/ffmpeg/ffmpeg' "$RUNNER_TEMP/server.log" || { cat "$RUNNER_TEMP/server.log"; exit 1; }
+          kill %1
+
       - name: Zip
         run: |
           cd artifacts
@@ -148,10 +161,25 @@ jobs:
           name: OnvifSim-win-x64
           path: dist
 
-      - name: Build the MSI
+      - name: Unpack and smoke test
         shell: pwsh
         run: |
           Expand-Archive -LiteralPath dist/OnvifSim-win-x64.zip -DestinationPath payload
+          $log = Join-Path $env:RUNNER_TEMP server.log
+          $server = Start-Process payload/OnvifSim-win-x64/OnvifSim.exe -PassThru -NoNewWindow `
+            -ArgumentList '--no-browser', '--data', (Join-Path $env:RUNNER_TEMP data) -RedirectStandardOutput $log
+          $up = $false
+          foreach ($i in 1..30) {
+            try { Invoke-WebRequest http://localhost:8080/api/world -UseBasicParsing | Out-Null; $up = $true; break } catch { Start-Sleep 1 }
+          }
+          Stop-Process $server
+          Get-Content $log
+          if (-not $up) { throw "OnvifSim did not answer on port 8080" }
+          if (-not (Select-String -Path $log -Pattern 'H.264 is on, encoded by .*\\ffmpeg\\ffmpeg.exe' -Quiet)) { throw "The bundled ffmpeg was not used" }
+
+      - name: Build the MSI
+        shell: pwsh
+        run: |
           # Forward slashes: MSBuild -p: values ending in a backslash lose their closing quote.
           $payload = (Resolve-Path payload/OnvifSim-win-x64).Path -replace '\\', '/'
           dotnet build packaging/msi/OnvifSim.Setup.wixproj -c Release -p:Platform=x64 `
