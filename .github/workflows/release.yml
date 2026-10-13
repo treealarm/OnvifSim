@@ -1,0 +1,62 @@
+name: Release
+
+# A tag vX.Y.Z publishes that version; running the workflow by hand publishes an existing tag again.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to publish again (e.g. v0.1.0)"
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+      # Docker Hub is published to only when its credentials are set as repository secrets.
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TAG }}
+
+      - name: Version and image names
+        run: |
+          version="${TAG#v}"
+          tags="ghcr.io/treealarm/onvifsim:$version,ghcr.io/treealarm/onvifsim:latest"
+          if [ -n "$DOCKERHUB_USERNAME" ]; then
+            tags="$tags,treealarm/onvifsim:$version,treealarm/onvifsim:latest"
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          echo "IMAGE_TAGS=$tags" >> "$GITHUB_ENV"
+
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/login-action@v4
+        if: env.DOCKERHUB_USERNAME != ''
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          build-args: VERSION=${{ env.VERSION }}
+          tags: ${{ env.IMAGE_TAGS }}
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

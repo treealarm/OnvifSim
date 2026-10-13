@@ -1,6 +1,6 @@
 # OnvifSim: виртуальный 3D-мир, камеры в котором работают как ONVIF-устройства
 
-> Temporary working plan (agreed 2026-10-13). Status: phases 1–5 and 2b done, plus roads and walking people from phase 7. Will be removed or turned into a roadmap once the MVP ships.
+> Temporary working plan (agreed 2026-10-13). Status: phases 1–6 and 2b done, plus roads and walking people from phase 7. Will be removed or turned into a roadmap once the MVP ships.
 
 ## Context
 Нужен мультиплатформенный тестовый ONVIF-сервер. В браузерном редакторе собирается примитивный 3D-мир (рельеф, деревья, дома), в нём расставляются фиксированные и PTZ-камеры. Каждая камера становится отдельным ONVIF-устройством: отвечает на discovery, отдаёт RTSP H.264 с рендером мира и управляется по PTZ, обязательно с AbsoluteMove. Всё запускается в Docker. Основная польза: на этом стенде можно гонять OnvifLib, Probe, GUI, ODM и NVR без железа, детерминированно, в том числе в CI.
@@ -72,7 +72,7 @@ Vite + React + TS + @react-three/fiber + drei + zustand. `dotnet build` соби
 - System.ServiceModel.Http — атрибуты и клиентские классы сгенерированных контрактов (`Onvif/Wsdl/OnvifContracts.cs`).
 - xUnit; OnvifLib работает клиентом в тестах.
 
-Внешние бинарники: у сервера обязательных нет. **ffmpeg** (libx264) — опционально, отдельным процессом, только для H.264-профиля; в Docker-образ кладём apt-пакет из Debian (стабильнее, чем пины на BtbN-автобилды), локально — по желанию.
+Внешние бинарники: у сервера обязательных нет. **ffmpeg** (libx264) — опционально, отдельным процессом, только для H.264-профиля; в Docker-образ кладём apt-пакет базового образа aspnet:10.0 (Ubuntu 24.04; стабильнее, чем пины на BtbN-автобилды, но это +425 МБ к образу), локально — по желанию.
 
 Редактор (npm, MIT/Apache): `react`, `vite`, `typescript`, `three`, `@react-three/fiber`, `@react-three/drei`, `zustand`; Playwright для e2e. Панель свойств — свои поля, не `leva`.
 

@@ -1,0 +1,10 @@
+**/bin/
+**/obj/
+**/node_modules/
+**/dist/
+**/test-results/
+**/TestResults/
+.git/
+.vs/
+.vscode/
+data/

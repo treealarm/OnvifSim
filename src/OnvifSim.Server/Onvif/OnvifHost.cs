@@ -113,6 +113,8 @@ public sealed class OnvifHost(
         var builder = WebApplication.CreateEmptyBuilder(new WebApplicationOptions());
         builder.Services.AddLogging();
         builder.Services.AddSingleton(loggers);
+        // An "application started" per camera would bury the log; the main application says it once.
+        builder.Services.Configure<ConsoleLifetimeOptions>(o => o.SuppressStatusMessages = true);
         builder.WebHost.UseKestrelCore().ConfigureKestrel(kestrel =>
         {
             kestrel.ListenAnyIP(port);

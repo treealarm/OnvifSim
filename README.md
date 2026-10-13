@@ -19,6 +19,20 @@ On first start a default world is written to `./data/world.json`. Open http://lo
 editor. Building it needs Node.js 20.19 or later: `dotnet build` runs `npm` for it when its sources
 change. Without Node.js the server still builds and serves everything except the editor.
 
+## Docker
+
+```bash
+docker compose up -d                                # Linux: host networking, WS-Discovery works
+docker compose -f docker-compose.ports.yml up -d    # Docker Desktop (Windows, macOS): mapped ports
+```
+
+The image `ghcr.io/treealarm/onvifsim` (amd64 and arm64) has ffmpeg, so H.264 is on, and keeps the
+world in the `/data` volume. With host networking the cameras are on the LAN as they would be on real
+hardware: discovery, ONVIF ports 8001…, RTSP 8554. Docker Desktop cannot put a container on the LAN,
+so `docker-compose.ports.yml` maps the ports one by one (cameras 8001–8016) and turns discovery off;
+connect to `http://<host>:8001/onvif/device_service` and so on. Behind NAT or in a VM, set
+`ONVIFSIM_ADVERTISE_HOST` to the address clients should use.
+
 ## Editor
 
 The browser editor shows the world in 3D and changes it live; there is no Save button, every edit

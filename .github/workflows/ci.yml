@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: src/OnvifSim.Web/package-lock.json
+
+      # ffmpeg with libx264 for the H.264 tests, which are skipped without it.
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+
+      # Also builds the editor through npm.
+      - name: Build
+        run: dotnet build OnvifSim.slnx -p:ContinuousIntegrationBuild=true
+
+      - name: Test
+        run: dotnet test tests/OnvifSim.Tests --no-build
+
+      - name: Browser test
+        working-directory: src/OnvifSim.Web
+        run: |
+          npx playwright install --with-deps chromium
+          npm run e2e
+
+      - name: Keep the browser test's screenshots
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-results
+          path: src/OnvifSim.Web/test-results/
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+
+      # Both architectures build; the amd64 image is then started and asked for its world.
+      - name: Build the image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Start the amd64 image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          load: true
+          tags: onvifsim:ci
+          cache-from: type=gha
+
+      - name: Smoke test
+        run: |
+          docker run -d --name onvifsim -p 8080:8080 -p 8001:8001 onvifsim:ci
+          for i in $(seq 30); do curl -fs http://localhost:8080/api/world > /dev/null && break; sleep 1; done
+          curl -fs http://localhost:8080/ | grep -q '<div id="root">'
+          curl -fs -o /dev/null http://localhost:8080/api/cameras/cam1/snapshot.jpg
+          curl -fs -X POST -H 'Content-Type: application/soap+xml' \
+            --data '<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"><s:Body><GetSystemDateAndTime xmlns="http://www.onvif.org/ver10/device/wsdl"/></s:Body></s:Envelope>' \
+            http://localhost:8001/onvif/device_service | grep -q SystemDateAndTime
+          docker logs onvifsim 2>&1 | grep -q 'H.264 is on' || (docker logs onvifsim; exit 1)
