@@ -1,17 +1,26 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using OnvifSim.World;
 using StbImageSharp;
 
 namespace OnvifSim.Tests;
 
-public sealed class SimFactory : WebApplicationFactory<Program>
+public class SimFactory : WebApplicationFactory<Program>
 {
     public TempDir Data { get; } = new();
 
-    public SimFactory() => Environment.SetEnvironmentVariable("ONVIFSIM_DATA", Data.Path);
+    // Settings reach the app as --name=value arguments, so every factory has its own data directory
+    // even when test classes run in parallel; port 0 picks free RTSP and RTP ports, which also keeps the
+    // tests clear of a simulator started by hand.
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.UseSetting("data", Data.Path);
+        builder.UseSetting("rtsp-port", "0");
+        builder.UseSetting("rtp-port", "0");
+    }
 
     protected override void Dispose(bool disposing)
     {

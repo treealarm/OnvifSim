@@ -68,13 +68,23 @@ public sealed class CameraModel
     public float HFov { get; set; } = 70;
     public VideoModel Video { get; set; } = new();
     public PtzModel? Ptz { get; set; }
+    // Accounts the camera accepts on RTSP (and on ONVIF). No users: the camera asks for no credentials.
+    public List<UserModel> Users { get; set; } = [];
+}
+
+public sealed class UserModel
+{
+    public string Username { get; set; } = "";
+    public string Password { get; set; } = "";
 }
 
 public sealed class VideoModel
 {
     public int Width { get; set; } = 640;
     public int Height { get; set; } = 360;
-    public int Fps { get; set; } = 3;
+    // 10 fps: ffmpeg-based players (OnvifLib.Gui, NVRs) probe ~20 frames before the first picture,
+    // so lower rates make them start slowly; one camera still costs only ~5% of a core.
+    public int Fps { get; set; } = 10;
     // JPEG quality 1..100.
     public int Quality { get; set; } = 70;
 }

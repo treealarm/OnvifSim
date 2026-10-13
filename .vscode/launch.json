@@ -1,0 +1,26 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      // F5: build and debug the simulator with the world in ./data (git-ignored). Opens the cam1 preview
+      // once the server is up; RTSP is at rtsp://admin:admin@localhost:8554/cam1.
+      "name": "OnvifSim",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/src/OnvifSim.Server/bin/Debug/net10.0/OnvifSim.dll",
+      "args": ["--data", "${workspaceFolder}/data", "--port", "8080"],
+      "cwd": "${workspaceFolder}",
+      "console": "internalConsole",
+      "stopAtEntry": false,
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "editor at (http://localhost:\\d+)/",
+        "uriFormat": "%s/api/cameras/cam1/mjpeg"
+      },
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  ]
+}

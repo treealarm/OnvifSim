@@ -5,7 +5,9 @@ using OnvifSim.World;
 
 namespace OnvifSim.Streaming;
 
-public sealed record EncodedFrame(byte[] Jpeg, int Width, int Height, long TimestampTicks);
+// CaptureTimestamp is the Stopwatch timestamp the frame was scheduled for: monotonic, so RTP time
+// derived from it never jumps when the wall clock is adjusted, and evenly spaced at the frame rate.
+public sealed record EncodedFrame(byte[] Jpeg, int Width, int Height, long CaptureTimestamp);
 
 // Renders one camera only while somebody watches: the first subscriber starts the frame loop, the
 // last one leaving stops it. Every subscriber gets the same frames through a one-slot channel that
@@ -61,8 +63,9 @@ public sealed class CameraFeed(string cameraId, SceneState scene, ILogger logger
         logger.LogInformation("Camera {Camera}: stream started", cameraId);
         var renderer = new SoftwareRasterizer();
         Frame? frame = null;
-        var clock = Stopwatch.StartNew();
-        long next = 0;
+        // Stopwatch timestamp the next frame is due at, and the one it is stamped with: frames sit on an
+        // even grid like a real camera's, whatever the scheduling jitter.
+        long next = Stopwatch.GetTimestamp();
         try
         {
             while (!token.IsCancellationRequested)
@@ -78,17 +81,16 @@ public sealed class CameraFeed(string cameraId, SceneState scene, ILogger logger
                 if (frame == null || frame.Width != video.Width || frame.Height != video.Height)
                     frame = new Frame(video.Width, video.Height);
                 renderer.Render(snap.Scene, CameraPose.From(cam, snap.Scene.Terrain), frame);
-                var encoded = new EncodedFrame(JpegEncoder.Encode(frame, video.Quality), frame.Width, frame.Height, DateTime.UtcNow.Ticks);
+                var encoded = new EncodedFrame(JpegEncoder.Encode(frame, video.Quality), frame.Width, frame.Height, next);
                 lock (_gate)
                     foreach (var s in _subscribers)
                         s.Writer.TryWrite(encoded);
 
                 // Fixed-rate schedule; if rendering falls behind, skip ahead instead of bursting.
-                long period = TimeSpan.TicksPerSecond / Math.Clamp(video.Fps, 1, 60);
-                next += period;
-                long now = clock.Elapsed.Ticks;
+                next += Stopwatch.Frequency / Math.Clamp(video.Fps, 1, 60);
+                long now = Stopwatch.GetTimestamp();
                 if (next < now) next = now;
-                await Task.Delay(TimeSpan.FromTicks(next - now), token);
+                await Task.Delay(Stopwatch.GetElapsedTime(now, next), token);
             }
         }
         catch (OperationCanceledException) { }

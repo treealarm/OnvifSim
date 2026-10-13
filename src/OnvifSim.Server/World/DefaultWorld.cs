@@ -64,12 +64,14 @@ public static class DefaultWorld
         {
             Id = "cam1", Name = "Village fixed", Kind = CameraKind.Fixed,
             Position = new(0, 6, 60), Heading = 0, Pitch = -8, HFov = 75,
+            Users = [new UserModel { Username = "admin", Password = "admin" }],
         });
         world.Cameras.Add(new CameraModel
         {
             Id = "cam2", Name = "Tower PTZ", Kind = CameraKind.Ptz,
             Position = new(40, 15, 40), Heading = 315, Pitch = 0,
             Ptz = new PtzModel { Tilt = -10 },
+            Users = [new UserModel { Username = "admin", Password = "admin" }],
         });
         return world;
     }

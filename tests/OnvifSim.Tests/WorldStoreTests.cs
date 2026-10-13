@@ -5,7 +5,11 @@ namespace OnvifSim.Tests;
 public sealed class TempDir : IDisposable
 {
     public string Path { get; } = Directory.CreateTempSubdirectory("onvifsim-test-").FullName;
-    public void Dispose() => Directory.Delete(Path, recursive: true);
+    // Idempotent: xUnit disposes a WebApplicationFactory fixture both synchronously and asynchronously.
+    public void Dispose()
+    {
+        if (Directory.Exists(Path)) Directory.Delete(Path, recursive: true);
+    }
 }
 
 public class WorldStoreTests
