@@ -1,4 +1,5 @@
-using MediaServiceReference1;
+using OnvifSim.Onvif.Wsdl;
+using OnvifSim.Onvif.Wsdl.Media;
 using OnvifSim.Onvif.Soap;
 using OnvifSim.World;
 using static OnvifSim.Onvif.Services.CameraMedia;
@@ -12,28 +13,33 @@ public sealed class MediaHandlers(OnvifRequestContext context)
 {
     private CameraModel Camera => context.Camera;
 
-    public Capabilities GetServiceCapabilities() => new()
+    // Capabilities1 and ProfileCapabilities1 are trt:Capabilities and trt:ProfileCapabilities: svcutil
+    // numbers classes whose names other namespaces already took.
+    public GetServiceCapabilitiesResponse GetServiceCapabilities(GetServiceCapabilitiesRequest request) => new()
     {
-        ProfileCapabilities = new ProfileCapabilities { MaximumNumberOfProfiles = 1, MaximumNumberOfProfilesSpecified = true },
-        StreamingCapabilities = new StreamingCapabilities
+        Capabilities = new Capabilities1
         {
-            RTPMulticast = false, RTPMulticastSpecified = true,
-            RTP_TCP = true, RTP_TCPSpecified = true,
-            RTP_RTSP_TCP = true, RTP_RTSP_TCPSpecified = true,
-            NonAggregateControl = false, NonAggregateControlSpecified = true,
-            NoRTSPStreaming = false, NoRTSPStreamingSpecified = true,
+            ProfileCapabilities = new ProfileCapabilities1 { MaximumNumberOfProfiles = 1, MaximumNumberOfProfilesSpecified = true },
+            StreamingCapabilities = new StreamingCapabilities
+            {
+                RTPMulticast = false, RTPMulticastSpecified = true,
+                RTP_TCP = true, RTP_TCPSpecified = true,
+                RTP_RTSP_TCP = true, RTP_RTSP_TCPSpecified = true,
+                NonAggregateControl = false, NonAggregateControlSpecified = true,
+                NoRTSPStreaming = false, NoRTSPStreamingSpecified = true,
+            },
+            SnapshotUri = true, SnapshotUriSpecified = true,
+            Rotation = false, RotationSpecified = true,
+            OSD = false, OSDSpecified = true,
         },
-        SnapshotUri = true, SnapshotUriSpecified = true,
-        Rotation = false, RotationSpecified = true,
-        OSD = false, OSDSpecified = true,
     };
 
     public GetProfilesResponse GetProfiles(GetProfilesRequest request) => new() { Profiles = [Profile()] };
 
-    public Profile GetProfile(string profileToken)
+    public GetProfileResponse GetProfile(GetProfileRequest request)
     {
-        CheckProfile(profileToken);
-        return Profile();
+        CheckProfile(request.ProfileToken);
+        return new GetProfileResponse { Profile = Profile() };
     }
 
     public GetVideoSourcesResponse GetVideoSources(GetVideoSourcesRequest request) => new()
@@ -50,21 +56,21 @@ public sealed class MediaHandlers(OnvifRequestContext context)
     };
 
     public GetVideoSourceConfigurationsResponse GetVideoSourceConfigurations(GetVideoSourceConfigurationsRequest request) =>
-        new() { Configurations = [VideoSourceConfiguration()] };
+        new() { Configurations = [VideoSourceConfiguration(Camera)] };
 
-    public VideoSourceConfiguration GetVideoSourceConfiguration(string configurationToken)
+    public GetVideoSourceConfigurationResponse GetVideoSourceConfiguration(GetVideoSourceConfigurationRequest request)
     {
-        if (configurationToken != VideoSourceConfigurationToken) throw OnvifFault.NoConfig(configurationToken);
-        return VideoSourceConfiguration();
+        if (request.ConfigurationToken != VideoSourceConfigurationToken) throw OnvifFault.NoConfig(request.ConfigurationToken);
+        return new GetVideoSourceConfigurationResponse { Configuration = VideoSourceConfiguration(Camera) };
     }
 
     public GetVideoEncoderConfigurationsResponse GetVideoEncoderConfigurations(GetVideoEncoderConfigurationsRequest request) =>
         new() { Configurations = [VideoEncoderConfiguration()] };
 
-    public VideoEncoderConfiguration GetVideoEncoderConfiguration(string configurationToken)
+    public GetVideoEncoderConfigurationResponse GetVideoEncoderConfiguration(GetVideoEncoderConfigurationRequest request)
     {
-        if (configurationToken != VideoEncoderConfigurationToken) throw OnvifFault.NoConfig(configurationToken);
-        return VideoEncoderConfiguration();
+        if (request.ConfigurationToken != VideoEncoderConfigurationToken) throw OnvifFault.NoConfig(request.ConfigurationToken);
+        return new GetVideoEncoderConfigurationResponse { Configuration = VideoEncoderConfiguration() };
     }
 
     public GetCompatibleVideoEncoderConfigurationsResponse GetCompatibleVideoEncoderConfigurations(GetCompatibleVideoEncoderConfigurationsRequest request)
@@ -73,44 +79,49 @@ public sealed class MediaHandlers(OnvifRequestContext context)
         return new GetCompatibleVideoEncoderConfigurationsResponse { Configurations = [VideoEncoderConfiguration()] };
     }
 
-    public VideoEncoderConfigurationOptions GetVideoEncoderConfigurationOptions(string configurationToken, string profileToken)
+    public GetVideoEncoderConfigurationOptionsResponse GetVideoEncoderConfigurationOptions(GetVideoEncoderConfigurationOptionsRequest request)
     {
-        CheckVideoEncoderConfiguration(configurationToken);
-        CheckProfile(profileToken);
-        return new VideoEncoderConfigurationOptions
+        CheckVideoEncoderConfiguration(request.ConfigurationToken);
+        CheckProfile(request.ProfileToken);
+        return new GetVideoEncoderConfigurationOptionsResponse
         {
-            QualityRange = new IntRange { Min = MinQuality, Max = MaxQuality },
-            JPEG = new JpegOptions
+            Options = new VideoEncoderConfigurationOptions
             {
-                ResolutionsAvailable = Resolutions(Camera).Select(r => new VideoResolution { Width = r.Width, Height = r.Height }).ToArray(),
-                FrameRateRange = new IntRange { Min = MinFrameRate, Max = MaxFrameRate },
-                EncodingIntervalRange = new IntRange { Min = 1, Max = 1 },
+                QualityRange = new IntRange { Min = MinQuality, Max = MaxQuality },
+                JPEG = new JpegOptions
+                {
+                    ResolutionsAvailable = Resolutions(Camera).Select(r => new VideoResolution { Width = r.Width, Height = r.Height }).ToArray(),
+                    FrameRateRange = new IntRange { Min = MinFrameRate, Max = MaxFrameRate },
+                    EncodingIntervalRange = new IntRange { Min = 1, Max = 1 },
+                },
             },
         };
     }
 
-    public void SetVideoEncoderConfiguration(VideoEncoderConfiguration configuration, bool forcePersistence)
+    public SetVideoEncoderConfigurationResponse SetVideoEncoderConfiguration(SetVideoEncoderConfigurationRequest request)
     {
+        var configuration = request.Configuration;
         if (configuration?.Resolution == null || configuration.RateControl == null)
             throw OnvifFault.InvalidArgValue("The configuration needs a resolution and a rate control.");
         ApplyEncoderSettings(context, configuration.token, configuration.Encoding.ToString(),
             configuration.Resolution.Width, configuration.Resolution.Height, configuration.RateControl.FrameRateLimit, configuration.Quality);
+        return new SetVideoEncoderConfigurationResponse();
     }
 
-    public MediaUri GetStreamUri(StreamSetup streamSetup, string profileToken)
+    public GetStreamUriResponse GetStreamUri(GetStreamUriRequest request)
     {
-        CheckProfile(profileToken);
-        if (streamSetup?.Stream == StreamType.RTPMulticast)
+        CheckProfile(request.ProfileToken);
+        if (request.StreamSetup?.Stream == StreamType.RTPMulticast)
             throw OnvifFault.InvalidArgValue("Multicast streaming is not supported.");
-        if (streamSetup?.Transport?.Protocol == TransportProtocol.HTTP)
+        if (request.StreamSetup?.Transport?.Protocol == TransportProtocol.HTTP)
             throw OnvifFault.InvalidArgValue("RTSP over HTTP is not supported; use RTSP, TCP or UDP.");
-        return Uri(context.StreamUri);
+        return new GetStreamUriResponse { MediaUri = Uri(context.StreamUri) };
     }
 
-    public MediaUri GetSnapshotUri(string profileToken)
+    public GetSnapshotUriResponse GetSnapshotUri(GetSnapshotUriRequest request)
     {
-        CheckProfile(profileToken);
-        return Uri(context.SnapshotUri);
+        CheckProfile(request.ProfileToken);
+        return new GetSnapshotUriResponse { MediaUri = Uri(context.SnapshotUri) };
     }
 
     public GetAudioEncoderConfigurationsResponse GetAudioEncoderConfigurations(GetAudioEncoderConfigurationsRequest request) =>
@@ -124,19 +135,10 @@ public sealed class MediaHandlers(OnvifRequestContext context)
 
     public GetOSDsResponse GetOSDs(GetOSDsRequest request) => new() { OSDs = [] };
 
-    // No OSD slots: clients see that they cannot add one.
     public GetOSDOptionsResponse GetOSDOptions(GetOSDOptionsRequest request)
     {
         CheckVideoSourceConfiguration(request.ConfigurationToken);
-        return new GetOSDOptionsResponse
-        {
-            OSDOptions = new OSDConfigurationOptions
-            {
-                MaximumNumberOfOSDs = new MaximumNumberOfOSDs { Total = 0 },
-                Type = [OSDType.Text],
-                PositionOption = ["UpperLeft"],
-            },
-        };
+        return new GetOSDOptionsResponse { OSDOptions = NoOsdOptions() };
     }
 
     private Profile Profile() => new()
@@ -145,17 +147,8 @@ public sealed class MediaHandlers(OnvifRequestContext context)
         @fixed = true,
         fixedSpecified = true,
         Name = ProfileName,
-        VideoSourceConfiguration = VideoSourceConfiguration(),
+        VideoSourceConfiguration = VideoSourceConfiguration(Camera),
         VideoEncoderConfiguration = VideoEncoderConfiguration(),
-    };
-
-    private VideoSourceConfiguration VideoSourceConfiguration() => new()
-    {
-        token = VideoSourceConfigurationToken,
-        Name = "VideoSourceConfig",
-        UseCount = 1,
-        SourceToken = VideoSourceToken,
-        Bounds = new IntRectangle { x = 0, y = 0, width = Camera.Video.Width, height = Camera.Video.Height },
     };
 
     private VideoEncoderConfiguration VideoEncoderConfiguration() => new()
@@ -172,13 +165,7 @@ public sealed class MediaHandlers(OnvifRequestContext context)
             EncodingInterval = 1,
             BitrateLimit = EstimatedBitrateKbps(Camera.Video),
         },
-        Multicast = new MulticastConfiguration
-        {
-            Address = new IPAddress { Type = IPType.IPv4, IPv4Address = "0.0.0.0" },
-            Port = 0,
-            TTL = 0,
-            AutoStart = false,
-        },
+        Multicast = NoMulticast(),
         SessionTimeout = SessionTimeout,
     };
 

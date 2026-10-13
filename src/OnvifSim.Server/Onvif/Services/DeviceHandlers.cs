@@ -1,6 +1,7 @@
 using HostInterface = System.Net.NetworkInformation.NetworkInterface;
 using System.Net.Sockets;
-using DeviceServiceReference;
+using OnvifSim.Onvif.Wsdl;
+using OnvifSim.Onvif.Wsdl.Device;
 using OnvifSim.Onvif.Soap;
 using OnvifSim.World;
 
@@ -25,16 +26,19 @@ public sealed class DeviceHandlers(OnvifRequestContext context)
 
     // The simulator's clock is the host's, kept by NTP and reported as UTC.
     [PreAuth]
-    public SystemDateTime GetSystemDateAndTime()
+    public GetSystemDateAndTimeResponse GetSystemDateAndTime(GetSystemDateAndTimeRequest request)
     {
         var now = System.DateTime.UtcNow;
-        return new SystemDateTime
+        return new GetSystemDateAndTimeResponse
         {
-            DateTimeType = SetDateTimeType.NTP,
-            DaylightSavings = false,
-            TimeZone = new DeviceServiceReference.TimeZone { TZ = "UTC0" },
-            UTCDateTime = ToOnvif(now),
-            LocalDateTime = ToOnvif(now),
+            SystemDateAndTime = new SystemDateTime
+            {
+                DateTimeType = SetDateTimeType.NTP,
+                DaylightSavings = false,
+                TimeZone = new OnvifSim.Onvif.Wsdl.TimeZone { TZ = "UTC0" },
+                UTCDateTime = ToOnvif(now),
+                LocalDateTime = ToOnvif(now),
+            },
         };
     }
 
@@ -50,31 +54,34 @@ public sealed class DeviceHandlers(OnvifRequestContext context)
         }).ToArray(),
     };
 
-    public DeviceServiceCapabilities GetServiceCapabilities() => new()
+    public GetServiceCapabilitiesResponse GetServiceCapabilities(GetServiceCapabilitiesRequest request) => new()
     {
-        Network = new NetworkCapabilities
+        Capabilities = new DeviceServiceCapabilities
         {
-            IPFilter = false, IPFilterSpecified = true,
-            ZeroConfiguration = false, ZeroConfigurationSpecified = true,
-            IPVersion6 = false, IPVersion6Specified = true,
-            DynDNS = false, DynDNSSpecified = true,
+            Network = new NetworkCapabilities
+            {
+                IPFilter = false, IPFilterSpecified = true,
+                ZeroConfiguration = false, ZeroConfigurationSpecified = true,
+                IPVersion6 = false, IPVersion6Specified = true,
+                DynDNS = false, DynDNSSpecified = true,
+            },
+            Security = new SecurityCapabilities
+            {
+                UsernameToken = true, UsernameTokenSpecified = true,
+                HttpDigest = true, HttpDigestSpecified = true,
+            },
+            SystemMember = new SystemCapabilities
+            {
+                DiscoveryResolve = false, DiscoveryResolveSpecified = true,
+                DiscoveryBye = true, DiscoveryByeSpecified = true,
+                RemoteDiscovery = false, RemoteDiscoverySpecified = true,
+                SystemBackup = false, SystemBackupSpecified = true,
+                SystemLogging = false, SystemLoggingSpecified = true,
+                HttpFirmwareUpgrade = false, HttpFirmwareUpgradeSpecified = true,
+                StorageConfiguration = false, StorageConfigurationSpecified = true,
+            },
+            Misc = new MiscCapabilities(),
         },
-        Security = new SecurityCapabilities
-        {
-            UsernameToken = true, UsernameTokenSpecified = true,
-            HttpDigest = true, HttpDigestSpecified = true,
-        },
-        System = new SystemCapabilities
-        {
-            DiscoveryResolve = false, DiscoveryResolveSpecified = true,
-            DiscoveryBye = true, DiscoveryByeSpecified = true,
-            RemoteDiscovery = false, RemoteDiscoverySpecified = true,
-            SystemBackup = false, SystemBackupSpecified = true,
-            SystemLogging = false, SystemLoggingSpecified = true,
-            FirmwareUpgrade = false, FirmwareUpgradeSpecified = true,
-            StorageConfiguration = false, StorageConfigurationSpecified = true,
-        },
-        Misc = new MiscCapabilities(),
     };
 
     // The legacy (ONVIF 1.x) way to find services; Media here is Media1.
@@ -108,7 +115,8 @@ public sealed class DeviceHandlers(OnvifRequestContext context)
     };
 
     [PreAuth]
-    public HostnameInformation GetHostname() => new() { FromDHCP = false, Name = CameraIdentity.Hostname(Camera) };
+    public GetHostnameResponse GetHostname(GetHostnameRequest request) =>
+        new() { HostnameInformation = new HostnameInformation { FromDHCP = false, Name = CameraIdentity.Hostname(Camera) } };
 
     public SetHostnameResponse SetHostname(SetHostnameRequest request) =>
         request.Name == CameraIdentity.Hostname(Camera)
@@ -156,11 +164,12 @@ public sealed class DeviceHandlers(OnvifRequestContext context)
         ],
     };
 
-    public DNSInformation GetDNS() => new() { FromDHCP = false };
+    public GetDNSResponse GetDNS(GetDNSRequest request) => new() { DNSInformation = new DNSInformation { FromDHCP = false } };
 
-    public NTPInformation GetNTP() => new() { FromDHCP = false };
+    public GetNTPResponse GetNTP(GetNTPRequest request) => new() { NTPInformation = new NTPInformation { FromDHCP = false } };
 
-    public NetworkGateway GetNetworkDefaultGateway() => new();
+    public GetNetworkDefaultGatewayResponse GetNetworkDefaultGateway(GetNetworkDefaultGatewayRequest request) =>
+        new() { NetworkGateway = new NetworkGateway() };
 
     public GetStorageConfigurationsResponse GetStorageConfigurations(GetStorageConfigurationsRequest request) =>
         new() { StorageConfigurations = [] };
@@ -171,7 +180,7 @@ public sealed class DeviceHandlers(OnvifRequestContext context)
     {
         XAddr = context.XAddr("device_service"),
         Network = new NetworkCapabilities1 { IPFilter = false, IPFilterSpecified = true, ZeroConfiguration = false, ZeroConfigurationSpecified = true },
-        System = new SystemCapabilities1
+        SystemMember = new SystemCapabilities1
         {
             DiscoveryBye = true,
             SupportedVersions = [new OnvifVersion { Major = 21, Minor = 12 }],
@@ -196,7 +205,7 @@ public sealed class DeviceHandlers(OnvifRequestContext context)
             .SelectMany(n => n.GetIPProperties().UnicastAddresses)
             .FirstOrDefault(a => a.Address.Equals(address))?.PrefixLength ?? 24;
 
-    private static DeviceServiceReference.DateTime ToOnvif(System.DateTime utc) => new()
+    private static OnvifSim.Onvif.Wsdl.DateTime ToOnvif(System.DateTime utc) => new()
     {
         Date = new Date { Year = utc.Year, Month = utc.Month, Day = utc.Day },
         Time = new Time { Hour = utc.Hour, Minute = utc.Minute, Second = utc.Second },

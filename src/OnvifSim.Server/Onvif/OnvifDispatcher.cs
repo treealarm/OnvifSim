@@ -8,9 +8,9 @@ using OnvifSim.Security;
 namespace OnvifSim.Onvif;
 
 // Marks a handler class: its public methods implement operations of the WCF contract interface, each
-// method named like the operation (GetProfiles for GetProfilesAsync) with the same parameters and the
-// unwrapped result. Path is where the service is served on the camera's port; Major/Minor go to
-// GetServices.
+// method named like the operation (GetProfiles for GetProfilesAsync), taking its request message and
+// returning its response message. Path is where the service is served on the camera's port; Major/Minor
+// go to GetServices.
 [AttributeUsage(AttributeTargets.Class)]
 public sealed class OnvifServiceAttribute(Type contract, string path, int major, int minor) : Attribute
 {
@@ -78,18 +78,18 @@ public sealed class OnvifDispatcher
             }
 
             var handler = Activator.CreateInstance(binding.Method.DeclaringType!, context)!;
-            var arguments = binding.Operation.ReadArguments(envelope.Body);
-            object? result;
+            var request = binding.Operation.ReadRequest(envelope.Body);
+            object response;
             try
             {
-                result = binding.Method.Invoke(handler, arguments);
+                response = binding.Method.Invoke(handler, [request])!;
             }
             catch (TargetInvocationException ex) when (ex.InnerException != null)
             {
                 throw ex.InnerException;
             }
             _logger.LogDebug("ONVIF {Camera}: {Operation}", context.Camera.Id, binding.Operation.Name);
-            await WriteAsync(http, 200, envelopeNamespace, SoapEnvelope.Write(envelopeNamespace, w => binding.Operation.WriteResult(w, result)));
+            await WriteAsync(http, 200, envelopeNamespace, SoapEnvelope.Write(envelopeNamespace, w => binding.Operation.WriteResponse(w, response)));
         }
         catch (OnvifFault fault)
         {
@@ -115,12 +115,11 @@ public sealed class OnvifDispatcher
     public XmlElement? ServiceCapabilities(string serviceNamespace, OnvifRequestContext context)
     {
         if (!_bindings.TryGetValue(XName.Get("GetServiceCapabilities", serviceNamespace), out var binding)) return null;
-        // Media2 takes an (empty) request object, Device and Media1 nothing.
-        var arguments = binding.Operation.ParameterTypes.Select(Activator.CreateInstance).ToArray();
-        var result = binding.Method.Invoke(Activator.CreateInstance(binding.Method.DeclaringType!, context), arguments);
+        var request = Activator.CreateInstance(binding.Operation.RequestType);
+        var response = binding.Method.Invoke(Activator.CreateInstance(binding.Method.DeclaringType!, context), [request])!;
         var document = new XmlDocument();
         using (var writer = document.CreateNavigator()!.AppendChild())
-            binding.Operation.WriteResult(writer, result);
+            binding.Operation.WriteResponse(writer, response);
         return document.DocumentElement!.FirstChild as XmlElement;
     }
 
@@ -168,9 +167,8 @@ public sealed class OnvifDispatcher
 
     private static void CheckSignature(Type handlerType, MethodInfo method, OnvifOperation operation)
     {
-        var parameters = method.GetParameters().Select(p => p.ParameterType).ToArray();
-        if (!parameters.SequenceEqual(operation.ParameterTypes) || method.ReturnType != operation.ResultType)
+        if (method.GetParameters() is not [{ ParameterType: var parameter }] || parameter != operation.RequestType || method.ReturnType != operation.ResponseType)
             throw new InvalidOperationException(
-                $"{handlerType.Name}.{method.Name} must be ({string.Join(", ", operation.ParameterTypes.Select(t => t.Name))}) -> {operation.ResultType.Name} to implement {operation.Name}.");
+                $"{handlerType.Name}.{method.Name} must be ({operation.RequestType.Name}) -> {operation.ResponseType.Name} to implement {operation.Name}.");
     }
 }

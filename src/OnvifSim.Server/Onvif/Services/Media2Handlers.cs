@@ -1,4 +1,5 @@
-using MediaServiceReference;
+using OnvifSim.Onvif.Wsdl;
+using OnvifSim.Onvif.Wsdl.Media2;
 using OnvifSim.Onvif.Soap;
 using OnvifSim.World;
 using static OnvifSim.Onvif.Services.CameraMedia;
@@ -16,16 +17,18 @@ public sealed class Media2Handlers(OnvifRequestContext context)
 
     private CameraModel Camera => context.Camera;
 
+    // Capabilities2, ProfileCapabilities2 and StreamingCapabilities1 are the tr2: types: svcutil numbers
+    // classes whose names other namespaces already took.
     public GetServiceCapabilitiesResponse GetServiceCapabilities(GetServiceCapabilitiesRequest request) => new()
     {
         Capabilities = new Capabilities2
         {
-            ProfileCapabilities = new ProfileCapabilities
+            ProfileCapabilities = new ProfileCapabilities2
             {
                 MaximumNumberOfProfiles = 1, MaximumNumberOfProfilesSpecified = true,
                 ConfigurationsSupported = ["VideoSource", "VideoEncoder"],
             },
-            StreamingCapabilities = new StreamingCapabilities
+            StreamingCapabilities = new StreamingCapabilities1
             {
                 RTSPStreaming = true, RTSPStreamingSpecified = true,
                 RTPMulticast = false, RTPMulticastSpecified = true,
@@ -59,7 +62,7 @@ public sealed class Media2Handlers(OnvifRequestContext context)
                     Configurations = videoSource || videoEncoder
                         ? new ConfigurationSet
                         {
-                            VideoSource = videoSource ? VideoSourceConfiguration() : null,
+                            VideoSource = videoSource ? VideoSourceConfiguration(Camera) : null,
                             VideoEncoder = videoEncoder ? VideoEncoderConfiguration() : null,
                         }
                         : null,
@@ -72,7 +75,7 @@ public sealed class Media2Handlers(OnvifRequestContext context)
     {
         CheckVideoSourceConfiguration(request.ConfigurationToken);
         CheckProfile(request.ProfileToken);
-        return new GetVideoSourceConfigurationsResponse { Configurations = [VideoSourceConfiguration()] };
+        return new GetVideoSourceConfigurationsResponse { Configurations = [VideoSourceConfiguration(Camera)] };
     }
 
     public GetVideoEncoderConfigurationsResponse GetVideoEncoderConfigurations(GetVideoEncoderConfigurationsRequest request)
@@ -144,29 +147,11 @@ public sealed class Media2Handlers(OnvifRequestContext context)
 
     public GetOSDsResponse GetOSDs(GetOSDsRequest request) => new() { OSDs = [] };
 
-    // No OSD slots: clients see that they cannot add one.
     public GetOSDOptionsResponse GetOSDOptions(GetOSDOptionsRequest request)
     {
         CheckVideoSourceConfiguration(request.ConfigurationToken);
-        return new GetOSDOptionsResponse
-        {
-            OSDOptions = new OSDConfigurationOptions
-            {
-                MaximumNumberOfOSDs = new MaximumNumberOfOSDs { Total = 0 },
-                Type = [OSDType.Text],
-                PositionOption = ["UpperLeft"],
-            },
-        };
+        return new GetOSDOptionsResponse { OSDOptions = NoOsdOptions() };
     }
-
-    private VideoSourceConfiguration VideoSourceConfiguration() => new()
-    {
-        token = VideoSourceConfigurationToken,
-        Name = "VideoSourceConfig",
-        UseCount = 1,
-        SourceToken = VideoSourceToken,
-        Bounds = new IntRectangle { x = 0, y = 0, width = Camera.Video.Width, height = Camera.Video.Height },
-    };
 
     private VideoEncoder2Configuration VideoEncoderConfiguration() => new()
     {
@@ -182,12 +167,6 @@ public sealed class Media2Handlers(OnvifRequestContext context)
             BitrateLimit = EstimatedBitrateKbps(Camera.Video),
             ConstantBitRate = false, ConstantBitRateSpecified = true,
         },
-        Multicast = new MulticastConfiguration
-        {
-            Address = new IPAddress { Type = IPType.IPv4, IPv4Address = "0.0.0.0" },
-            Port = 0,
-            TTL = 0,
-            AutoStart = false,
-        },
+        Multicast = NoMulticast(),
     };
 }

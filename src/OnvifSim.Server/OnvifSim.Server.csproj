@@ -9,7 +9,8 @@
     <TieredCompilation>false</TieredCompilation>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="OnvifLib" Version="1.2.0" />
+    <!-- For the attributes and client classes of the generated ONVIF contracts (Onvif/Wsdl). -->
+    <PackageReference Include="System.ServiceModel.Http" Version="10.0.652802" />
     <PackageReference Include="StbImageWriteSharp" Version="1.16.7" />
   </ItemGroup>
   <ItemGroup>

@@ -8,7 +8,7 @@
 **Готовых решений нет.** Полную связку «3D-сцена → ONVIF PTZ» даёт только коммерческий Cambridge Pixel SPx Video Simulator. Open source закрывает куски: onvif_simple_server, go-onvif и IPyCam дают ONVIF/PTZ без 3D, MediaMTX-обёртки умеют «RTSP → ONVIF». Всё остальное придётся писать самим.
 
 ## Принятые решения
-- Отдельный репозиторий `treealarm/OnvifSim`, уже склонирован в `/mnt/wdblue/tests/OnvifSim` (ветка `main`, remote origin по SSH, один коммит `Initial commit` с MIT LICENSE). Работаем там; пушим только по команде. OnvifLib подключается как NuGet. На машине есть .NET 10.0.112, Node 20, ffmpeg, Docker.
+- Отдельный репозиторий `treealarm/OnvifSim`, уже склонирован в `/mnt/wdblue/tests/OnvifSim` (ветка `main`, remote origin по SSH, один коммит `Initial commit` с MIT LICENSE). Работаем там; пушим только по команде. OnvifLib подключается как NuGet только к тестам (клиент). На машине есть .NET 10.0.112, Node 20, ffmpeg, Docker.
 - Один процесс на C# (.NET 10): веб, ONVIF, PTZ, RTSP, рендер. Редактор — React, но это статика в браузере; Node нужен только при сборке.
 - Рендер — собственный программный растеризатор на C#, без OpenGL и нативных зависимостей. OpenGL/Unity — позже, за тем же интерфейсом.
 - RTSP-сервер свой, in-process. MediaMTX не используем.
@@ -50,7 +50,7 @@ Browser (React + react-three-fiber)  ──REST/SignalR──►  OnvifSim.Serve
 - RtspServer: один порт на все камеры (8554, пути `/cam1`, `/cam1/sub`) или порт на камеру — настраивается. Авторизация Basic/Digest теми же учётками, что ONVIF. Опционально SharpRTSP (MIT) для разбора сообщений и RTP-упаковки; иначе свой парсер.
 
 ### ONVIF
-- **SOAP пишем сами, без CoreWCF** (CoreWCF плохо переносит UsernameToken-digest поверх HTTP без TLS и клиентов без SOAP Action). Диспетчер разбирает envelope, проверяет WS-UsernameToken digest (nonce + created + sha1, допуск по времени), роутит по namespace + имени элемента. Ответы сериализуются `XmlSerializer` на DTO из NuGet OnvifLib (`Connected Services/*/Reference.cs`: Profile, PTZStatus, PTZVector…). Ошибки — ONVIF faults (ter:NotAuthorized, ter:ActionNotSupported, ter:InvalidArgVal).
+- **SOAP пишем сами, без CoreWCF** (CoreWCF плохо переносит UsernameToken-digest поверх HTTP без TLS и клиентов без SOAP Action). Диспетчер разбирает envelope, проверяет WS-UsernameToken digest (nonce + created + sha1, допуск по времени), роутит по namespace + имени элемента. Ответы сериализуются `XmlSerializer` на своих стабах, сгенерированных dotnet-svcutil из официальных WSDL ONVIF (github.com/onvif/specs, тег зафиксирован в `src/OnvifSim.Server/Onvif/Wsdl/generate.sh`; Device, Media, Media2, PTZ, Imaging; все операции — message contracts). Не из OnvifLib: стенд не должен разделять код с клиентом, которого проверяет. Ошибки — ONVIF faults (ter:NotAuthorized, ter:ActionNotSupported, ter:InvalidArgVal).
 - **Каждой камере свой порт** (8001, 8002, …), путь `/onvif/device_service`, свой EndpointReference uuid, XAddrs из `ONVIFSIM_ADVERTISE_HOST`.
 - **PTZ.** Состояние: pan°, tilt°, fov°, лимиты скорости и ускорения. Generic space: pan [-1..1] ↔ [panMin..panMax], tilt [-1..1] ↔ [tiltMin..tiltMax], zoom [0..1] ↔ фокусное (логарифмически) → FOV. Absolute, Relative, Continuous (с Timeout), Stop, GetStatus (MOVING/IDLE, UtcTime), пресеты, home. Пространства в градусах — позже.
 - Объём MVP (Profile S + PTZ): Device (GetDeviceInformation, GetSystemDateAndTime, GetCapabilities, GetServices, GetServiceCapabilities, GetScopes, GetNetworkInterfaces, GetHostname, GetUsers); Media1 + Media2 (GetProfiles, GetStreamUri, GetSnapshotUri, GetVideoSources, GetVideoEncoderConfiguration(s)/Options, SetVideoEncoderConfiguration); PTZ (GetNodes/GetNode, GetConfigurations/Options, AbsoluteMove, RelativeMove, ContinuousMove, Stop, GetStatus, Get/Set/Goto/RemovePreset, Goto/SetHomePosition); Imaging минимум (GetImagingSettings/Options, brightness/contrast видны в картинке).
@@ -70,7 +70,7 @@ Vite + React + TS + @react-three/fiber + drei + zustand. Сборка кладё
 - `SharpGLTF.Toolkit` (MIT) — отдача мешей редактору.
 - `StbImageWriteSharp` (public domain, чистый C#) — JPEG. ImageSharp не берём (платная лицензия для коммерческого использования).
 - `SharpRTSP` (MIT) — опционально, парсер RTSP и RTP-упаковка; решение после прототипа в фазе 1.
-- `OnvifLib` (свой NuGet) — DTO для ответов; транзитивно System.ServiceModel.*.
+- System.ServiceModel.Http — атрибуты и клиентские классы сгенерированных контрактов (`Onvif/Wsdl/OnvifContracts.cs`).
 - xUnit; OnvifLib работает клиентом в тестах.
 
 Внешние бинарники: у сервера обязательных нет. **ffmpeg** (libx264) — опционально, отдельным процессом, только для H.264-профиля; в Docker-образ кладём apt-пакет из Debian (стабильнее, чем пины на BtbN-автобилды), локально — по желанию.
@@ -111,7 +111,7 @@ Vite + React + TS + @react-three/fiber + drei + zustand. Сборка кладё
 - Discovery в Docker: multicast только при host network на Linux; для Win/Mac документируем.
 
 ## Переиспользуем
-- `OnvifLib` NuGet: DTO из `Connected Services/*/Reference.cs`; `Camera` — клиент в интеграционных тестах.
+- `OnvifLib` NuGet: `Camera` — клиент в интеграционных тестах (серверу не нужен).
 - `samples/OnvifLib.Probe`: smoke-проверка симулятора целиком.
 - `samples/OnvifLib.Gui`: ручная проверка PTZ и стримов.
 

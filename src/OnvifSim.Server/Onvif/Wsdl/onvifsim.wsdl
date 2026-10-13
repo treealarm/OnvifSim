@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The ONVIF services the simulator implements, as one document: svcutil given several WSDLs that
+     import the same onvif.xsd loses its types, given one that imports them all it shares them.
+     generate.sh copies this file into the root of the downloaded ONVIF wsdl folder. -->
+<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" targetNamespace="urn:onvifsim">
+  <wsdl:import namespace="http://www.onvif.org/ver10/device/wsdl" location="ver10/device/wsdl/devicemgmt.wsdl"/>
+  <wsdl:import namespace="http://www.onvif.org/ver10/media/wsdl" location="ver10/media/wsdl/media.wsdl"/>
+  <wsdl:import namespace="http://www.onvif.org/ver20/media/wsdl" location="ver20/media/wsdl/media.wsdl"/>
+  <wsdl:import namespace="http://www.onvif.org/ver20/ptz/wsdl" location="ver20/ptz/wsdl/ptz.wsdl"/>
+  <wsdl:import namespace="http://www.onvif.org/ver20/imaging/wsdl" location="ver20/imaging/wsdl/imaging.wsdl"/>
+</wsdl:definitions>

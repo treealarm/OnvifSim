@@ -6,20 +6,10 @@ using System.Xml.Serialization;
 
 namespace OnvifSim.Onvif.Soap;
 
-// XmlSerializer constructors that take a root or overrides generate a new assembly on every call and
-// never unload it, so every serializer is built once and kept.
-internal static class XmlSerializerCache
-{
-    private static readonly ConcurrentDictionary<(Type, string, string), XmlSerializer> Serializers = new();
-
-    // A serializer for a value written as the element {ns}name.
-    public static XmlSerializer Get(Type type, string name, string ns) =>
-        Serializers.GetOrAdd((type, name, ns), key => new XmlSerializer(key.Item1, new XmlRootAttribute(key.Item2) { Namespace = key.Item3 }));
-}
-
 // Serializes a WCF message contract class as its wrapper element: XmlSerializer reads the [XmlElement]
 // attributes of the fields but not [MessageBodyMember(Namespace)], so the namespaces are added as
-// overrides, keeping every other XML attribute of the field.
+// overrides, keeping every other XML attribute of the field. A serializer built with overrides is a new
+// assembly on every construction that is never unloaded, so each one is built once and kept.
 internal static class MessageContractSerializer
 {
     private static readonly ConcurrentDictionary<Type, XmlSerializer> Serializers = new();

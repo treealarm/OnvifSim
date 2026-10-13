@@ -78,6 +78,10 @@ One .NET 10 process, no native dependencies: the world is rendered by a built-in
 (a 640×360 frame takes about 5 ms), encoded to JPEG in-process, and a camera only renders while
 someone is watching it.
 
+ONVIF requests and responses are (de)serialized with types generated from the official ONVIF WSDL
+([onvif/specs](https://github.com/onvif/specs)); `src/OnvifSim.Server/Onvif/Wsdl/generate.sh`
+regenerates them.
+
 ## License
 
 MIT

@@ -2,18 +2,22 @@ using System.Text;
 using System.Xml;
 using System.Xml.Linq;
 using OnvifSim.Onvif.Soap;
+using OnvifSim.Onvif.Wsdl;
+using DeviceContract = OnvifSim.Onvif.Wsdl.Device;
+using MediaContract = OnvifSim.Onvif.Wsdl.Media;
+using Media2Contract = OnvifSim.Onvif.Wsdl.Media2;
 
 namespace OnvifSim.Tests;
 
 public class OnvifOperationTests
 {
-    private static XElement Write(OnvifOperation operation, object? result)
+    private static XElement Write(OnvifOperation operation, object response)
     {
         var text = new StringBuilder();
         using (var writer = XmlWriter.Create(text, new XmlWriterSettings { OmitXmlDeclaration = true }))
         {
             writer.WriteStartElement("Body");
-            operation.WriteResult(writer, result);
+            operation.WriteResponse(writer, response);
             writer.WriteEndElement();
         }
         return XElement.Parse(text.ToString()).Elements().Single();
@@ -25,10 +29,10 @@ public class OnvifOperationTests
     private static XNamespace Schema => "http://www.onvif.org/ver10/schema";
 
     [Fact]
-    public void MessageContractResponse_IsWrapped_WithPartsInTheServiceNamespace()
+    public void Response_IsWrapped_WithPartsInTheServiceNamespace()
     {
-        var operation = OnvifOperation.Create(typeof(DeviceServiceReference.Device), "GetDeviceInformation");
-        var xml = Write(operation, new DeviceServiceReference.GetDeviceInformationResponse
+        var operation = OnvifOperation.Create(typeof(DeviceContract.Device), "GetDeviceInformation");
+        var xml = Write(operation, new DeviceContract.GetDeviceInformationResponse
         {
             Manufacturer = "OnvifSim", Model = "Fixed", FirmwareVersion = "1", SerialNumber = "cam1", HardwareId = "sim",
         });
@@ -38,16 +42,19 @@ public class OnvifOperationTests
     }
 
     [Fact]
-    public void UnwrappedResponse_IsNamedAfterTheOperation_AndItsReturnParameter()
+    public void SchemaTypesInsideAPart_KeepTheSchemaNamespace()
     {
-        var operation = OnvifOperation.Create(typeof(DeviceServiceReference.Device), "GetSystemDateAndTime");
-        var xml = Write(operation, new DeviceServiceReference.SystemDateTime
+        var operation = OnvifOperation.Create(typeof(DeviceContract.Device), "GetSystemDateAndTime");
+        var xml = Write(operation, new DeviceContract.GetSystemDateAndTimeResponse
         {
-            DateTimeType = DeviceServiceReference.SetDateTimeType.NTP,
-            UTCDateTime = new DeviceServiceReference.DateTime
+            SystemDateAndTime = new SystemDateTime
             {
-                Date = new DeviceServiceReference.Date { Year = 2026, Month = 10, Day = 13 },
-                Time = new DeviceServiceReference.Time { Hour = 12, Minute = 0, Second = 1 },
+                DateTimeType = SetDateTimeType.NTP,
+                UTCDateTime = new OnvifSim.Onvif.Wsdl.DateTime
+                {
+                    Date = new Date { Year = 2026, Month = 10, Day = 13 },
+                    Time = new Time { Hour = 12, Minute = 0, Second = 1 },
+                },
             },
         });
         Assert.Equal(Device + "GetSystemDateAndTimeResponse", xml.Name);
@@ -59,8 +66,8 @@ public class OnvifOperationTests
     [Fact]
     public void RepeatedParts_AreWrittenOncePerItem()
     {
-        var operation = OnvifOperation.Create(typeof(MediaServiceReference.Media2), "GetProfiles");
-        var xml = Write(operation, new MediaServiceReference.GetProfilesResponse
+        var operation = OnvifOperation.Create(typeof(Media2Contract.Media2), "GetProfiles");
+        var xml = Write(operation, new Media2Contract.GetProfilesResponse
         {
             Profiles = [new() { token = "Profile_1", Name = "Main", @fixed = true }, new() { token = "Profile_2", Name = "Sub" }],
         });
@@ -71,27 +78,26 @@ public class OnvifOperationTests
     }
 
     [Fact]
-    public void UnwrappedRequest_ReadsEachParameterByName()
+    public void Request_IsReadIntoItsClass_PartByPart()
     {
-        var operation = OnvifOperation.Create(typeof(MediaServiceReference1.Media), "GetStreamUri");
+        var operation = OnvifOperation.Create(typeof(MediaContract.Media), "GetStreamUri");
         var body = XElement.Parse($"""
             <GetStreamUri xmlns="{Media}" xmlns:tt="{Schema}">
               <StreamSetup><tt:Stream>RTP-Unicast</tt:Stream><tt:Transport><tt:Protocol>RTSP</tt:Protocol></tt:Transport></StreamSetup>
               <ProfileToken>Profile_1</ProfileToken>
             </GetStreamUri>
             """);
-        var args = operation.ReadArguments(body);
-        var setup = Assert.IsType<MediaServiceReference1.StreamSetup>(args[0]);
-        Assert.Equal(MediaServiceReference1.StreamType.RTPUnicast, setup.Stream);
-        Assert.Equal(MediaServiceReference1.TransportProtocol.RTSP, setup.Transport.Protocol);
-        Assert.Equal("Profile_1", args[1]);
+        var request = Assert.IsType<MediaContract.GetStreamUriRequest>(operation.ReadRequest(body));
+        Assert.Equal(StreamType.RTPUnicast, request.StreamSetup.Stream);
+        Assert.Equal(TransportProtocol.RTSP, request.StreamSetup.Transport.Protocol);
+        Assert.Equal("Profile_1", request.ProfileToken);
     }
 
     [Fact]
-    public void MessageContractRequest_IsReadIntoItsClass()
+    public void ScalarRequestParts_AreRead()
     {
-        var operation = OnvifOperation.Create(typeof(DeviceServiceReference.Device), "GetServices");
-        var args = operation.ReadArguments(XElement.Parse($"""<GetServices xmlns="{Device}"><IncludeCapability>true</IncludeCapability></GetServices>"""));
-        Assert.True(Assert.IsType<DeviceServiceReference.GetServicesRequest>(args[0]).IncludeCapability);
+        var operation = OnvifOperation.Create(typeof(DeviceContract.Device), "GetServices");
+        var request = operation.ReadRequest(XElement.Parse($"""<GetServices xmlns="{Device}"><IncludeCapability>true</IncludeCapability></GetServices>"""));
+        Assert.True(Assert.IsType<DeviceContract.GetServicesRequest>(request).IncludeCapability);
     }
 }

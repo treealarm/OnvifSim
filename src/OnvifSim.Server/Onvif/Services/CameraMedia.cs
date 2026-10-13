@@ -1,4 +1,5 @@
 using OnvifSim.Onvif.Soap;
+using OnvifSim.Onvif.Wsdl;
 using OnvifSim.World;
 
 namespace OnvifSim.Onvif.Services;
@@ -37,6 +38,32 @@ public static class CameraMedia
     // MJPEG has no bitrate control; this is what such a stream roughly takes, for clients that want a number.
     public static int EstimatedBitrateKbps(VideoModel video) =>
         Math.Max(64, (int)(video.Width * (long)video.Height * video.Fps * 3 / 4 / 1000));
+
+    public static VideoSourceConfiguration VideoSourceConfiguration(CameraModel camera) => new()
+    {
+        token = VideoSourceConfigurationToken,
+        Name = "VideoSourceConfig",
+        UseCount = 1,
+        SourceToken = VideoSourceToken,
+        Bounds = new IntRectangle { x = 0, y = 0, width = camera.Video.Width, height = camera.Video.Height },
+    };
+
+    // Encoder configurations must carry a multicast section; this one is unused.
+    public static MulticastConfiguration NoMulticast() => new()
+    {
+        Address = new IPAddress { Type = IPType.IPv4, IPv4Address = "0.0.0.0" },
+        Port = 0,
+        TTL = 0,
+        AutoStart = false,
+    };
+
+    // No OSD slots: clients see that they cannot add one.
+    public static OSDConfigurationOptions NoOsdOptions() => new()
+    {
+        MaximumNumberOfOSDs = new MaximumNumberOfOSDs { Total = 0 },
+        Type = [OSDType.Text],
+        PositionOption = ["UpperLeft"],
+    };
 
     public static void CheckProfile(string? token)
     {
