@@ -1,6 +1,6 @@
 import type { GroundPoint, Road, Walker, WalkerReturn } from '../model';
 import { removeSelected, startDrawing, updateRoad, updateWalker } from '../store';
-import { ColorField, NumberField, Section, SelectField } from './fields';
+import { CheckboxField, ColorField, NumberField, Section, SelectField } from './fields';
 
 const returnOptions = [
   { value: 'loop', label: 'Round in a loop' },
@@ -44,6 +44,7 @@ export function WalkerInspector({ walker }: { walker: Walker }) {
         <NumberField label="Height, m" value={walker.height} min={0.5} max={3} step={0.05} onChange={(height) => change({ height })} />
         <ColorField label="Top" value={walker.color ?? '#3b6ea8'} onChange={(color) => change({ color })} />
         <ColorField label="Trousers" value={walker.color2 ?? '#3a3a44'} onChange={(color2) => change({ color2 })} />
+        <CheckboxField label="Seen by analytics" checked={walker.detectable} onChange={(detectable) => change({ detectable })} />
       </Section>
       <Points
         points={walker.route}

@@ -78,6 +78,14 @@ public class AnalyticsTests
         Assert.Single(PersonDetector.Detect(aside.Current, Cam1(aside), default, _time.GetUtcNow()));
     }
 
+    [Fact]
+    public void PersonLeftOutOfAnalytics_IsNotSeen()
+    {
+        using var dir = new TempDir();
+        var scene = WorldWithOnePerson(dir, 3, 40, w => (w.Objects, w.Walkers[0].Detectable) = ([], false));
+        Assert.Empty(PersonDetector.Detect(scene.Current, Cam1(scene), default, _time.GetUtcNow()));
+    }
+
     [Theory]
     [InlineData(0, -150)] // far away: a few pixels tall
     [InlineData(0, 80)]   // behind the camera

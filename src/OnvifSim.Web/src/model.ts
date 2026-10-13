@@ -61,6 +61,8 @@ export interface Walker {
   height: number;
   color: string | null;
   color2: string | null;
+  // Whether cameras' analytics report this person.
+  detectable: boolean;
 }
 
 export type CameraKind = 'fixed' | 'ptz';

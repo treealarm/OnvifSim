@@ -18,7 +18,8 @@ public readonly record struct Sighting(string WalkerId, FrameBox Box);
 // The people a camera sees, as an analytics engine on the camera would report them, except that these
 // are exact: the box is the walker's figure as the picture draws it, cut to the frame. A person counts
 // as seen when some of the body is in plain view (not hidden behind a house, a tree or a hill) and the
-// figure is tall enough in the picture for a detector to pick it out.
+// figure is tall enough in the picture for a detector to pick it out. Walkers who are not Detectable
+// are never reported.
 public static class PersonDetector
 {
     // A figure shorter than this (in normalized units, so 0.05 is 2.5% of the frame height, 9 pixels at
@@ -39,7 +40,7 @@ public static class PersonDetector
         var viewProjection = pose.ViewProjection(aspect, scene.FogEnd);
 
         var sightings = new List<Sighting>();
-        foreach (var walker in snapshot.World.Walkers)
+        foreach (var walker in snapshot.World.Walkers.Where(w => w.Detectable))
         {
             var walk = WalkerMotion.PoseAt(walker, time);
             var figure = SceneBuilder.WalkerChunk(walker, walk, scene.Terrain);

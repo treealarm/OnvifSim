@@ -154,7 +154,8 @@ Ctrl+Y) step back and forth through the last 100 edits; turning a PTZ camera is 
   keys), zoom buttons and pan/tilt/zoom boxes that drive the same PTZ head as ONVIF clients.
 - **Analytics**: the camera's picture boxes the people its analytics reports, with their object ids,
   exactly as the metadata stream sends them; the panel turns people detection and the PTZ position in
-  the metadata on and off.
+  the metadata on and off, and a person's own panel can leave them out of every camera's analytics
+  ("Seen by analytics"), so they only appear in the picture.
 - **World**: sun, sky colours, fog and terrain size.
 
 ONVIF clients' changes (a new resolution, a preset, where a PTZ camera stopped) show up in the editor

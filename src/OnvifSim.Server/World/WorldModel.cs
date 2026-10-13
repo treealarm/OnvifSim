@@ -77,6 +77,8 @@ public sealed class WalkerModel
     // Clothes: the top and the trousers.
     public string? Color { get; set; }
     public string? Color2 { get; set; }
+    // Whether cameras' analytics report this person; off, they are only seen in the picture.
+    public bool Detectable { get; set; } = true;
 }
 
 public enum WalkerReturn { Loop, Reverse }

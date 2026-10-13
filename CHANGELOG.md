@@ -5,7 +5,8 @@
 - Analytics: every camera reports the people it sees in the ONVIF metadata track of its RTSP
   streams, boxes with object ids exact to the picture, people hidden behind houses and hills left out;
   optionally the PTZ position. Media and Media2 serve the metadata and analytics configurations, and
-  the editor boxes the people over each camera's picture.
+  the editor boxes the people over each camera's picture. Analytics can be turned off per camera,
+  and a person can be left out of it.
 
 ## 0.1.0 (2026-10-13)
 
