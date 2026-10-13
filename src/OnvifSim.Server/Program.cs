@@ -53,7 +53,9 @@ app.MapEditorApi();
 if (!File.Exists(Path.Combine(webRoot, "index.html")))
     app.MapGet("/", () => "The editor is not built (building it needs Node.js); the API is under /api.");
 
-app.Logger.LogInformation("OnvifSim: data in {Data}, editor at http://localhost:{Port}/", options.DataDirectory, options.WebPort);
+var editorUrl = $"http://localhost:{options.WebPort}/";
+app.Logger.LogInformation("OnvifSim: data in {Data}, editor at {Url}", options.DataDirectory, editorUrl);
+if (options.OpenBrowser) app.Lifetime.ApplicationStarted.Register(() => Browser.Open(editorUrl, app.Logger));
 try
 {
     app.Run();

@@ -30,6 +30,7 @@ public class SimFactory : WebApplicationFactory<Program>
         builder.UseSetting("onvif-base-port", "0");
         builder.UseSetting("discovery-port", DiscoveryPort.ToString());
         builder.UseSetting("ffmpeg", Ffmpeg);
+        builder.UseSetting("no-browser", "true");
     }
 
     protected override void Dispose(bool disposing)

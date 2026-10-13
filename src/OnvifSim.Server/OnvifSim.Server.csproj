@@ -7,6 +7,8 @@
          running server: 2 cameras x 30 fps took 31 CPU s per 20 s instead of 13 (the same with dynamic PGO,
          OSR or QuickJit off on their own). Full JIT up front costs ~0.15 s of startup. -->
     <TieredCompilation>false</TieredCompilation>
+    <!-- The editor is served from its own wwwroot copy (below), not through static web assets. -->
+    <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
   </PropertyGroup>
   <ItemGroup>
     <!-- For the attributes and client classes of the generated ONVIF contracts (Onvif/Wsdl). -->

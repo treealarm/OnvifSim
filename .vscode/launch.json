@@ -9,7 +9,7 @@
       "request": "launch",
       "preLaunchTask": "build",
       "program": "${workspaceFolder}/src/OnvifSim.Server/bin/Debug/net10.0/OnvifSim.dll",
-      "args": ["--data", "${workspaceFolder}/data", "--port", "8080"],
+      "args": ["--data", "${workspaceFolder}/data", "--port", "8080", "--no-browser"],
       "cwd": "${workspaceFolder}",
       "console": "internalConsole",
       "stopAtEntry": false,

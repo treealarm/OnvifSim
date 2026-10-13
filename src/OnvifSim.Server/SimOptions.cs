@@ -2,7 +2,7 @@ namespace OnvifSim;
 
 // Command line: --data <dir>  --port <web port>  --rtsp-port <port>  --rtp-port <even port>
 //               --onvif-base-port <port>  --advertise-host <host>  --discovery-port <port>
-//               --ffmpeg <path|none>  --bench
+//               --ffmpeg <path|none>  --no-browser  --bench
 // (also as --name=value, which is how WebApplicationFactory passes UseSetting values to the app).
 // Environment fallbacks: ONVIFSIM_DATA, ONVIFSIM_PORT, ONVIFSIM_RTSP_PORT, ONVIFSIM_RTP_PORT,
 // ONVIFSIM_ONVIF_BASE_PORT, ONVIFSIM_ADVERTISE_HOST, ONVIFSIM_DISCOVERY_PORT, ONVIFSIM_FFMPEG (the Docker
@@ -22,6 +22,8 @@ public sealed class SimOptions
     public int DiscoveryPort { get; init; } = 3702;
     // The ffmpeg that encodes H.264: a path, "none" to serve JPEG only, or null to look for it on PATH.
     public string? Ffmpeg { get; init; }
+    // Open the editor in the browser once started. Only where a desktop can show one: see Browser.
+    public bool OpenBrowser { get; init; } = true;
     public bool Bench { get; init; }
 
     public static SimOptions Parse(string[] args)
@@ -34,13 +36,16 @@ public sealed class SimOptions
         string? advertiseHost = Environment.GetEnvironmentVariable("ONVIFSIM_ADVERTISE_HOST");
         int discoveryPort = PortFromEnvironment("ONVIFSIM_DISCOVERY_PORT", 3702);
         string? ffmpeg = Environment.GetEnvironmentVariable("ONVIFSIM_FFMPEG");
-        bool bench = false;
+        bool bench = false, noBrowser = false;
         for (int i = 0; i < args.Length; i++)
         {
             var (name, value) = args[i].Split('=', 2) is [var n, var v] ? (n, v) : (args[i], null);
-            if (name == "--bench")
+            // Switches take no value, but WebApplicationFactory passes them as --name=true.
+            if (name is "--bench" or "--no-browser")
             {
-                bench = true;
+                bool on = value == null || bool.Parse(value);
+                if (name == "--bench") bench = on;
+                else noBrowser = on;
                 continue;
             }
             if (value == null)
@@ -66,7 +71,8 @@ public sealed class SimOptions
         {
             DataDirectory = Path.GetFullPath(data), WebPort = port, RtspPort = rtspPort, RtpPort = rtpPort,
             OnvifBasePort = onvifBasePort, AdvertiseHost = advertiseHost,
-            DiscoveryPort = discoveryPort, Ffmpeg = string.IsNullOrEmpty(ffmpeg) ? null : ffmpeg, Bench = bench,
+            DiscoveryPort = discoveryPort, Ffmpeg = string.IsNullOrEmpty(ffmpeg) ? null : ffmpeg,
+            OpenBrowser = !noBrowser, Bench = bench,
         };
     }
 

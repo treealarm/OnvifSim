@@ -3,7 +3,8 @@ using System.Diagnostics;
 namespace OnvifSim.Streaming.H264;
 
 // Whether this server can serve H.264, decided once at startup: it needs an ffmpeg with libx264, given
-// by --ffmpeg (or ONVIFSIM_FFMPEG) or found on PATH. Without one, cameras offer only their JPEG profile.
+// by --ffmpeg (or ONVIFSIM_FFMPEG), bundled next to the program (ffmpeg/ffmpeg, as the release packages
+// ship it) or found on PATH. Without one, cameras offer only their JPEG profile.
 public sealed class H264Support
 {
     private H264Support(string? ffmpegPath) => FfmpegPath = ffmpegPath;
@@ -18,10 +19,12 @@ public sealed class H264Support
             logger.LogInformation("H.264 is off (--ffmpeg none); cameras stream JPEG only");
             return new H264Support(null);
         }
-        var path = options.Ffmpeg ?? FindOnPath(OperatingSystem.IsWindows() ? "ffmpeg.exe" : "ffmpeg");
+        string fileName = OperatingSystem.IsWindows() ? "ffmpeg.exe" : "ffmpeg";
+        var bundled = Path.Combine(AppContext.BaseDirectory, "ffmpeg", fileName);
+        var path = options.Ffmpeg ?? (File.Exists(bundled) ? bundled : FindOnPath(fileName));
         if (path == null)
         {
-            logger.LogInformation("H.264 is off: no ffmpeg on PATH (--ffmpeg <path> names one); cameras stream JPEG only");
+            logger.LogInformation("H.264 is off: no ffmpeg next to the program or on PATH (--ffmpeg <path> names one); cameras stream JPEG only");
             return new H264Support(null);
         }
         if (!HasLibx264(path, out var problem))
