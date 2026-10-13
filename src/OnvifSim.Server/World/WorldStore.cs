@@ -38,14 +38,28 @@ public sealed class WorldStore
         get { lock (_gate) return _world; }
     }
 
+    // Subscribers are told inside the lock, so they see changes in the order they were made.
     public void Replace(WorldModel world)
     {
         lock (_gate)
         {
             Save(world);
             _world = world;
+            Changed?.Invoke(world);
         }
-        Changed?.Invoke(world);
+    }
+
+    // Applies a change to a copy of the current world and makes the copy current, atomically, so two
+    // writers (ONVIF clients, the editor) never lose each other's edits. The world in hand stays
+    // untouched for everyone still reading it.
+    public void Update(Action<WorldModel> change)
+    {
+        lock (_gate)
+        {
+            var copy = JsonSerializer.Deserialize<WorldModel>(JsonSerializer.Serialize(_world, Json), Json)!;
+            change(copy);
+            Replace(copy);
+        }
     }
 
     private void Save(WorldModel world)

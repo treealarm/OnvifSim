@@ -1,5 +1,8 @@
 using System.Text.Json;
 using OnvifSim;
+using OnvifSim.Onvif;
+using OnvifSim.Onvif.Services;
+using OnvifSim.Security;
 using OnvifSim.Streaming;
 using OnvifSim.Streaming.Rtsp;
 using OnvifSim.World;
@@ -19,8 +22,15 @@ builder.Services.AddSingleton(options);
 builder.Services.AddSingleton(store);
 builder.Services.AddSingleton<SceneState>();
 builder.Services.AddSingleton<FeedManager>();
+builder.Services.AddSingleton<HttpAuthenticator>();
 builder.Services.AddSingleton<RtspServer>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<RtspServer>());
+builder.Services.AddSingleton(sp => new OnvifDispatcher(
+    [typeof(DeviceHandlers), typeof(MediaHandlers), typeof(Media2Handlers)],
+    sp.GetRequiredService<HttpAuthenticator>(), sp.GetRequiredService<ILogger<OnvifDispatcher>>()));
+builder.Services.AddSingleton<OnvifHost>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<OnvifHost>());
+builder.Services.AddHostedService<WsDiscoveryResponder>();
 builder.Services.ConfigureHttpJsonOptions(o =>
 {
     foreach (var c in WorldStore.Json.Converters) o.SerializerOptions.Converters.Add(c);
@@ -75,6 +85,16 @@ app.MapGet("/api/cameras/{id}/mjpeg", async (string id, HttpContext ctx, FeedMan
 });
 
 app.Logger.LogInformation("OnvifSim: data in {Data}, editor at http://localhost:{Port}/", options.DataDirectory, options.WebPort);
-app.Run();
+try
+{
+    app.Run();
+}
+catch (Exception ex) when (ex is IOException or System.Net.Sockets.SocketException)
+{
+    // Almost always a port in use, typically by another OnvifSim: say so instead of crashing.
+    app.Logger.LogCritical("OnvifSim cannot start: {Reason}. Is another instance running? " +
+        "Ports can be moved with --port, --rtsp-port, --rtp-port and --onvif-base-port.", ex.Message);
+    Environment.ExitCode = 1;
+}
 
 public partial class Program;

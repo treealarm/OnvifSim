@@ -1,13 +1,10 @@
-using System.Reflection;
 using System.Text;
 
 namespace OnvifSim.Streaming.Rtsp;
 
 public sealed class RtspResponse(int status)
 {
-    // "OnvifSim/0.1.0": the informational version without the "+commit" suffix the SDK appends.
-    public static readonly string ServerName = "OnvifSim/" +
-        (typeof(RtspResponse).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0").Split('+')[0];
+    public static readonly string ServerName = "OnvifSim/" + Onvif.CameraIdentity.FirmwareVersion;
 
     private readonly List<(string Name, string Value)> _headers = [];
     private string _body = "";

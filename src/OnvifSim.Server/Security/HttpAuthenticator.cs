@@ -2,16 +2,16 @@ using System.Security.Cryptography;
 using System.Text;
 using OnvifSim.World;
 
-namespace OnvifSim.Streaming.Rtsp;
+namespace OnvifSim.Security;
 
-// HTTP-style authentication for RTSP (RFC 2326 section 14.2 via RFC 2617): Digest MD5 and Basic, checked
-// against the camera's users. The Digest challenge offers no qop because live555-based clients (VLC)
-// do not implement it; a client that answers with qop=auth anyway is still verified correctly.
+// HTTP authentication (RFC 2617) as RTSP, ONVIF over HTTP and the snapshot URL use it: Digest MD5 and
+// Basic, checked against the camera's users. The Digest challenge offers no qop because live555-based
+// RTSP clients (VLC) do not implement it; a client that answers with qop=auth anyway is still verified.
 //
 // Nonces are stateless: random bytes plus an HMAC under a per-process key, so any connection may reuse
 // a nonce it received earlier and nothing has to be remembered or expired. Replay protection is not a
 // goal for a simulator.
-public sealed class RtspAuthenticator
+public sealed class HttpAuthenticator
 {
     public const string Realm = "OnvifSim";
 

@@ -1,6 +1,6 @@
 # OnvifSim: виртуальный 3D-мир, камеры в котором работают как ONVIF-устройства
 
-> Temporary working plan (agreed 2026-10-13). Status: phases 1–2 done. Will be removed or turned into a roadmap once the MVP ships.
+> Temporary working plan (agreed 2026-10-13). Status: phases 1–3 done. Will be removed or turned into a roadmap once the MVP ships.
 
 ## Context
 Нужен мультиплатформенный тестовый ONVIF-сервер. В браузерном редакторе собирается примитивный 3D-мир (рельеф, деревья, дома), в нём расставляются фиксированные и PTZ-камеры. Каждая камера становится отдельным ONVIF-устройством: отвечает на discovery, отдаёт RTSP H.264 с рендером мира и управляется по PTZ, обязательно с AbsoluteMove. Всё запускается в Docker. Основная польза: на этом стенде можно гонять OnvifLib, Probe, GUI, ODM и NVR без железа, детерминированно, в том числе в CI.

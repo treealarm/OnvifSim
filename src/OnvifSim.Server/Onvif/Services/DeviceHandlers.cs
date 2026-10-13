@@ -1,0 +1,204 @@
+using HostInterface = System.Net.NetworkInformation.NetworkInterface;
+using System.Net.Sockets;
+using DeviceServiceReference;
+using OnvifSim.Onvif.Soap;
+using OnvifSim.World;
+
+namespace OnvifSim.Onvif.Services;
+
+// Device management (ONVIF Core): identity, clock, services and capabilities, and a read-only view of
+// network settings. The simulated network is the address the request arrived on; nothing here can be
+// reconfigured, so setters only accept the current values.
+[OnvifService(typeof(Device), "device_service", 21, 12)]
+public sealed class DeviceHandlers(OnvifRequestContext context)
+{
+    private CameraModel Camera => context.Camera;
+
+    public GetDeviceInformationResponse GetDeviceInformation(GetDeviceInformationRequest request) => new()
+    {
+        Manufacturer = CameraIdentity.Manufacturer,
+        Model = CameraIdentity.Model(Camera),
+        FirmwareVersion = CameraIdentity.FirmwareVersion,
+        SerialNumber = Camera.Id,
+        HardwareId = CameraIdentity.HardwareId(Camera),
+    };
+
+    // The simulator's clock is the host's, kept by NTP and reported as UTC.
+    [PreAuth]
+    public SystemDateTime GetSystemDateAndTime()
+    {
+        var now = System.DateTime.UtcNow;
+        return new SystemDateTime
+        {
+            DateTimeType = SetDateTimeType.NTP,
+            DaylightSavings = false,
+            TimeZone = new DeviceServiceReference.TimeZone { TZ = "UTC0" },
+            UTCDateTime = ToOnvif(now),
+            LocalDateTime = ToOnvif(now),
+        };
+    }
+
+    [PreAuth]
+    public GetServicesResponse GetServices(GetServicesRequest request) => new()
+    {
+        Service = context.Services.Select(s => new Service
+        {
+            Namespace = s.Namespace,
+            XAddr = context.XAddr(s.Path),
+            Version = new OnvifVersion { Major = s.Major, Minor = s.Minor },
+            Capabilities = request.IncludeCapability ? context.ServiceCapabilities(s.Namespace) : null,
+        }).ToArray(),
+    };
+
+    public DeviceServiceCapabilities GetServiceCapabilities() => new()
+    {
+        Network = new NetworkCapabilities
+        {
+            IPFilter = false, IPFilterSpecified = true,
+            ZeroConfiguration = false, ZeroConfigurationSpecified = true,
+            IPVersion6 = false, IPVersion6Specified = true,
+            DynDNS = false, DynDNSSpecified = true,
+        },
+        Security = new SecurityCapabilities
+        {
+            UsernameToken = true, UsernameTokenSpecified = true,
+            HttpDigest = true, HttpDigestSpecified = true,
+        },
+        System = new SystemCapabilities
+        {
+            DiscoveryResolve = false, DiscoveryResolveSpecified = true,
+            DiscoveryBye = true, DiscoveryByeSpecified = true,
+            RemoteDiscovery = false, RemoteDiscoverySpecified = true,
+            SystemBackup = false, SystemBackupSpecified = true,
+            SystemLogging = false, SystemLoggingSpecified = true,
+            FirmwareUpgrade = false, FirmwareUpgradeSpecified = true,
+            StorageConfiguration = false, StorageConfigurationSpecified = true,
+        },
+        Misc = new MiscCapabilities(),
+    };
+
+    // The legacy (ONVIF 1.x) way to find services; Media here is Media1.
+    [PreAuth]
+    public GetCapabilitiesResponse GetCapabilities(GetCapabilitiesRequest request)
+    {
+        var categories = request.Category is { Length: > 0 } c ? c : [CapabilityCategory.All];
+        bool all = categories.Contains(CapabilityCategory.All);
+        var unsupported = categories.Where(c => c is not (CapabilityCategory.All or CapabilityCategory.Device or CapabilityCategory.Media)).ToList();
+        if (unsupported.Count > 0)
+            throw OnvifFault.NoSuchService($"The device has no {string.Join(", ", unsupported)} service.");
+
+        return new GetCapabilitiesResponse
+        {
+            Capabilities = new Capabilities
+            {
+                Device = all || categories.Contains(CapabilityCategory.Device) ? DeviceCapabilities() : null,
+                Media = all || categories.Contains(CapabilityCategory.Media) ? MediaCapabilities() : null,
+            },
+        };
+    }
+
+    public GetScopesResponse GetScopes(GetScopesRequest request) => new()
+    {
+        Scopes = CameraIdentity.Scopes(Camera).Select(s => new Scope { ScopeDef = ScopeDefinition.Fixed, ScopeItem = s }).ToArray(),
+    };
+
+    public GetEndpointReferenceResponse GetEndpointReference(GetEndpointReferenceRequest request) => new()
+    {
+        GUID = CameraIdentity.EndpointReference(Camera.Id),
+    };
+
+    [PreAuth]
+    public HostnameInformation GetHostname() => new() { FromDHCP = false, Name = CameraIdentity.Hostname(Camera) };
+
+    public SetHostnameResponse SetHostname(SetHostnameRequest request) =>
+        request.Name == CameraIdentity.Hostname(Camera)
+            ? new SetHostnameResponse()
+            : throw OnvifFault.ConfigModify("The hostname of a simulated camera is fixed.");
+
+    public GetUsersResponse GetUsers(GetUsersRequest request) => new()
+    {
+        User = Camera.Users.Select(u => new User { Username = u.Username, UserLevel = UserLevel.Administrator }).ToArray(),
+    };
+
+    public GetNetworkInterfacesResponse GetNetworkInterfaces(GetNetworkInterfacesRequest request)
+    {
+        var address = context.LocalAddress;
+        bool ipv4 = address.AddressFamily == AddressFamily.InterNetwork;
+        return new GetNetworkInterfacesResponse
+        {
+            NetworkInterfaces =
+            [
+                new NetworkInterface
+                {
+                    token = "eth0",
+                    Enabled = true,
+                    Info = new NetworkInterfaceInfo { Name = "eth0", HwAddress = CameraIdentity.HardwareAddress(Camera), MTU = 1500, MTUSpecified = true },
+                    IPv4 = new IPv4NetworkInterface
+                    {
+                        Enabled = ipv4,
+                        Config = new IPv4Configuration
+                        {
+                            DHCP = false,
+                            Manual = ipv4 ? [new PrefixedIPv4Address { Address = address.ToString(), PrefixLength = PrefixLengthOf(address) }] : [],
+                        },
+                    },
+                },
+            ],
+        };
+    }
+
+    public GetNetworkProtocolsResponse GetNetworkProtocols(GetNetworkProtocolsRequest request) => new()
+    {
+        NetworkProtocols =
+        [
+            new NetworkProtocol { Name = NetworkProtocolType.HTTP, Enabled = true, Port = [context.LocalPort] },
+            new NetworkProtocol { Name = NetworkProtocolType.RTSP, Enabled = true, Port = [context.RtspPort] },
+        ],
+    };
+
+    public DNSInformation GetDNS() => new() { FromDHCP = false };
+
+    public NTPInformation GetNTP() => new() { FromDHCP = false };
+
+    public NetworkGateway GetNetworkDefaultGateway() => new();
+
+    public GetStorageConfigurationsResponse GetStorageConfigurations(GetStorageConfigurationsRequest request) =>
+        new() { StorageConfigurations = [] };
+
+    public GetRelayOutputsResponse GetRelayOutputs(GetRelayOutputsRequest request) => new() { RelayOutputs = [] };
+
+    private DeviceCapabilities DeviceCapabilities() => new()
+    {
+        XAddr = context.XAddr("device_service"),
+        Network = new NetworkCapabilities1 { IPFilter = false, IPFilterSpecified = true, ZeroConfiguration = false, ZeroConfigurationSpecified = true },
+        System = new SystemCapabilities1
+        {
+            DiscoveryBye = true,
+            SupportedVersions = [new OnvifVersion { Major = 21, Minor = 12 }],
+        },
+        Security = new SecurityCapabilities1(),
+    };
+
+    private MediaCapabilities MediaCapabilities() => new()
+    {
+        XAddr = context.XAddr("media_service"),
+        StreamingCapabilities = new RealTimeStreamingCapabilities
+        {
+            RTPMulticast = false, RTPMulticastSpecified = true,
+            RTP_TCP = true, RTP_TCPSpecified = true,
+            RTP_RTSP_TCP = true, RTP_RTSP_TCPSpecified = true,
+        },
+    };
+
+    // The prefix of the host interface that owns the address; /24 if none does (e.g. behind NAT).
+    private static int PrefixLengthOf(System.Net.IPAddress address) =>
+        HostInterface.GetAllNetworkInterfaces()
+            .SelectMany(n => n.GetIPProperties().UnicastAddresses)
+            .FirstOrDefault(a => a.Address.Equals(address))?.PrefixLength ?? 24;
+
+    private static DeviceServiceReference.DateTime ToOnvif(System.DateTime utc) => new()
+    {
+        Date = new Date { Year = utc.Year, Month = utc.Month, Day = utc.Day },
+        Time = new Time { Hour = utc.Hour, Minute = utc.Minute, Second = utc.Second },
+    };
+}

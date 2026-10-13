@@ -12,6 +12,9 @@ public class SimFactory : WebApplicationFactory<Program>
 {
     public TempDir Data { get; } = new();
 
+    // Off unless a test class needs it: 3702 is shared with every other WS-Discovery listener.
+    protected virtual int DiscoveryPort => 0;
+
     // Settings reach the app as --name=value arguments, so every factory has its own data directory
     // even when test classes run in parallel; port 0 picks free RTSP and RTP ports, which also keeps the
     // tests clear of a simulator started by hand.
@@ -20,6 +23,8 @@ public class SimFactory : WebApplicationFactory<Program>
         builder.UseSetting("data", Data.Path);
         builder.UseSetting("rtsp-port", "0");
         builder.UseSetting("rtp-port", "0");
+        builder.UseSetting("onvif-base-port", "0");
+        builder.UseSetting("discovery-port", DiscoveryPort.ToString());
     }
 
     protected override void Dispose(bool disposing)

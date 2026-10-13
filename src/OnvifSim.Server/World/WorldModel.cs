@@ -68,6 +68,9 @@ public sealed class CameraModel
     public float HFov { get; set; } = 70;
     public VideoModel Video { get; set; } = new();
     public PtzModel? Ptz { get; set; }
+    // Port of the camera's ONVIF service; 0 means automatic: 8001 for the first camera, 8002 for the
+    // second and so on (--onvif-base-port moves the start).
+    public int OnvifPort { get; set; }
     // Accounts the camera accepts on RTSP (and on ONVIF). No users: the camera asks for no credentials.
     public List<UserModel> Users { get; set; } = [];
 }

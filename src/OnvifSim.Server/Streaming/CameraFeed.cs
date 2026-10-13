@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Threading.Channels;
-using OnvifSim.Rendering;
 using OnvifSim.World;
 
 namespace OnvifSim.Streaming;
@@ -12,7 +11,7 @@ public sealed record EncodedFrame(byte[] Jpeg, int Width, int Height, long Captu
 // Renders one camera only while somebody watches: the first subscriber starts the frame loop, the
 // last one leaving stops it. Every subscriber gets the same frames through a one-slot channel that
 // drops stale frames, so a slow client never holds back the others.
-public sealed class CameraFeed(string cameraId, SceneState scene, ILogger logger)
+public sealed class CameraFeed(string cameraId, SceneState scene, CachingFrameRenderer renderer, ILogger logger)
 {
     private readonly Lock _gate = new();
     private readonly List<Channel<EncodedFrame>> _subscribers = [];
@@ -61,8 +60,6 @@ public sealed class CameraFeed(string cameraId, SceneState scene, ILogger logger
     private async Task RunAsync(CancellationToken token)
     {
         logger.LogInformation("Camera {Camera}: stream started", cameraId);
-        var renderer = new SoftwareRasterizer();
-        Frame? frame = null;
         // Stopwatch timestamp the next frame is due at, and the one it is stamped with: frames sit on an
         // even grid like a real camera's, whatever the scheduling jitter.
         long next = Stopwatch.GetTimestamp();
@@ -78,10 +75,7 @@ public sealed class CameraFeed(string cameraId, SceneState scene, ILogger logger
                     return;
                 }
                 var video = cam.Video;
-                if (frame == null || frame.Width != video.Width || frame.Height != video.Height)
-                    frame = new Frame(video.Width, video.Height);
-                renderer.Render(snap.Scene, CameraPose.From(cam, snap.Scene.Terrain), frame);
-                var encoded = new EncodedFrame(JpegEncoder.Encode(frame, video.Quality), frame.Width, frame.Height, next);
+                var encoded = new EncodedFrame(renderer.Render(snap, cam), video.Width, video.Height, next);
                 lock (_gate)
                     foreach (var s in _subscribers)
                         s.Writer.TryWrite(encoded);

@@ -3,8 +3,13 @@
     <AssemblyName>OnvifSim</AssemblyName>
     <RootNamespace>OnvifSim</RootNamespace>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- With tiered JIT the rasterizer and the JPEG encoder never reached fully optimized code in the
+         running server: 2 cameras x 30 fps took 31 CPU s per 20 s instead of 13 (the same with dynamic PGO,
+         OSR or QuickJit off on their own). Full JIT up front costs ~0.15 s of startup. -->
+    <TieredCompilation>false</TieredCompilation>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="OnvifLib" Version="1.2.0" />
     <PackageReference Include="StbImageWriteSharp" Version="1.16.7" />
   </ItemGroup>
   <ItemGroup>

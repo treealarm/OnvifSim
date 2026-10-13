@@ -1,13 +1,15 @@
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
+using OnvifSim.Security;
 using OnvifSim.World;
 
 namespace OnvifSim.Streaming.Rtsp;
 
 // The RTSP server: one TCP port for every camera (rtsp://host:8554/{cameraId}) and one shared UDP port
 // pair for RTP/RTCP. Owns the sessions, which may outlive the connection that created them (UDP).
-public sealed class RtspServer(SimOptions options, SceneState scene, FeedManager feeds, ILogger<RtspServer> logger) : BackgroundService
+public sealed class RtspServer(
+    SimOptions options, SceneState scene, FeedManager feeds, HttpAuthenticator authenticator, ILogger<RtspServer> logger) : BackgroundService
 {
     private static readonly TimeSpan TimeoutCheckInterval = TimeSpan.FromSeconds(5);
 
@@ -20,7 +22,7 @@ public sealed class RtspServer(SimOptions options, SceneState scene, FeedManager
 
     public SceneState Scene => scene;
     public FeedManager Feeds => feeds;
-    public RtspAuthenticator Authenticator { get; } = new();
+    public HttpAuthenticator Authenticator => authenticator;
     // Null when the UDP port pair could not be bound; SETUP then offers TCP only.
     public RtpUdpSockets? Udp { get; private set; }
 
