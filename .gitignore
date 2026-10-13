@@ -1,0 +1,10 @@
+bin/
+obj/
+.vs/
+.idea/
+*.user
+TestResults/
+node_modules/
+dist/
+# Local world data when running with --data ./data
+data/

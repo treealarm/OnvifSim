@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/OnvifSim.Server/OnvifSim.Server.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/OnvifSim.Tests/OnvifSim.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,15 @@
+<Project>
+  <!-- One version for the binary, the MSI, the snap and the Docker image; release builds override it
+       from the tag (-p:Version=...). -->
+  <PropertyGroup>
+    <Version>0.1.0</Version>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <Authors>Danil Serov</Authors>
+    <Company>TreeAlarm</Company>
+    <Copyright>Copyright (c) TreeAlarm</Copyright>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+</Project>
