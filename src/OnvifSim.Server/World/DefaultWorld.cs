@@ -71,6 +71,7 @@ public static class DefaultWorld
             Id = "cam2", Name = "Tower PTZ", Kind = CameraKind.Ptz,
             Position = new(40, 15, 40), Heading = 315, Pitch = 0,
             Ptz = new PtzModel { Tilt = -10, Home = new PtzPosition(0, -10, 0) },
+            AngleGrid = true,
             Users = [new UserModel { Username = "admin", Password = "admin" }],
         });
         return world;

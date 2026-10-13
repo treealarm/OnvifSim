@@ -70,6 +70,10 @@ WS-Discovery, so ONVIF Device Manager, an NVR or `OnvifLib.Probe --discovery` li
   speeds (`ptz` in `world.json`), the stream shows it turning, and where it stops, its presets and
   its home are saved to `world.json`.
 - **Imaging** (ver20): brightness, contrast and colour saturation, applied to the picture and saved.
+
+`angleGrid: true` on a camera in `world.json` draws a pan/tilt degree grid over its picture, relative
+to the mount (pan 0, tilt 0 is where the camera points at rest), with labels every 15° that get
+finer as the camera zooms in. The default world turns it on for the PTZ camera.
 - **Authentication** as on real cameras: WS-Security UsernameToken or HTTP Digest/Basic with the
   camera's `users`; `GetSystemDateAndTime`, `GetCapabilities`, `GetServices` and `GetHostname` answer
   without credentials.

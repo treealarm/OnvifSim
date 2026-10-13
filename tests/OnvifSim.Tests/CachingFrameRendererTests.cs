@@ -50,6 +50,26 @@ public class CachingFrameRendererTests
     }
 
     [Fact]
+    public void AngleGrid_IsDrawnOverThePicture_AlongTheMountDirection()
+    {
+        using var dir = new TempDir();
+        var store = new WorldStore(dir.Path);
+        var scene = new SceneState(store);
+        var renderer = new CachingFrameRenderer();
+        CameraModel Cam1() => scene.Current.World.Cameras.Single(c => c.Id == "cam1");
+
+        var plain = renderer.RenderFrame(scene.Current, Cam1(), default, 640, 360).Rgba.ToArray();
+        store.Update(w => w.Cameras.Single(c => c.Id == "cam1").AngleGrid = true);
+        var grid = renderer.RenderFrame(scene.Current, Cam1(), default, 640, 360).Rgba;
+
+        // The line of pan 0 runs down the middle of a fixed camera's picture, lighter than the scene.
+        static int Brightness(byte[] rgba, int x, int y) => rgba[(y * 640 + x) * 4] + rgba[(y * 640 + x) * 4 + 1] + rgba[(y * 640 + x) * 4 + 2];
+        Assert.True(Brightness(grid, 320, 300) > Brightness(plain, 320, 300));
+        Assert.Equal(Brightness(plain, 150, 340), Brightness(grid, 150, 340));
+        Assert.Equal(2, renderer.RenderCount);
+    }
+
+    [Fact]
     public void Cameras_DoNotShareFrames()
     {
         using var dir = new TempDir();

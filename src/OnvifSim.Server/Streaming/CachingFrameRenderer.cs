@@ -12,7 +12,7 @@ public sealed class CachingFrameRenderer
 {
     // RenderScene is compared by reference: the world store builds a new one for every change.
     private readonly record struct FrameKey(
-        RenderScene Scene, CameraPose Pose, float Brightness, float Contrast, float ColorSaturation, int Width, int Height);
+        RenderScene Scene, CameraPose Pose, float Brightness, float Contrast, float ColorSaturation, bool AngleGrid, int Width, int Height);
 
     private readonly Lock _gate = new();
     private readonly SoftwareRasterizer _rasterizer = new();
@@ -56,12 +56,13 @@ public sealed class CachingFrameRenderer
     {
         var imaging = camera.Imaging;
         var key = new FrameKey(snapshot.Scene, CameraPose.From(camera, snapshot.Scene.Terrain, ptz),
-            imaging.Brightness, imaging.Contrast, imaging.ColorSaturation, width, height);
+            imaging.Brightness, imaging.Contrast, imaging.ColorSaturation, camera.AngleGrid, width, height);
         if (key == _frameKey) return key;
         if (_frame == null || _frame.Width != width || _frame.Height != height)
             _frame = new Frame(width, height);
         _rasterizer.Render(snapshot.Scene, key.Pose, _frame);
         ImageAdjustments.Apply(_frame, imaging);
+        if (camera.AngleGrid) AngleGrid.Draw(_frame, camera, key.Pose, ptz);
         _frameKey = key;
         RenderCount++;
         return key;

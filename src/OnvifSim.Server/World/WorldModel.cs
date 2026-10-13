@@ -66,6 +66,9 @@ public sealed class CameraModel
     public float Roll { get; set; }
     // Horizontal field of view of a fixed camera; a PTZ camera takes it from Ptz.FovWide/FovTele.
     public float HFov { get; set; } = 70;
+    // Draws a pan/tilt degree grid over the picture (relative to the mount), for checking where the
+    // camera points.
+    public bool AngleGrid { get; set; }
     public VideoModel Video { get; set; } = new();
     // The H.264 stream, served when ffmpeg is available; its settings are independent of the JPEG ones.
     public H264Model H264 { get; set; } = new();
