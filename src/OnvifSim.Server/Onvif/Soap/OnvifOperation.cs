@@ -25,7 +25,7 @@ public sealed class OnvifOperation
         ResponseType = returnType.IsGenericType && IsMessageContract(returnType.GetGenericArguments()[0])
             ? returnType.GetGenericArguments()[0]
             : throw new NotSupportedException($"{Name}: the response is not a message contract; generate with --messageContract.");
-        MessageContractSerializer.Validate(RequestType);
+        RequestElement = MessageContractSerializer.Validate(RequestType);
         MessageContractSerializer.Validate(ResponseType);
     }
 
@@ -34,6 +34,8 @@ public sealed class OnvifOperation
     // A handler method implementing the operation takes the request and returns the response.
     public Type RequestType { get; }
     public Type ResponseType { get; }
+    // The element a request of this operation is in the SOAP body, by which requests are routed.
+    public XName RequestElement { get; }
 
     // The operation of a WCF service contract interface implemented by the method of that name
     // (e.g. "GetProfiles" for GetProfilesAsync). Built only for operations the simulator implements,
@@ -47,10 +49,10 @@ public sealed class OnvifOperation
         return new OnvifOperation(serviceNamespace, method);
     }
 
-    public object ReadRequest(XElement body) => MessageContractSerializer.Get(RequestType).Deserialize(body.CreateReader())!;
+    public object ReadRequest(XElement body) => MessageContractSerializer.Get(RequestType).Read(body);
 
     public void WriteResponse(XmlWriter writer, object response) =>
-        MessageContractSerializer.Get(ResponseType).Serialize(writer, response, OnvifNamespaces.Prefixes);
+        MessageContractSerializer.Get(ResponseType).Write(writer, response, OnvifNamespaces.Prefixes);
 
     private static bool IsMessageContract(Type type) => type.GetCustomAttribute<MessageContractAttribute>() != null;
 

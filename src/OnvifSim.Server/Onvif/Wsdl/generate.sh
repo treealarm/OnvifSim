@@ -31,6 +31,8 @@ cd "$work/proj"
     -n "http://www.onvif.org/ver20/media/wsdl,OnvifSim.Onvif.Wsdl.Media2" \
     -n "http://www.onvif.org/ver20/ptz/wsdl,OnvifSim.Onvif.Wsdl.Ptz" \
     -n "http://www.onvif.org/ver20/imaging/wsdl,OnvifSim.Onvif.Wsdl.Imaging" \
+    -n "http://www.onvif.org/ver10/events/wsdl,OnvifSim.Onvif.Wsdl.Events" \
+    -n "http://docs.oasis-open.org/wsn/bw-2,OnvifSim.Onvif.Wsdl.Wsn" \
     -tf net10.0 -nl -d out -o OnvifContracts.cs >svcutil.log 2>&1 || true
 # svcutil exits non-zero on schema warnings too (the ONVIF schemas give plenty); only a missing file is
 # a failure.

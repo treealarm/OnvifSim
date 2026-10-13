@@ -90,8 +90,8 @@ public sealed class DeviceHandlers(OnvifRequestContext context)
     {
         var categories = request.Category is { Length: > 0 } c ? c : [CapabilityCategory.All];
         CapabilityCategory[] offered = context.HasPtz
-            ? [CapabilityCategory.All, CapabilityCategory.Device, CapabilityCategory.Media, CapabilityCategory.Imaging, CapabilityCategory.PTZ]
-            : [CapabilityCategory.All, CapabilityCategory.Device, CapabilityCategory.Media, CapabilityCategory.Imaging];
+            ? [CapabilityCategory.All, CapabilityCategory.Device, CapabilityCategory.Events, CapabilityCategory.Media, CapabilityCategory.Imaging, CapabilityCategory.PTZ]
+            : [CapabilityCategory.All, CapabilityCategory.Device, CapabilityCategory.Events, CapabilityCategory.Media, CapabilityCategory.Imaging];
         var unsupported = categories.Except(offered).ToList();
         if (unsupported.Count > 0)
             throw OnvifFault.NoSuchService($"The device has no {string.Join(", ", unsupported)} service.");
@@ -102,6 +102,15 @@ public sealed class DeviceHandlers(OnvifRequestContext context)
             Capabilities = new Capabilities
             {
                 Device = Wants(CapabilityCategory.Device) ? DeviceCapabilities() : null,
+                Events = Wants(CapabilityCategory.Events)
+                    ? new EventCapabilities
+                    {
+                        XAddr = context.XAddr("event_service"),
+                        WSPullPointSupport = true,
+                        WSSubscriptionPolicySupport = false,
+                        WSPausableSubscriptionManagerInterfaceSupport = false,
+                    }
+                    : null,
                 Media = Wants(CapabilityCategory.Media) ? MediaCapabilities() : null,
                 Imaging = Wants(CapabilityCategory.Imaging) ? new ImagingCapabilities { XAddr = context.XAddr("imaging_service") } : null,
                 PTZ = context.HasPtz && Wants(CapabilityCategory.PTZ) ? new PTZCapabilities { XAddr = context.XAddr("ptz_service") } : null,

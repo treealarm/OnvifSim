@@ -1,5 +1,6 @@
 using System.Net;
 using System.Xml;
+using OnvifSim.Onvif.Events;
 using OnvifSim.Ptz;
 using OnvifSim.World;
 
@@ -9,7 +10,8 @@ namespace OnvifSim.Onvif;
 // stream and snapshot URIs) use the host and port the client itself addressed, so they stay valid
 // behind NAT or Docker port mapping.
 public sealed class OnvifRequestContext(
-    CameraModel camera, WorldStore store, PtzSimulator ptz, OnvifDispatcher dispatcher, HttpRequest request, int rtspPort, bool hasH264)
+    CameraModel camera, WorldStore store, PtzSimulator ptz, PullPoints pullPoints, OnvifDispatcher dispatcher, HttpRequest request,
+    int rtspPort, bool hasH264)
 {
     // The camera as it was when the request arrived.
     public CameraModel Camera => camera;
@@ -18,8 +20,13 @@ public sealed class OnvifRequestContext(
     public bool HasH264 => hasH264;
     public WorldStore Store => store;
     public PtzSimulator Ptz => ptz;
+    public PullPoints PullPoints => pullPoints;
+    // The path the request was posted to: a pull point's address names the subscription.
+    public string Path => request.Path.Value ?? "";
+    // Ends when the client gives up on the request, for an operation that waits.
+    public CancellationToken Aborted => request.HttpContext.RequestAborted;
     // The services this camera has: PTZ only on a PTZ camera.
-    public IReadOnlyList<OnvifServiceInfo> Services => dispatcher.Services.Where(s => HasPtz || !s.RequiresPtz).ToList();
+    public IReadOnlyList<OnvifServiceInfo> Services => dispatcher.Services.Where(s => s.Listed && (HasPtz || !s.RequiresPtz)).ToList();
     public int RtspPort => rtspPort;
     public IPAddress LocalAddress => request.HttpContext.Connection.LocalIpAddress is { } address
         ? address.IsIPv4MappedToIPv6 ? address.MapToIPv4() : address

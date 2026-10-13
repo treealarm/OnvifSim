@@ -2,6 +2,7 @@ using OnvifSim;
 using OnvifSim.Analytics;
 using OnvifSim.Editor;
 using OnvifSim.Onvif;
+using OnvifSim.Onvif.Events;
 using OnvifSim.Onvif.Services;
 using OnvifSim.Ptz;
 using OnvifSim.Security;
@@ -33,11 +34,13 @@ builder.Services.AddSingleton<PtzSimulator>();
 builder.Services.AddSingleton(sp => H264Support.Detect(options, sp.GetRequiredService<ILogger<H264Support>>()));
 builder.Services.AddSingleton<FeedManager>();
 builder.Services.AddSingleton<AnalyticsManager>();
+builder.Services.AddSingleton<PullPoints>();
 builder.Services.AddSingleton<HttpAuthenticator>();
 builder.Services.AddSingleton<RtspServer>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<RtspServer>());
 builder.Services.AddSingleton(sp => new OnvifDispatcher(
-    [typeof(DeviceHandlers), typeof(MediaHandlers), typeof(Media2Handlers), typeof(PtzHandlers), typeof(ImagingHandlers)],
+    [typeof(DeviceHandlers), typeof(MediaHandlers), typeof(Media2Handlers), typeof(PtzHandlers), typeof(ImagingHandlers),
+     typeof(EventHandlers), typeof(PullPointHandlers), typeof(SubscriptionManagerHandlers)],
     sp.GetRequiredService<HttpAuthenticator>(), sp.GetRequiredService<ILogger<OnvifDispatcher>>()));
 builder.Services.AddSingleton<OnvifHost>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<OnvifHost>());

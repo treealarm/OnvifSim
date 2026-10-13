@@ -30,8 +30,8 @@ turns towards what you asked for, and a person walks out of one camera's view in
 - Fixed and PTZ cameras, each an ONVIF device on its own port
   (`http://<host>:8001/onvif/device_service`, 8002, …).
 - WS-Discovery: clients that search the network find them by themselves.
-- ONVIF Device, Media, Media2, PTZ and Imaging services; the request and response types are generated
-  from the official ONVIF WSDL.
+- ONVIF Device, Media, Media2, PTZ, Imaging and Events services; the request and response types are
+  generated from the official ONVIF WSDL.
 - Authentication as on real cameras: WS-Security UsernameToken, HTTP Digest and Basic, per-camera users.
 - Settings changed over ONVIF (resolution, frame rate, bitrate, image settings, presets, home position)
   are kept in the world file and survive a restart.
@@ -48,6 +48,8 @@ turns towards what you asked for, and a person walks out of one camera's view in
 - The boxes are exact, to the pixel of the picture, and people hidden behind a house or a hill are
   not reported, so a VMS's overlay, tracking or rules can be checked against the truth.
 - Optionally the PTZ position too, in the same track.
+- Motion events through ONVIF pull points (`tns1:VideoSource/MotionAlarm`,
+  `tns1:RuleEngine/CellMotionDetector/Motion`) while someone is in view.
 
 **PTZ you can see**
 - AbsoluteMove, RelativeMove, ContinuousMove, Stop, GetStatus, presets and home.
@@ -239,6 +241,12 @@ WS-Discovery, so ONVIF Device Manager, an NVR or `OnvifLib.Probe --discovery` li
   speeds (`ptz` in `world.json`), the stream shows it turning, and where it stops, its presets and
   its home are saved to `world.json`.
 - **Imaging** (ver20): brightness, contrast and colour saturation, applied to the picture and saved.
+- **Events** (ver10): pull point subscriptions (`CreatePullPointSubscription`, `PullMessages`,
+  `SetSynchronizationPoint`, `Renew`, `Unsubscribe`, topic filters in the ConcreteSet dialect). A
+  camera raises motion on `tns1:VideoSource/MotionAlarm` and `tns1:RuleEngine/CellMotionDetector/Motion`
+  as soon as its analytics sees someone, and clears it a second after the last person is gone; a new
+  subscription first gets the current state. A subscription lives for the time it asked for (a minute
+  by default), renewed by `Renew` and by every pull; a camera keeps at most 10.
 
 - **Authentication** as on real cameras: WS-Security UsernameToken or HTTP Digest/Basic with the
   camera's `users`; `GetSystemDateAndTime`, `GetCapabilities`, `GetServices` and `GetHostname` answer

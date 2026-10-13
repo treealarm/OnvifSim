@@ -14,78 +14,46 @@ namespace OnvifSim.Onvif.Wsdl
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/device/wsdl")]
-    public partial class Service
+    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true, Namespace="http://www.onvif.org/ver10/events/wsdl")]
+    public partial class PullMessagesFaultResponse
     {
         
-        private string namespaceField;
+        private string maxTimeoutField;
         
-        private string xAddrField;
-        
-        private System.Xml.XmlElement capabilitiesField;
-        
-        private OnvifVersion versionField;
+        private int maxMessageLimitField;
         
         private System.Xml.XmlElement[] anyField;
         
         /// <remarks/>
-        [System.Xml.Serialization.XmlElementAttribute(DataType="anyURI", Order=0)]
-        public string Namespace
+        [System.Xml.Serialization.XmlElementAttribute(DataType="duration", Order=0)]
+        public string MaxTimeout
         {
             get
             {
-                return this.namespaceField;
+                return this.maxTimeoutField;
             }
             set
             {
-                this.namespaceField = value;
+                this.maxTimeoutField = value;
             }
         }
         
         /// <remarks/>
-        [System.Xml.Serialization.XmlElementAttribute(DataType="anyURI", Order=1)]
-        public string XAddr
+        [System.Xml.Serialization.XmlElementAttribute(Order=1)]
+        public int MaxMessageLimit
         {
             get
             {
-                return this.xAddrField;
+                return this.maxMessageLimitField;
             }
             set
             {
-                this.xAddrField = value;
+                this.maxMessageLimitField = value;
             }
         }
         
         /// <remarks/>
-        [System.Xml.Serialization.XmlElementAttribute(Order=2)]
-        public System.Xml.XmlElement Capabilities
-        {
-            get
-            {
-                return this.capabilitiesField;
-            }
-            set
-            {
-                this.capabilitiesField = value;
-            }
-        }
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlElementAttribute(Order=3)]
-        public OnvifVersion Version
-        {
-            get
-            {
-                return this.versionField;
-            }
-            set
-            {
-                this.versionField = value;
-            }
-        }
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlAnyElementAttribute(Order=4)]
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=2)]
         public System.Xml.XmlElement[] Any
         {
             get
@@ -102,39 +70,256 @@ namespace OnvifSim.Onvif.Wsdl
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/schema")]
-    public partial class OnvifVersion
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class TopicExpressionType
     {
         
-        private int majorField;
+        private System.Xml.XmlNode[] anyField;
         
-        private int minorField;
+        private string dialectField;
         
         /// <remarks/>
-        [System.Xml.Serialization.XmlElementAttribute(Order=0)]
-        public int Major
+        [System.Xml.Serialization.XmlTextAttribute()]
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=0)]
+        public System.Xml.XmlNode[] Any
         {
             get
             {
-                return this.majorField;
+                return this.anyField;
             }
             set
             {
-                this.majorField = value;
+                this.anyField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute(DataType="anyURI")]
+        public string Dialect
+        {
+            get
+            {
+                return this.dialectField;
+            }
+            set
+            {
+                this.dialectField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.w3.org/2005/08/addressing")]
+    public partial class MetadataType
+    {
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=0)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.w3.org/2005/08/addressing")]
+    public partial class ReferenceParametersType
+    {
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=0)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.w3.org/2005/08/addressing")]
+    public partial class AttributedURIType
+    {
+        
+        private string valueField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlTextAttribute(DataType="anyURI")]
+        public string Value
+        {
+            get
+            {
+                return this.valueField;
+            }
+            set
+            {
+                this.valueField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.w3.org/2005/08/addressing")]
+    public partial class EndpointReferenceType
+    {
+        
+        private AttributedURIType addressField;
+        
+        private ReferenceParametersType referenceParametersField;
+        
+        private MetadataType metadataField;
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=0)]
+        public AttributedURIType Address
+        {
+            get
+            {
+                return this.addressField;
+            }
+            set
+            {
+                this.addressField = value;
             }
         }
         
         /// <remarks/>
         [System.Xml.Serialization.XmlElementAttribute(Order=1)]
-        public int Minor
+        public ReferenceParametersType ReferenceParameters
         {
             get
             {
-                return this.minorField;
+                return this.referenceParametersField;
             }
             set
             {
-                this.minorField = value;
+                this.referenceParametersField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=2)]
+        public MetadataType Metadata
+        {
+            get
+            {
+                return this.metadataField;
+            }
+            set
+            {
+                this.metadataField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=3)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class NotificationMessageHolderType
+    {
+        
+        private EndpointReferenceType subscriptionReferenceField;
+        
+        private TopicExpressionType topicField;
+        
+        private EndpointReferenceType producerReferenceField;
+        
+        private System.Xml.XmlElement messageField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=0)]
+        public EndpointReferenceType SubscriptionReference
+        {
+            get
+            {
+                return this.subscriptionReferenceField;
+            }
+            set
+            {
+                this.subscriptionReferenceField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=1)]
+        public TopicExpressionType Topic
+        {
+            get
+            {
+                return this.topicField;
+            }
+            set
+            {
+                this.topicField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=2)]
+        public EndpointReferenceType ProducerReference
+        {
+            get
+            {
+                return this.producerReferenceField;
+            }
+            set
+            {
+                this.producerReferenceField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=3)]
+        public System.Xml.XmlElement Message
+        {
+            get
+            {
+                return this.messageField;
+            }
+            set
+            {
+                this.messageField = value;
             }
         }
     }
@@ -27842,6 +28027,46 @@ namespace OnvifSim.Onvif.Wsdl
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/schema")]
+    public partial class OnvifVersion
+    {
+        
+        private int majorField;
+        
+        private int minorField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=0)]
+        public int Major
+        {
+            get
+            {
+                return this.majorField;
+            }
+            set
+            {
+                this.majorField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=1)]
+        public int Minor
+        {
+            get
+            {
+                return this.minorField;
+            }
+            set
+            {
+                this.minorField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/schema")]
     public partial class NetworkCapabilitiesExtension2
     {
         
@@ -30904,6 +31129,620 @@ namespace OnvifSim.Onvif.Wsdl
     
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/device/wsdl")]
+    public partial class Service
+    {
+        
+        private string namespaceField;
+        
+        private string xAddrField;
+        
+        private System.Xml.XmlElement capabilitiesField;
+        
+        private OnvifVersion versionField;
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(DataType="anyURI", Order=0)]
+        public string Namespace
+        {
+            get
+            {
+                return this.namespaceField;
+            }
+            set
+            {
+                this.namespaceField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(DataType="anyURI", Order=1)]
+        public string XAddr
+        {
+            get
+            {
+                return this.xAddrField;
+            }
+            set
+            {
+                this.xAddrField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=2)]
+        public System.Xml.XmlElement Capabilities
+        {
+            get
+            {
+                return this.capabilitiesField;
+            }
+            set
+            {
+                this.capabilitiesField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=3)]
+        public OnvifVersion Version
+        {
+            get
+            {
+                return this.versionField;
+            }
+            set
+            {
+                this.versionField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=4)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://docs.oasis-open.org/wsrf/r-2")]
+    public partial class ResourceUnknownFaultType : BaseFaultType
+    {
+    }
+    
+    /// <remarks/>
+    [System.Xml.Serialization.XmlIncludeAttribute(typeof(ResourceUnavailableFaultType))]
+    [System.Xml.Serialization.XmlIncludeAttribute(typeof(ResourceUnknownFaultType))]
+    [System.Xml.Serialization.XmlIncludeAttribute(typeof(ResumeFailedFaultType))]
+    [System.Xml.Serialization.XmlIncludeAttribute(typeof(PauseFailedFaultType))]
+    [System.Xml.Serialization.XmlIncludeAttribute(typeof(UnableToDestroySubscriptionFaultType))]
+    [System.Xml.Serialization.XmlIncludeAttribute(typeof(UnacceptableTerminationTimeFaultType))]
+    [System.Xml.Serialization.XmlIncludeAttribute(typeof(UnableToCreatePullPointFaultType))]
+    [System.Xml.Serialization.XmlIncludeAttribute(typeof(UnableToDestroyPullPointFaultType))]
+    [System.Xml.Serialization.XmlIncludeAttribute(typeof(UnableToGetMessagesFaultType))]
+    [System.Xml.Serialization.XmlIncludeAttribute(typeof(NoCurrentMessageOnTopicFaultType))]
+    [System.Xml.Serialization.XmlIncludeAttribute(typeof(UnacceptableInitialTerminationTimeFaultType))]
+    [System.Xml.Serialization.XmlIncludeAttribute(typeof(NotifyMessageNotSupportedFaultType))]
+    [System.Xml.Serialization.XmlIncludeAttribute(typeof(UnsupportedPolicyRequestFaultType))]
+    [System.Xml.Serialization.XmlIncludeAttribute(typeof(UnrecognizedPolicyRequestFaultType))]
+    [System.Xml.Serialization.XmlIncludeAttribute(typeof(InvalidMessageContentExpressionFaultType))]
+    [System.Xml.Serialization.XmlIncludeAttribute(typeof(InvalidProducerPropertiesExpressionFaultType))]
+    [System.Xml.Serialization.XmlIncludeAttribute(typeof(MultipleTopicsSpecifiedFaultType))]
+    [System.Xml.Serialization.XmlIncludeAttribute(typeof(TopicNotSupportedFaultType))]
+    [System.Xml.Serialization.XmlIncludeAttribute(typeof(InvalidTopicExpressionFaultType))]
+    [System.Xml.Serialization.XmlIncludeAttribute(typeof(TopicExpressionDialectUnknownFaultType))]
+    [System.Xml.Serialization.XmlIncludeAttribute(typeof(InvalidFilterFaultType))]
+    [System.Xml.Serialization.XmlIncludeAttribute(typeof(SubscribeCreationFailedFaultType))]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://docs.oasis-open.org/wsrf/bf-2")]
+    public partial class BaseFaultType
+    {
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        private System.DateTime timestampField;
+        
+        private EndpointReferenceType originatorField;
+        
+        private BaseFaultTypeErrorCode errorCodeField;
+        
+        private BaseFaultTypeDescription[] descriptionField;
+        
+        private System.Xml.XmlElement faultCauseField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=0)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=1)]
+        public System.DateTime Timestamp
+        {
+            get
+            {
+                return this.timestampField;
+            }
+            set
+            {
+                this.timestampField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=2)]
+        public EndpointReferenceType Originator
+        {
+            get
+            {
+                return this.originatorField;
+            }
+            set
+            {
+                this.originatorField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=3)]
+        public BaseFaultTypeErrorCode ErrorCode
+        {
+            get
+            {
+                return this.errorCodeField;
+            }
+            set
+            {
+                this.errorCodeField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute("Description", Order=4)]
+        public BaseFaultTypeDescription[] Description
+        {
+            get
+            {
+                return this.descriptionField;
+            }
+            set
+            {
+                this.descriptionField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=5)]
+        public System.Xml.XmlElement FaultCause
+        {
+            get
+            {
+                return this.faultCauseField;
+            }
+            set
+            {
+                this.faultCauseField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true, Namespace="http://docs.oasis-open.org/wsrf/bf-2")]
+    public partial class BaseFaultTypeErrorCode
+    {
+        
+        private string dialectField;
+        
+        private string[] textField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute(DataType="anyURI")]
+        public string dialect
+        {
+            get
+            {
+                return this.dialectField;
+            }
+            set
+            {
+                this.dialectField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlTextAttribute()]
+        public string[] Text
+        {
+            get
+            {
+                return this.textField;
+            }
+            set
+            {
+                this.textField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true, Namespace="http://docs.oasis-open.org/wsrf/bf-2")]
+    public partial class BaseFaultTypeDescription
+    {
+        
+        private string langField;
+        
+        private string valueField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute(Form=System.Xml.Schema.XmlSchemaForm.Qualified, Namespace="http://www.w3.org/XML/1998/namespace")]
+        public string lang
+        {
+            get
+            {
+                return this.langField;
+            }
+            set
+            {
+                this.langField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlTextAttribute()]
+        public string Value
+        {
+            get
+            {
+                return this.valueField;
+            }
+            set
+            {
+                this.valueField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://docs.oasis-open.org/wsrf/r-2")]
+    public partial class ResourceUnavailableFaultType : BaseFaultType
+    {
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class ResumeFailedFaultType : BaseFaultType
+    {
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class PauseFailedFaultType : BaseFaultType
+    {
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class UnableToDestroySubscriptionFaultType : BaseFaultType
+    {
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class UnacceptableTerminationTimeFaultType : BaseFaultType
+    {
+        
+        private System.DateTime minimumTimeField;
+        
+        private System.DateTime maximumTimeField;
+        
+        private bool maximumTimeFieldSpecified;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=0)]
+        public System.DateTime MinimumTime
+        {
+            get
+            {
+                return this.minimumTimeField;
+            }
+            set
+            {
+                this.minimumTimeField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=1)]
+        public System.DateTime MaximumTime
+        {
+            get
+            {
+                return this.maximumTimeField;
+            }
+            set
+            {
+                this.maximumTimeField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlIgnoreAttribute()]
+        public bool MaximumTimeSpecified
+        {
+            get
+            {
+                return this.maximumTimeFieldSpecified;
+            }
+            set
+            {
+                this.maximumTimeFieldSpecified = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class UnableToCreatePullPointFaultType : BaseFaultType
+    {
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class UnableToDestroyPullPointFaultType : BaseFaultType
+    {
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class UnableToGetMessagesFaultType : BaseFaultType
+    {
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class NoCurrentMessageOnTopicFaultType : BaseFaultType
+    {
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class UnacceptableInitialTerminationTimeFaultType : BaseFaultType
+    {
+        
+        private System.DateTime minimumTimeField;
+        
+        private System.DateTime maximumTimeField;
+        
+        private bool maximumTimeFieldSpecified;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=0)]
+        public System.DateTime MinimumTime
+        {
+            get
+            {
+                return this.minimumTimeField;
+            }
+            set
+            {
+                this.minimumTimeField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=1)]
+        public System.DateTime MaximumTime
+        {
+            get
+            {
+                return this.maximumTimeField;
+            }
+            set
+            {
+                this.maximumTimeField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlIgnoreAttribute()]
+        public bool MaximumTimeSpecified
+        {
+            get
+            {
+                return this.maximumTimeFieldSpecified;
+            }
+            set
+            {
+                this.maximumTimeFieldSpecified = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class NotifyMessageNotSupportedFaultType : BaseFaultType
+    {
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class UnsupportedPolicyRequestFaultType : BaseFaultType
+    {
+        
+        private System.Xml.XmlQualifiedName[] unsupportedPolicyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute("UnsupportedPolicy", Order=0)]
+        public System.Xml.XmlQualifiedName[] UnsupportedPolicy
+        {
+            get
+            {
+                return this.unsupportedPolicyField;
+            }
+            set
+            {
+                this.unsupportedPolicyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class UnrecognizedPolicyRequestFaultType : BaseFaultType
+    {
+        
+        private System.Xml.XmlQualifiedName[] unrecognizedPolicyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute("UnrecognizedPolicy", Order=0)]
+        public System.Xml.XmlQualifiedName[] UnrecognizedPolicy
+        {
+            get
+            {
+                return this.unrecognizedPolicyField;
+            }
+            set
+            {
+                this.unrecognizedPolicyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class InvalidMessageContentExpressionFaultType : BaseFaultType
+    {
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class InvalidProducerPropertiesExpressionFaultType : BaseFaultType
+    {
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class MultipleTopicsSpecifiedFaultType : BaseFaultType
+    {
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class TopicNotSupportedFaultType : BaseFaultType
+    {
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class InvalidTopicExpressionFaultType : BaseFaultType
+    {
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class TopicExpressionDialectUnknownFaultType : BaseFaultType
+    {
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class InvalidFilterFaultType : BaseFaultType
+    {
+        
+        private System.Xml.XmlQualifiedName[] unknownFilterField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute("UnknownFilter", Order=0)]
+        public System.Xml.XmlQualifiedName[] UnknownFilter
+        {
+            get
+            {
+                return this.unknownFilterField;
+            }
+            set
+            {
+                this.unknownFilterField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class SubscribeCreationFailedFaultType : BaseFaultType
+    {
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
     [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/schema")]
     public enum FactoryDefaultType
     {
@@ -30980,6 +31819,1607 @@ namespace OnvifSim.Onvif.Wsdl
         
         /// <remarks/>
         [System.Xml.Serialization.XmlAnyElementAttribute(Order=0)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true, Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class Notify
+    {
+        
+        private NotificationMessageHolderType[] notificationMessageField;
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute("NotificationMessage", Order=0)]
+        public NotificationMessageHolderType[] NotificationMessage
+        {
+            get
+            {
+                return this.notificationMessageField;
+            }
+            set
+            {
+                this.notificationMessageField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=1)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true, Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class Subscribe
+    {
+        
+        private EndpointReferenceType consumerReferenceField;
+        
+        private FilterType filterField;
+        
+        private string initialTerminationTimeField;
+        
+        private SubscribeSubscriptionPolicy subscriptionPolicyField;
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=0)]
+        public EndpointReferenceType ConsumerReference
+        {
+            get
+            {
+                return this.consumerReferenceField;
+            }
+            set
+            {
+                this.consumerReferenceField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=1)]
+        public FilterType Filter
+        {
+            get
+            {
+                return this.filterField;
+            }
+            set
+            {
+                this.filterField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(IsNullable=true, Order=2)]
+        public string InitialTerminationTime
+        {
+            get
+            {
+                return this.initialTerminationTimeField;
+            }
+            set
+            {
+                this.initialTerminationTimeField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=3)]
+        public SubscribeSubscriptionPolicy SubscriptionPolicy
+        {
+            get
+            {
+                return this.subscriptionPolicyField;
+            }
+            set
+            {
+                this.subscriptionPolicyField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=4)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true, Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class SubscribeSubscriptionPolicy
+    {
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=0)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true, Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class SubscribeResponse
+    {
+        
+        private EndpointReferenceType subscriptionReferenceField;
+        
+        private System.DateTime currentTimeField;
+        
+        private bool currentTimeFieldSpecified;
+        
+        private System.Nullable<System.DateTime> terminationTimeField;
+        
+        private bool terminationTimeFieldSpecified;
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=0)]
+        public EndpointReferenceType SubscriptionReference
+        {
+            get
+            {
+                return this.subscriptionReferenceField;
+            }
+            set
+            {
+                this.subscriptionReferenceField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=1)]
+        public System.DateTime CurrentTime
+        {
+            get
+            {
+                return this.currentTimeField;
+            }
+            set
+            {
+                this.currentTimeField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlIgnoreAttribute()]
+        public bool CurrentTimeSpecified
+        {
+            get
+            {
+                return this.currentTimeFieldSpecified;
+            }
+            set
+            {
+                this.currentTimeFieldSpecified = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(IsNullable=true, Order=2)]
+        public System.Nullable<System.DateTime> TerminationTime
+        {
+            get
+            {
+                return this.terminationTimeField;
+            }
+            set
+            {
+                this.terminationTimeField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlIgnoreAttribute()]
+        public bool TerminationTimeSpecified
+        {
+            get
+            {
+                return this.terminationTimeFieldSpecified;
+            }
+            set
+            {
+                this.terminationTimeFieldSpecified = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=3)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true, Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class GetCurrentMessage
+    {
+        
+        private TopicExpressionType topicField;
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=0)]
+        public TopicExpressionType Topic
+        {
+            get
+            {
+                return this.topicField;
+            }
+            set
+            {
+                this.topicField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=1)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true, Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class GetCurrentMessageResponse
+    {
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=0)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true, Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class GetMessages
+    {
+        
+        private string maximumNumberField;
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(DataType="nonNegativeInteger", Order=0)]
+        public string MaximumNumber
+        {
+            get
+            {
+                return this.maximumNumberField;
+            }
+            set
+            {
+                this.maximumNumberField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=1)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true, Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class GetMessagesResponse
+    {
+        
+        private NotificationMessageHolderType[] notificationMessageField;
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute("NotificationMessage", Order=0)]
+        public NotificationMessageHolderType[] NotificationMessage
+        {
+            get
+            {
+                return this.notificationMessageField;
+            }
+            set
+            {
+                this.notificationMessageField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=1)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true, Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class DestroyPullPoint
+    {
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=0)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true, Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class DestroyPullPointResponse
+    {
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=0)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true, Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class CreatePullPoint
+    {
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=0)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true, Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class CreatePullPointResponse
+    {
+        
+        private EndpointReferenceType pullPointField;
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=0)]
+        public EndpointReferenceType PullPoint
+        {
+            get
+            {
+                return this.pullPointField;
+            }
+            set
+            {
+                this.pullPointField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=1)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true, Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class Renew
+    {
+        
+        private string terminationTimeField;
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(IsNullable=true, Order=0)]
+        public string TerminationTime
+        {
+            get
+            {
+                return this.terminationTimeField;
+            }
+            set
+            {
+                this.terminationTimeField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=1)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true, Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class RenewResponse
+    {
+        
+        private System.Nullable<System.DateTime> terminationTimeField;
+        
+        private System.DateTime currentTimeField;
+        
+        private bool currentTimeFieldSpecified;
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(IsNullable=true, Order=0)]
+        public System.Nullable<System.DateTime> TerminationTime
+        {
+            get
+            {
+                return this.terminationTimeField;
+            }
+            set
+            {
+                this.terminationTimeField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=1)]
+        public System.DateTime CurrentTime
+        {
+            get
+            {
+                return this.currentTimeField;
+            }
+            set
+            {
+                this.currentTimeField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlIgnoreAttribute()]
+        public bool CurrentTimeSpecified
+        {
+            get
+            {
+                return this.currentTimeFieldSpecified;
+            }
+            set
+            {
+                this.currentTimeFieldSpecified = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=2)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true, Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class Unsubscribe
+    {
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=0)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true, Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class UnsubscribeResponse
+    {
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=0)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true, Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class PauseSubscription
+    {
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=0)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true, Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class PauseSubscriptionResponse
+    {
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=0)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true, Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class ResumeSubscription
+    {
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=0)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true, Namespace="http://docs.oasis-open.org/wsn/b-2")]
+    public partial class ResumeSubscriptionResponse
+    {
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=0)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(TypeName="Capabilities", Namespace="http://www.onvif.org/ver10/events/wsdl")]
+    public partial class Capabilities5
+    {
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        private bool wSSubscriptionPolicySupportField;
+        
+        private bool wSSubscriptionPolicySupportFieldSpecified;
+        
+        private bool wSPausableSubscriptionManagerInterfaceSupportField;
+        
+        private bool wSPausableSubscriptionManagerInterfaceSupportFieldSpecified;
+        
+        private int maxNotificationProducersField;
+        
+        private bool maxNotificationProducersFieldSpecified;
+        
+        private int maxPullPointsField;
+        
+        private bool maxPullPointsFieldSpecified;
+        
+        private bool persistentNotificationStorageField;
+        
+        private bool persistentNotificationStorageFieldSpecified;
+        
+        private string eventBrokerProtocolsField;
+        
+        private int maxEventBrokersField;
+        
+        private bool maxEventBrokersFieldSpecified;
+        
+        private bool metadataOverMQTTField;
+        
+        private bool metadataOverMQTTFieldSpecified;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=0)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        public bool WSSubscriptionPolicySupport
+        {
+            get
+            {
+                return this.wSSubscriptionPolicySupportField;
+            }
+            set
+            {
+                this.wSSubscriptionPolicySupportField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlIgnoreAttribute()]
+        public bool WSSubscriptionPolicySupportSpecified
+        {
+            get
+            {
+                return this.wSSubscriptionPolicySupportFieldSpecified;
+            }
+            set
+            {
+                this.wSSubscriptionPolicySupportFieldSpecified = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        public bool WSPausableSubscriptionManagerInterfaceSupport
+        {
+            get
+            {
+                return this.wSPausableSubscriptionManagerInterfaceSupportField;
+            }
+            set
+            {
+                this.wSPausableSubscriptionManagerInterfaceSupportField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlIgnoreAttribute()]
+        public bool WSPausableSubscriptionManagerInterfaceSupportSpecified
+        {
+            get
+            {
+                return this.wSPausableSubscriptionManagerInterfaceSupportFieldSpecified;
+            }
+            set
+            {
+                this.wSPausableSubscriptionManagerInterfaceSupportFieldSpecified = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        public int MaxNotificationProducers
+        {
+            get
+            {
+                return this.maxNotificationProducersField;
+            }
+            set
+            {
+                this.maxNotificationProducersField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlIgnoreAttribute()]
+        public bool MaxNotificationProducersSpecified
+        {
+            get
+            {
+                return this.maxNotificationProducersFieldSpecified;
+            }
+            set
+            {
+                this.maxNotificationProducersFieldSpecified = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        public int MaxPullPoints
+        {
+            get
+            {
+                return this.maxPullPointsField;
+            }
+            set
+            {
+                this.maxPullPointsField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlIgnoreAttribute()]
+        public bool MaxPullPointsSpecified
+        {
+            get
+            {
+                return this.maxPullPointsFieldSpecified;
+            }
+            set
+            {
+                this.maxPullPointsFieldSpecified = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        public bool PersistentNotificationStorage
+        {
+            get
+            {
+                return this.persistentNotificationStorageField;
+            }
+            set
+            {
+                this.persistentNotificationStorageField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlIgnoreAttribute()]
+        public bool PersistentNotificationStorageSpecified
+        {
+            get
+            {
+                return this.persistentNotificationStorageFieldSpecified;
+            }
+            set
+            {
+                this.persistentNotificationStorageFieldSpecified = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        public string EventBrokerProtocols
+        {
+            get
+            {
+                return this.eventBrokerProtocolsField;
+            }
+            set
+            {
+                this.eventBrokerProtocolsField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        public int MaxEventBrokers
+        {
+            get
+            {
+                return this.maxEventBrokersField;
+            }
+            set
+            {
+                this.maxEventBrokersField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlIgnoreAttribute()]
+        public bool MaxEventBrokersSpecified
+        {
+            get
+            {
+                return this.maxEventBrokersFieldSpecified;
+            }
+            set
+            {
+                this.maxEventBrokersFieldSpecified = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        public bool MetadataOverMQTT
+        {
+            get
+            {
+                return this.metadataOverMQTTField;
+            }
+            set
+            {
+                this.metadataOverMQTTField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlIgnoreAttribute()]
+        public bool MetadataOverMQTTSpecified
+        {
+            get
+            {
+                return this.metadataOverMQTTFieldSpecified;
+            }
+            set
+            {
+                this.metadataOverMQTTFieldSpecified = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true, Namespace="http://www.onvif.org/ver10/events/wsdl")]
+    public partial class CreatePullPointSubscriptionSubscriptionPolicy
+    {
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=0)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://docs.oasis-open.org/wsn/t-1")]
+    public partial class TopicSetType : ExtensibleDocumented
+    {
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=0)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.Xml.Serialization.XmlIncludeAttribute(typeof(TopicSetType))]
+    [System.Xml.Serialization.XmlIncludeAttribute(typeof(TopicType))]
+    [System.Xml.Serialization.XmlIncludeAttribute(typeof(TopicNamespaceType))]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://docs.oasis-open.org/wsn/t-1")]
+    public abstract partial class ExtensibleDocumented
+    {
+        
+        private Documentation documentationField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=0)]
+        public Documentation documentation
+        {
+            get
+            {
+                return this.documentationField;
+            }
+            set
+            {
+                this.documentationField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://docs.oasis-open.org/wsn/t-1")]
+    public partial class Documentation
+    {
+        
+        private System.Xml.XmlNode[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlTextAttribute()]
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=0)]
+        public System.Xml.XmlNode[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://docs.oasis-open.org/wsn/t-1")]
+    public partial class TopicType : ExtensibleDocumented
+    {
+        
+        private QueryExpressionType1 messagePatternField;
+        
+        private TopicType[] topicField;
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        private string nameField;
+        
+        private System.Xml.XmlQualifiedName[] messageTypesField;
+        
+        private bool finalField;
+        
+        public TopicType()
+        {
+            this.finalField = false;
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=0)]
+        public QueryExpressionType1 MessagePattern
+        {
+            get
+            {
+                return this.messagePatternField;
+            }
+            set
+            {
+                this.messagePatternField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute("Topic", Order=1)]
+        public TopicType[] Topic
+        {
+            get
+            {
+                return this.topicField;
+            }
+            set
+            {
+                this.topicField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=2)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute(DataType="NCName")]
+        public string name
+        {
+            get
+            {
+                return this.nameField;
+            }
+            set
+            {
+                this.nameField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        public System.Xml.XmlQualifiedName[] messageTypes
+        {
+            get
+            {
+                return this.messageTypesField;
+            }
+            set
+            {
+                this.messageTypesField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        [System.ComponentModel.DefaultValueAttribute(false)]
+        public bool final
+        {
+            get
+            {
+                return this.finalField;
+            }
+            set
+            {
+                this.finalField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(TypeName="QueryExpressionType", Namespace="http://docs.oasis-open.org/wsn/t-1")]
+    public partial class QueryExpressionType1
+    {
+        
+        private System.Xml.XmlNode[] anyField;
+        
+        private string dialectField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlTextAttribute()]
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=0)]
+        public System.Xml.XmlNode[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute(DataType="anyURI")]
+        public string Dialect
+        {
+            get
+            {
+                return this.dialectField;
+            }
+            set
+            {
+                this.dialectField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://docs.oasis-open.org/wsn/t-1")]
+    public partial class TopicNamespaceType : ExtensibleDocumented
+    {
+        
+        private TopicNamespaceTypeTopic[] topicField;
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        private string nameField;
+        
+        private string targetNamespaceField;
+        
+        private bool finalField;
+        
+        public TopicNamespaceType()
+        {
+            this.finalField = false;
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute("Topic", Order=0)]
+        public TopicNamespaceTypeTopic[] Topic
+        {
+            get
+            {
+                return this.topicField;
+            }
+            set
+            {
+                this.topicField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=1)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute(DataType="NCName")]
+        public string name
+        {
+            get
+            {
+                return this.nameField;
+            }
+            set
+            {
+                this.nameField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute(DataType="anyURI")]
+        public string targetNamespace
+        {
+            get
+            {
+                return this.targetNamespaceField;
+            }
+            set
+            {
+                this.targetNamespaceField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        [System.ComponentModel.DefaultValueAttribute(false)]
+        public bool final
+        {
+            get
+            {
+                return this.finalField;
+            }
+            set
+            {
+                this.finalField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(AnonymousType=true, Namespace="http://docs.oasis-open.org/wsn/t-1")]
+    public partial class TopicNamespaceTypeTopic : TopicType
+    {
+        
+        private string parentField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute(DataType="token")]
+        public string parent
+        {
+            get
+            {
+                return this.parentField;
+            }
+            set
+            {
+                this.parentField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/events/wsdl")]
+    public partial class EventBrokerConfig
+    {
+        
+        private string addressField;
+        
+        private string topicPrefixField;
+        
+        private string userNameField;
+        
+        private string passwordField;
+        
+        private string certificateIDField;
+        
+        private FilterType publishFilterField;
+        
+        private int qoSField;
+        
+        private bool qoSFieldSpecified;
+        
+        private string statusField;
+        
+        private string certPathValidationPolicyIDField;
+        
+        private FilterType metadataFilterField;
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(DataType="anyURI", Order=0)]
+        public string Address
+        {
+            get
+            {
+                return this.addressField;
+            }
+            set
+            {
+                this.addressField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=1)]
+        public string TopicPrefix
+        {
+            get
+            {
+                return this.topicPrefixField;
+            }
+            set
+            {
+                this.topicPrefixField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=2)]
+        public string UserName
+        {
+            get
+            {
+                return this.userNameField;
+            }
+            set
+            {
+                this.userNameField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=3)]
+        public string Password
+        {
+            get
+            {
+                return this.passwordField;
+            }
+            set
+            {
+                this.passwordField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(DataType="token", Order=4)]
+        public string CertificateID
+        {
+            get
+            {
+                return this.certificateIDField;
+            }
+            set
+            {
+                this.certificateIDField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=5)]
+        public FilterType PublishFilter
+        {
+            get
+            {
+                return this.publishFilterField;
+            }
+            set
+            {
+                this.publishFilterField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=6)]
+        public int QoS
+        {
+            get
+            {
+                return this.qoSField;
+            }
+            set
+            {
+                this.qoSField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlIgnoreAttribute()]
+        public bool QoSSpecified
+        {
+            get
+            {
+                return this.qoSFieldSpecified;
+            }
+            set
+            {
+                this.qoSFieldSpecified = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=7)]
+        public string Status
+        {
+            get
+            {
+                return this.statusField;
+            }
+            set
+            {
+                this.statusField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=8)]
+        public string CertPathValidationPolicyID
+        {
+            get
+            {
+                return this.certPathValidationPolicyIDField;
+            }
+            set
+            {
+                this.certPathValidationPolicyIDField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=9)]
+        public FilterType MetadataFilter
+        {
+            get
+            {
+                return this.metadataFilterField;
+            }
+            set
+            {
+                this.metadataFilterField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=10)]
         public System.Xml.XmlElement[] Any
         {
             get
@@ -44579,6 +47019,1391 @@ namespace OnvifSim.Onvif.Wsdl.Imaging
         public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Imaging.SetCurrentPresetResponse> SetCurrentPresetAsync(OnvifSim.Onvif.Wsdl.Imaging.SetCurrentPresetRequest request)
         {
             return base.Channel.SetCurrentPresetAsync(request);
+        }
+        
+        public virtual System.Threading.Tasks.Task OpenAsync()
+        {
+            return System.Threading.Tasks.Task.Factory.FromAsync(((System.ServiceModel.ICommunicationObject)(this)).BeginOpen(null, null), new System.Action<System.IAsyncResult>(((System.ServiceModel.ICommunicationObject)(this)).EndOpen));
+        }
+        
+        #if !NET6_0_OR_GREATER
+        public virtual System.Threading.Tasks.Task CloseAsync()
+        {
+            return System.Threading.Tasks.Task.Factory.FromAsync(((System.ServiceModel.ICommunicationObject)(this)).BeginClose(null, null), new System.Action<System.IAsyncResult>(((System.ServiceModel.ICommunicationObject)(this)).EndClose));
+        }
+        #endif
+    }
+}
+namespace OnvifSim.Onvif.Wsdl.Wsn
+{
+    
+    
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.ServiceContractAttribute(Namespace="http://docs.oasis-open.org/wsn/bw-2", ConfigurationName="OnvifSim.Onvif.Wsdl.Wsn.NotificationConsumer")]
+    public interface NotificationConsumer
+    {
+        
+        [System.ServiceModel.OperationContractAttribute(IsOneWay=true, Action="http://docs.oasis-open.org/wsn/bw-2/NotificationConsumer/Notify")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task NotifyAsync(OnvifSim.Onvif.Wsdl.Wsn.Notify request);
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(IsWrapped=false)]
+    public partial class Notify
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Name="Notify", Namespace="http://docs.oasis-open.org/wsn/b-2", Order=0)]
+        public OnvifSim.Onvif.Wsdl.Notify Notify1;
+        
+        public Notify()
+        {
+        }
+        
+        public Notify(OnvifSim.Onvif.Wsdl.Notify Notify1)
+        {
+            this.Notify1 = Notify1;
+        }
+    }
+    
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    public interface NotificationConsumerChannel : OnvifSim.Onvif.Wsdl.Wsn.NotificationConsumer, System.ServiceModel.IClientChannel
+    {
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    public partial class NotificationConsumerClient : System.ServiceModel.ClientBase<OnvifSim.Onvif.Wsdl.Wsn.NotificationConsumer>, OnvifSim.Onvif.Wsdl.Wsn.NotificationConsumer
+    {
+        
+        public NotificationConsumerClient(System.ServiceModel.Channels.Binding binding, System.ServiceModel.EndpointAddress remoteAddress) : 
+                base(binding, remoteAddress)
+        {
+        }
+        
+        public System.Threading.Tasks.Task NotifyAsync(OnvifSim.Onvif.Wsdl.Wsn.Notify request)
+        {
+            return base.Channel.NotifyAsync(request);
+        }
+        
+        public virtual System.Threading.Tasks.Task OpenAsync()
+        {
+            return System.Threading.Tasks.Task.Factory.FromAsync(((System.ServiceModel.ICommunicationObject)(this)).BeginOpen(null, null), new System.Action<System.IAsyncResult>(((System.ServiceModel.ICommunicationObject)(this)).EndOpen));
+        }
+        
+        #if !NET6_0_OR_GREATER
+        public virtual System.Threading.Tasks.Task CloseAsync()
+        {
+            return System.Threading.Tasks.Task.Factory.FromAsync(((System.ServiceModel.ICommunicationObject)(this)).BeginClose(null, null), new System.Action<System.IAsyncResult>(((System.ServiceModel.ICommunicationObject)(this)).EndClose));
+        }
+        #endif
+    }
+    
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.ServiceContractAttribute(Namespace="http://docs.oasis-open.org/wsn/bw-2", ConfigurationName="OnvifSim.Onvif.Wsdl.Wsn.NotificationProducer")]
+    public interface NotificationProducer
+    {
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://docs.oasis-open.org/wsn/bw-2/NotificationProducer/SubscribeRequest", ReplyAction="*")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.ResourceUnknownFaultType), Action="http://docs.oasis-open.org/wsn/bw-2/NotificationProducer/SubscribeRequest", Name="ResourceUnknownFault", Namespace="http://docs.oasis-open.org/wsrf/r-2")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.InvalidFilterFaultType), Action="http://docs.oasis-open.org/wsn/bw-2/NotificationProducer/SubscribeRequest", Name="InvalidFilterFault", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.TopicExpressionDialectUnknownFaultType), Action="http://docs.oasis-open.org/wsn/bw-2/NotificationProducer/SubscribeRequest", Name="TopicExpressionDialectUnknownFault", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.InvalidTopicExpressionFaultType), Action="http://docs.oasis-open.org/wsn/bw-2/NotificationProducer/SubscribeRequest", Name="InvalidTopicExpressionFault", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.TopicNotSupportedFaultType), Action="http://docs.oasis-open.org/wsn/bw-2/NotificationProducer/SubscribeRequest", Name="TopicNotSupportedFault", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.InvalidProducerPropertiesExpressionFaultType), Action="http://docs.oasis-open.org/wsn/bw-2/NotificationProducer/SubscribeRequest", Name="InvalidProducerPropertiesExpressionFault", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.InvalidMessageContentExpressionFaultType), Action="http://docs.oasis-open.org/wsn/bw-2/NotificationProducer/SubscribeRequest", Name="InvalidMessageContentExpressionFault", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.UnacceptableInitialTerminationTimeFaultType), Action="http://docs.oasis-open.org/wsn/bw-2/NotificationProducer/SubscribeRequest", Name="UnacceptableInitialTerminationTimeFault", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.UnrecognizedPolicyRequestFaultType), Action="http://docs.oasis-open.org/wsn/bw-2/NotificationProducer/SubscribeRequest", Name="UnrecognizedPolicyRequestFault", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.UnsupportedPolicyRequestFaultType), Action="http://docs.oasis-open.org/wsn/bw-2/NotificationProducer/SubscribeRequest", Name="UnsupportedPolicyRequestFault", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.NotifyMessageNotSupportedFaultType), Action="http://docs.oasis-open.org/wsn/bw-2/NotificationProducer/SubscribeRequest", Name="NotifyMessageNotSupportedFault", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.SubscribeCreationFailedFaultType), Action="http://docs.oasis-open.org/wsn/bw-2/NotificationProducer/SubscribeRequest", Name="SubscribeCreationFailedFault", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Wsn.SubscribeResponse> SubscribeAsync(OnvifSim.Onvif.Wsdl.Wsn.SubscribeRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://docs.oasis-open.org/wsn/bw-2/NotificationProducer/GetCurrentMessageRequest" +
+            "", ReplyAction="*")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.ResourceUnknownFaultType), Action="http://docs.oasis-open.org/wsn/bw-2/NotificationProducer/GetCurrentMessageRequest" +
+            "", Name="ResourceUnknownFault", Namespace="http://docs.oasis-open.org/wsrf/r-2")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.TopicExpressionDialectUnknownFaultType), Action="http://docs.oasis-open.org/wsn/bw-2/NotificationProducer/GetCurrentMessageRequest" +
+            "", Name="TopicExpressionDialectUnknownFault", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.InvalidTopicExpressionFaultType), Action="http://docs.oasis-open.org/wsn/bw-2/NotificationProducer/GetCurrentMessageRequest" +
+            "", Name="InvalidTopicExpressionFault", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.TopicNotSupportedFaultType), Action="http://docs.oasis-open.org/wsn/bw-2/NotificationProducer/GetCurrentMessageRequest" +
+            "", Name="TopicNotSupportedFault", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.NoCurrentMessageOnTopicFaultType), Action="http://docs.oasis-open.org/wsn/bw-2/NotificationProducer/GetCurrentMessageRequest" +
+            "", Name="NoCurrentMessageOnTopicFault", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.MultipleTopicsSpecifiedFaultType), Action="http://docs.oasis-open.org/wsn/bw-2/NotificationProducer/GetCurrentMessageRequest" +
+            "", Name="MultipleTopicsSpecifiedFault", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Wsn.GetCurrentMessageResponse> GetCurrentMessageAsync(OnvifSim.Onvif.Wsdl.Wsn.GetCurrentMessageRequest request);
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(IsWrapped=false)]
+    public partial class SubscribeRequest
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2", Order=0)]
+        public OnvifSim.Onvif.Wsdl.Subscribe Subscribe;
+        
+        public SubscribeRequest()
+        {
+        }
+        
+        public SubscribeRequest(OnvifSim.Onvif.Wsdl.Subscribe Subscribe)
+        {
+            this.Subscribe = Subscribe;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(IsWrapped=false)]
+    public partial class SubscribeResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Name="SubscribeResponse", Namespace="http://docs.oasis-open.org/wsn/b-2", Order=0)]
+        public OnvifSim.Onvif.Wsdl.SubscribeResponse SubscribeResponse1;
+        
+        public SubscribeResponse()
+        {
+        }
+        
+        public SubscribeResponse(OnvifSim.Onvif.Wsdl.SubscribeResponse SubscribeResponse1)
+        {
+            this.SubscribeResponse1 = SubscribeResponse1;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(IsWrapped=false)]
+    public partial class GetCurrentMessageRequest
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2", Order=0)]
+        public OnvifSim.Onvif.Wsdl.GetCurrentMessage GetCurrentMessage;
+        
+        public GetCurrentMessageRequest()
+        {
+        }
+        
+        public GetCurrentMessageRequest(OnvifSim.Onvif.Wsdl.GetCurrentMessage GetCurrentMessage)
+        {
+            this.GetCurrentMessage = GetCurrentMessage;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(IsWrapped=false)]
+    public partial class GetCurrentMessageResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Name="GetCurrentMessageResponse", Namespace="http://docs.oasis-open.org/wsn/b-2", Order=0)]
+        public OnvifSim.Onvif.Wsdl.GetCurrentMessageResponse GetCurrentMessageResponse1;
+        
+        public GetCurrentMessageResponse()
+        {
+        }
+        
+        public GetCurrentMessageResponse(OnvifSim.Onvif.Wsdl.GetCurrentMessageResponse GetCurrentMessageResponse1)
+        {
+            this.GetCurrentMessageResponse1 = GetCurrentMessageResponse1;
+        }
+    }
+    
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    public interface NotificationProducerChannel : OnvifSim.Onvif.Wsdl.Wsn.NotificationProducer, System.ServiceModel.IClientChannel
+    {
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    public partial class NotificationProducerClient : System.ServiceModel.ClientBase<OnvifSim.Onvif.Wsdl.Wsn.NotificationProducer>, OnvifSim.Onvif.Wsdl.Wsn.NotificationProducer
+    {
+        
+        public NotificationProducerClient(System.ServiceModel.Channels.Binding binding, System.ServiceModel.EndpointAddress remoteAddress) : 
+                base(binding, remoteAddress)
+        {
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Wsn.SubscribeResponse> SubscribeAsync(OnvifSim.Onvif.Wsdl.Wsn.SubscribeRequest request)
+        {
+            return base.Channel.SubscribeAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Wsn.GetCurrentMessageResponse> GetCurrentMessageAsync(OnvifSim.Onvif.Wsdl.Wsn.GetCurrentMessageRequest request)
+        {
+            return base.Channel.GetCurrentMessageAsync(request);
+        }
+        
+        public virtual System.Threading.Tasks.Task OpenAsync()
+        {
+            return System.Threading.Tasks.Task.Factory.FromAsync(((System.ServiceModel.ICommunicationObject)(this)).BeginOpen(null, null), new System.Action<System.IAsyncResult>(((System.ServiceModel.ICommunicationObject)(this)).EndOpen));
+        }
+        
+        #if !NET6_0_OR_GREATER
+        public virtual System.Threading.Tasks.Task CloseAsync()
+        {
+            return System.Threading.Tasks.Task.Factory.FromAsync(((System.ServiceModel.ICommunicationObject)(this)).BeginClose(null, null), new System.Action<System.IAsyncResult>(((System.ServiceModel.ICommunicationObject)(this)).EndClose));
+        }
+        #endif
+    }
+    
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.ServiceContractAttribute(Namespace="http://docs.oasis-open.org/wsn/bw-2", ConfigurationName="OnvifSim.Onvif.Wsdl.Wsn.PullPoint")]
+    public interface PullPoint
+    {
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://docs.oasis-open.org/wsn/bw-2/PullPoint/GetMessagesRequest", ReplyAction="*")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.ResourceUnknownFaultType), Action="http://docs.oasis-open.org/wsn/bw-2/PullPoint/GetMessagesRequest", Name="ResourceUnknownFault", Namespace="http://docs.oasis-open.org/wsrf/r-2")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.UnableToGetMessagesFaultType), Action="http://docs.oasis-open.org/wsn/bw-2/PullPoint/GetMessagesRequest", Name="UnableToGetMessagesFault", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Wsn.GetMessagesResponse> GetMessagesAsync(OnvifSim.Onvif.Wsdl.Wsn.GetMessagesRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://docs.oasis-open.org/wsn/bw-2/PullPoint/DestroyPullPointRequest", ReplyAction="*")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.ResourceUnknownFaultType), Action="http://docs.oasis-open.org/wsn/bw-2/PullPoint/DestroyPullPointRequest", Name="ResourceUnknownFault", Namespace="http://docs.oasis-open.org/wsrf/r-2")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.UnableToDestroyPullPointFaultType), Action="http://docs.oasis-open.org/wsn/bw-2/PullPoint/DestroyPullPointRequest", Name="UnableToDestroyPullPointFault", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Wsn.DestroyPullPointResponse> DestroyPullPointAsync(OnvifSim.Onvif.Wsdl.Wsn.DestroyPullPointRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(IsOneWay=true, Action="http://docs.oasis-open.org/wsn/bw-2/PullPoint/Notify")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task NotifyAsync(OnvifSim.Onvif.Wsdl.Wsn.Notify request);
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(IsWrapped=false)]
+    public partial class GetMessagesRequest
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2", Order=0)]
+        public OnvifSim.Onvif.Wsdl.GetMessages GetMessages;
+        
+        public GetMessagesRequest()
+        {
+        }
+        
+        public GetMessagesRequest(OnvifSim.Onvif.Wsdl.GetMessages GetMessages)
+        {
+            this.GetMessages = GetMessages;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(IsWrapped=false)]
+    public partial class GetMessagesResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Name="GetMessagesResponse", Namespace="http://docs.oasis-open.org/wsn/b-2", Order=0)]
+        public OnvifSim.Onvif.Wsdl.GetMessagesResponse GetMessagesResponse1;
+        
+        public GetMessagesResponse()
+        {
+        }
+        
+        public GetMessagesResponse(OnvifSim.Onvif.Wsdl.GetMessagesResponse GetMessagesResponse1)
+        {
+            this.GetMessagesResponse1 = GetMessagesResponse1;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(IsWrapped=false)]
+    public partial class DestroyPullPointRequest
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2", Order=0)]
+        public OnvifSim.Onvif.Wsdl.DestroyPullPoint DestroyPullPoint;
+        
+        public DestroyPullPointRequest()
+        {
+        }
+        
+        public DestroyPullPointRequest(OnvifSim.Onvif.Wsdl.DestroyPullPoint DestroyPullPoint)
+        {
+            this.DestroyPullPoint = DestroyPullPoint;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(IsWrapped=false)]
+    public partial class DestroyPullPointResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Name="DestroyPullPointResponse", Namespace="http://docs.oasis-open.org/wsn/b-2", Order=0)]
+        public OnvifSim.Onvif.Wsdl.DestroyPullPointResponse DestroyPullPointResponse1;
+        
+        public DestroyPullPointResponse()
+        {
+        }
+        
+        public DestroyPullPointResponse(OnvifSim.Onvif.Wsdl.DestroyPullPointResponse DestroyPullPointResponse1)
+        {
+            this.DestroyPullPointResponse1 = DestroyPullPointResponse1;
+        }
+    }
+    
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    public interface PullPointChannel : OnvifSim.Onvif.Wsdl.Wsn.PullPoint, System.ServiceModel.IClientChannel
+    {
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    public partial class PullPointClient : System.ServiceModel.ClientBase<OnvifSim.Onvif.Wsdl.Wsn.PullPoint>, OnvifSim.Onvif.Wsdl.Wsn.PullPoint
+    {
+        
+        public PullPointClient(System.ServiceModel.Channels.Binding binding, System.ServiceModel.EndpointAddress remoteAddress) : 
+                base(binding, remoteAddress)
+        {
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Wsn.GetMessagesResponse> GetMessagesAsync(OnvifSim.Onvif.Wsdl.Wsn.GetMessagesRequest request)
+        {
+            return base.Channel.GetMessagesAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Wsn.DestroyPullPointResponse> DestroyPullPointAsync(OnvifSim.Onvif.Wsdl.Wsn.DestroyPullPointRequest request)
+        {
+            return base.Channel.DestroyPullPointAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task NotifyAsync(OnvifSim.Onvif.Wsdl.Wsn.Notify request)
+        {
+            return base.Channel.NotifyAsync(request);
+        }
+        
+        public virtual System.Threading.Tasks.Task OpenAsync()
+        {
+            return System.Threading.Tasks.Task.Factory.FromAsync(((System.ServiceModel.ICommunicationObject)(this)).BeginOpen(null, null), new System.Action<System.IAsyncResult>(((System.ServiceModel.ICommunicationObject)(this)).EndOpen));
+        }
+        
+        #if !NET6_0_OR_GREATER
+        public virtual System.Threading.Tasks.Task CloseAsync()
+        {
+            return System.Threading.Tasks.Task.Factory.FromAsync(((System.ServiceModel.ICommunicationObject)(this)).BeginClose(null, null), new System.Action<System.IAsyncResult>(((System.ServiceModel.ICommunicationObject)(this)).EndClose));
+        }
+        #endif
+    }
+    
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.ServiceContractAttribute(Namespace="http://docs.oasis-open.org/wsn/bw-2", ConfigurationName="OnvifSim.Onvif.Wsdl.Wsn.CreatePullPoint")]
+    public interface CreatePullPoint
+    {
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://docs.oasis-open.org/wsn/bw-2/CreatePullPoint/CreatePullPointRequest", ReplyAction="*")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.UnableToCreatePullPointFaultType), Action="http://docs.oasis-open.org/wsn/bw-2/CreatePullPoint/CreatePullPointRequest", Name="UnableToCreatePullPointFault", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Wsn.CreatePullPointResponse> CreatePullPointAsync(OnvifSim.Onvif.Wsdl.Wsn.CreatePullPointRequest request);
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(IsWrapped=false)]
+    public partial class CreatePullPointRequest
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2", Order=0)]
+        public OnvifSim.Onvif.Wsdl.CreatePullPoint CreatePullPoint;
+        
+        public CreatePullPointRequest()
+        {
+        }
+        
+        public CreatePullPointRequest(OnvifSim.Onvif.Wsdl.CreatePullPoint CreatePullPoint)
+        {
+            this.CreatePullPoint = CreatePullPoint;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(IsWrapped=false)]
+    public partial class CreatePullPointResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Name="CreatePullPointResponse", Namespace="http://docs.oasis-open.org/wsn/b-2", Order=0)]
+        public OnvifSim.Onvif.Wsdl.CreatePullPointResponse CreatePullPointResponse1;
+        
+        public CreatePullPointResponse()
+        {
+        }
+        
+        public CreatePullPointResponse(OnvifSim.Onvif.Wsdl.CreatePullPointResponse CreatePullPointResponse1)
+        {
+            this.CreatePullPointResponse1 = CreatePullPointResponse1;
+        }
+    }
+    
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    public interface CreatePullPointChannel : OnvifSim.Onvif.Wsdl.Wsn.CreatePullPoint, System.ServiceModel.IClientChannel
+    {
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    public partial class CreatePullPointClient : System.ServiceModel.ClientBase<OnvifSim.Onvif.Wsdl.Wsn.CreatePullPoint>, OnvifSim.Onvif.Wsdl.Wsn.CreatePullPoint
+    {
+        
+        public CreatePullPointClient(System.ServiceModel.Channels.Binding binding, System.ServiceModel.EndpointAddress remoteAddress) : 
+                base(binding, remoteAddress)
+        {
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Wsn.CreatePullPointResponse> CreatePullPointAsync(OnvifSim.Onvif.Wsdl.Wsn.CreatePullPointRequest request)
+        {
+            return base.Channel.CreatePullPointAsync(request);
+        }
+        
+        public virtual System.Threading.Tasks.Task OpenAsync()
+        {
+            return System.Threading.Tasks.Task.Factory.FromAsync(((System.ServiceModel.ICommunicationObject)(this)).BeginOpen(null, null), new System.Action<System.IAsyncResult>(((System.ServiceModel.ICommunicationObject)(this)).EndOpen));
+        }
+        
+        #if !NET6_0_OR_GREATER
+        public virtual System.Threading.Tasks.Task CloseAsync()
+        {
+            return System.Threading.Tasks.Task.Factory.FromAsync(((System.ServiceModel.ICommunicationObject)(this)).BeginClose(null, null), new System.Action<System.IAsyncResult>(((System.ServiceModel.ICommunicationObject)(this)).EndClose));
+        }
+        #endif
+    }
+    
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.ServiceContractAttribute(Namespace="http://docs.oasis-open.org/wsn/bw-2", ConfigurationName="OnvifSim.Onvif.Wsdl.Wsn.SubscriptionManager")]
+    public interface SubscriptionManager
+    {
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://docs.oasis-open.org/wsn/bw-2/SubscriptionManager/RenewRequest", ReplyAction="*")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.ResourceUnknownFaultType), Action="http://docs.oasis-open.org/wsn/bw-2/SubscriptionManager/RenewRequest", Name="ResourceUnknownFault", Namespace="http://docs.oasis-open.org/wsrf/r-2")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.UnacceptableTerminationTimeFaultType), Action="http://docs.oasis-open.org/wsn/bw-2/SubscriptionManager/RenewRequest", Name="UnacceptableTerminationTimeFault", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Wsn.RenewResponse> RenewAsync(OnvifSim.Onvif.Wsdl.Wsn.RenewRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://docs.oasis-open.org/wsn/bw-2/SubscriptionManager/UnsubscribeRequest", ReplyAction="*")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.ResourceUnknownFaultType), Action="http://docs.oasis-open.org/wsn/bw-2/SubscriptionManager/UnsubscribeRequest", Name="ResourceUnknownFault", Namespace="http://docs.oasis-open.org/wsrf/r-2")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.UnableToDestroySubscriptionFaultType), Action="http://docs.oasis-open.org/wsn/bw-2/SubscriptionManager/UnsubscribeRequest", Name="UnableToDestroySubscriptionFault", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Wsn.UnsubscribeResponse> UnsubscribeAsync(OnvifSim.Onvif.Wsdl.Wsn.UnsubscribeRequest request);
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(IsWrapped=false)]
+    public partial class RenewRequest
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2", Order=0)]
+        public OnvifSim.Onvif.Wsdl.Renew Renew;
+        
+        public RenewRequest()
+        {
+        }
+        
+        public RenewRequest(OnvifSim.Onvif.Wsdl.Renew Renew)
+        {
+            this.Renew = Renew;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(IsWrapped=false)]
+    public partial class RenewResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Name="RenewResponse", Namespace="http://docs.oasis-open.org/wsn/b-2", Order=0)]
+        public OnvifSim.Onvif.Wsdl.RenewResponse RenewResponse1;
+        
+        public RenewResponse()
+        {
+        }
+        
+        public RenewResponse(OnvifSim.Onvif.Wsdl.RenewResponse RenewResponse1)
+        {
+            this.RenewResponse1 = RenewResponse1;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(IsWrapped=false)]
+    public partial class UnsubscribeRequest
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2", Order=0)]
+        public OnvifSim.Onvif.Wsdl.Unsubscribe Unsubscribe;
+        
+        public UnsubscribeRequest()
+        {
+        }
+        
+        public UnsubscribeRequest(OnvifSim.Onvif.Wsdl.Unsubscribe Unsubscribe)
+        {
+            this.Unsubscribe = Unsubscribe;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(IsWrapped=false)]
+    public partial class UnsubscribeResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Name="UnsubscribeResponse", Namespace="http://docs.oasis-open.org/wsn/b-2", Order=0)]
+        public OnvifSim.Onvif.Wsdl.UnsubscribeResponse UnsubscribeResponse1;
+        
+        public UnsubscribeResponse()
+        {
+        }
+        
+        public UnsubscribeResponse(OnvifSim.Onvif.Wsdl.UnsubscribeResponse UnsubscribeResponse1)
+        {
+            this.UnsubscribeResponse1 = UnsubscribeResponse1;
+        }
+    }
+    
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    public interface SubscriptionManagerChannel : OnvifSim.Onvif.Wsdl.Wsn.SubscriptionManager, System.ServiceModel.IClientChannel
+    {
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    public partial class SubscriptionManagerClient : System.ServiceModel.ClientBase<OnvifSim.Onvif.Wsdl.Wsn.SubscriptionManager>, OnvifSim.Onvif.Wsdl.Wsn.SubscriptionManager
+    {
+        
+        public SubscriptionManagerClient(System.ServiceModel.Channels.Binding binding, System.ServiceModel.EndpointAddress remoteAddress) : 
+                base(binding, remoteAddress)
+        {
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Wsn.RenewResponse> RenewAsync(OnvifSim.Onvif.Wsdl.Wsn.RenewRequest request)
+        {
+            return base.Channel.RenewAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Wsn.UnsubscribeResponse> UnsubscribeAsync(OnvifSim.Onvif.Wsdl.Wsn.UnsubscribeRequest request)
+        {
+            return base.Channel.UnsubscribeAsync(request);
+        }
+        
+        public virtual System.Threading.Tasks.Task OpenAsync()
+        {
+            return System.Threading.Tasks.Task.Factory.FromAsync(((System.ServiceModel.ICommunicationObject)(this)).BeginOpen(null, null), new System.Action<System.IAsyncResult>(((System.ServiceModel.ICommunicationObject)(this)).EndOpen));
+        }
+        
+        #if !NET6_0_OR_GREATER
+        public virtual System.Threading.Tasks.Task CloseAsync()
+        {
+            return System.Threading.Tasks.Task.Factory.FromAsync(((System.ServiceModel.ICommunicationObject)(this)).BeginClose(null, null), new System.Action<System.IAsyncResult>(((System.ServiceModel.ICommunicationObject)(this)).EndClose));
+        }
+        #endif
+    }
+    
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.ServiceContractAttribute(Namespace="http://docs.oasis-open.org/wsn/bw-2", ConfigurationName="OnvifSim.Onvif.Wsdl.Wsn.PausableSubscriptionManager")]
+    public interface PausableSubscriptionManager
+    {
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://docs.oasis-open.org/wsn/bw-2/PausableSubscriptionManager/RenewRequest", ReplyAction="*")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.ResourceUnknownFaultType), Action="http://docs.oasis-open.org/wsn/bw-2/PausableSubscriptionManager/RenewRequest", Name="ResourceUnknownFault", Namespace="http://docs.oasis-open.org/wsrf/r-2")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.UnacceptableTerminationTimeFaultType), Action="http://docs.oasis-open.org/wsn/bw-2/PausableSubscriptionManager/RenewRequest", Name="UnacceptableTerminationTimeFault", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Wsn.RenewResponse> RenewAsync(OnvifSim.Onvif.Wsdl.Wsn.RenewRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://docs.oasis-open.org/wsn/bw-2/PausableSubscriptionManager/UnsubscribeReques" +
+            "t", ReplyAction="*")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.ResourceUnknownFaultType), Action="http://docs.oasis-open.org/wsn/bw-2/PausableSubscriptionManager/UnsubscribeReques" +
+            "t", Name="ResourceUnknownFault", Namespace="http://docs.oasis-open.org/wsrf/r-2")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.UnableToDestroySubscriptionFaultType), Action="http://docs.oasis-open.org/wsn/bw-2/PausableSubscriptionManager/UnsubscribeReques" +
+            "t", Name="UnableToDestroySubscriptionFault", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Wsn.UnsubscribeResponse> UnsubscribeAsync(OnvifSim.Onvif.Wsdl.Wsn.UnsubscribeRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://docs.oasis-open.org/wsn/bw-2/PausableSubscriptionManager/PauseSubscription" +
+            "Request", ReplyAction="*")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.ResourceUnknownFaultType), Action="http://docs.oasis-open.org/wsn/bw-2/PausableSubscriptionManager/PauseSubscription" +
+            "Request", Name="ResourceUnknownFault", Namespace="http://docs.oasis-open.org/wsrf/r-2")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.PauseFailedFaultType), Action="http://docs.oasis-open.org/wsn/bw-2/PausableSubscriptionManager/PauseSubscription" +
+            "Request", Name="PauseFailedFault", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Wsn.PauseSubscriptionResponse> PauseSubscriptionAsync(OnvifSim.Onvif.Wsdl.Wsn.PauseSubscriptionRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://docs.oasis-open.org/wsn/bw-2/PausableSubscriptionManager/ResumeSubscriptio" +
+            "nRequest", ReplyAction="*")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.ResourceUnknownFaultType), Action="http://docs.oasis-open.org/wsn/bw-2/PausableSubscriptionManager/ResumeSubscriptio" +
+            "nRequest", Name="ResourceUnknownFault", Namespace="http://docs.oasis-open.org/wsrf/r-2")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.ResumeFailedFaultType), Action="http://docs.oasis-open.org/wsn/bw-2/PausableSubscriptionManager/ResumeSubscriptio" +
+            "nRequest", Name="ResumeFailedFault", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Wsn.ResumeSubscriptionResponse> ResumeSubscriptionAsync(OnvifSim.Onvif.Wsdl.Wsn.ResumeSubscriptionRequest request);
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(IsWrapped=false)]
+    public partial class PauseSubscriptionRequest
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2", Order=0)]
+        public OnvifSim.Onvif.Wsdl.PauseSubscription PauseSubscription;
+        
+        public PauseSubscriptionRequest()
+        {
+        }
+        
+        public PauseSubscriptionRequest(OnvifSim.Onvif.Wsdl.PauseSubscription PauseSubscription)
+        {
+            this.PauseSubscription = PauseSubscription;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(IsWrapped=false)]
+    public partial class PauseSubscriptionResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Name="PauseSubscriptionResponse", Namespace="http://docs.oasis-open.org/wsn/b-2", Order=0)]
+        public OnvifSim.Onvif.Wsdl.PauseSubscriptionResponse PauseSubscriptionResponse1;
+        
+        public PauseSubscriptionResponse()
+        {
+        }
+        
+        public PauseSubscriptionResponse(OnvifSim.Onvif.Wsdl.PauseSubscriptionResponse PauseSubscriptionResponse1)
+        {
+            this.PauseSubscriptionResponse1 = PauseSubscriptionResponse1;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(IsWrapped=false)]
+    public partial class ResumeSubscriptionRequest
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2", Order=0)]
+        public OnvifSim.Onvif.Wsdl.ResumeSubscription ResumeSubscription;
+        
+        public ResumeSubscriptionRequest()
+        {
+        }
+        
+        public ResumeSubscriptionRequest(OnvifSim.Onvif.Wsdl.ResumeSubscription ResumeSubscription)
+        {
+            this.ResumeSubscription = ResumeSubscription;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(IsWrapped=false)]
+    public partial class ResumeSubscriptionResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Name="ResumeSubscriptionResponse", Namespace="http://docs.oasis-open.org/wsn/b-2", Order=0)]
+        public OnvifSim.Onvif.Wsdl.ResumeSubscriptionResponse ResumeSubscriptionResponse1;
+        
+        public ResumeSubscriptionResponse()
+        {
+        }
+        
+        public ResumeSubscriptionResponse(OnvifSim.Onvif.Wsdl.ResumeSubscriptionResponse ResumeSubscriptionResponse1)
+        {
+            this.ResumeSubscriptionResponse1 = ResumeSubscriptionResponse1;
+        }
+    }
+    
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    public interface PausableSubscriptionManagerChannel : OnvifSim.Onvif.Wsdl.Wsn.PausableSubscriptionManager, System.ServiceModel.IClientChannel
+    {
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    public partial class PausableSubscriptionManagerClient : System.ServiceModel.ClientBase<OnvifSim.Onvif.Wsdl.Wsn.PausableSubscriptionManager>, OnvifSim.Onvif.Wsdl.Wsn.PausableSubscriptionManager
+    {
+        
+        public PausableSubscriptionManagerClient(System.ServiceModel.Channels.Binding binding, System.ServiceModel.EndpointAddress remoteAddress) : 
+                base(binding, remoteAddress)
+        {
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Wsn.RenewResponse> RenewAsync(OnvifSim.Onvif.Wsdl.Wsn.RenewRequest request)
+        {
+            return base.Channel.RenewAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Wsn.UnsubscribeResponse> UnsubscribeAsync(OnvifSim.Onvif.Wsdl.Wsn.UnsubscribeRequest request)
+        {
+            return base.Channel.UnsubscribeAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Wsn.PauseSubscriptionResponse> PauseSubscriptionAsync(OnvifSim.Onvif.Wsdl.Wsn.PauseSubscriptionRequest request)
+        {
+            return base.Channel.PauseSubscriptionAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Wsn.ResumeSubscriptionResponse> ResumeSubscriptionAsync(OnvifSim.Onvif.Wsdl.Wsn.ResumeSubscriptionRequest request)
+        {
+            return base.Channel.ResumeSubscriptionAsync(request);
+        }
+        
+        public virtual System.Threading.Tasks.Task OpenAsync()
+        {
+            return System.Threading.Tasks.Task.Factory.FromAsync(((System.ServiceModel.ICommunicationObject)(this)).BeginOpen(null, null), new System.Action<System.IAsyncResult>(((System.ServiceModel.ICommunicationObject)(this)).EndOpen));
+        }
+        
+        #if !NET6_0_OR_GREATER
+        public virtual System.Threading.Tasks.Task CloseAsync()
+        {
+            return System.Threading.Tasks.Task.Factory.FromAsync(((System.ServiceModel.ICommunicationObject)(this)).BeginClose(null, null), new System.Action<System.IAsyncResult>(((System.ServiceModel.ICommunicationObject)(this)).EndClose));
+        }
+        #endif
+    }
+}
+namespace OnvifSim.Onvif.Wsdl.Events
+{
+    
+    
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.ServiceContractAttribute(Namespace="http://www.onvif.org/ver10/events/wsdl", ConfigurationName="OnvifSim.Onvif.Wsdl.Events.EventPortType")]
+    public interface EventPortType
+    {
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/events/wsdl/EventPortType/GetServiceCapabilitiesReques" +
+            "t", ReplyAction="http://www.onvif.org/ver10/events/wsdl/EventPortType/GetServiceCapabilitiesRespon" +
+            "se")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Events.GetServiceCapabilitiesResponse> GetServiceCapabilitiesAsync(OnvifSim.Onvif.Wsdl.Events.GetServiceCapabilitiesRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/events/wsdl/EventPortType/CreatePullPointSubscriptionR" +
+            "equest", ReplyAction="http://www.onvif.org/ver10/events/wsdl/EventPortType/CreatePullPointSubscriptionR" +
+            "esponse")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.ResourceUnknownFaultType), Action="http://www.onvif.org/ver10/events/wsdl/EventPortType/CreatePullPointSubscriptionR" +
+            "equest", Name="ResourceUnknownFault", Namespace="http://docs.oasis-open.org/wsrf/r-2")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.InvalidFilterFaultType), Action="http://www.onvif.org/ver10/events/wsdl/EventPortType/CreatePullPointSubscriptionR" +
+            "equest", Name="InvalidFilterFault", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.TopicExpressionDialectUnknownFaultType), Action="http://www.onvif.org/ver10/events/wsdl/EventPortType/CreatePullPointSubscriptionR" +
+            "equest", Name="TopicExpressionDialectUnknownFault", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.InvalidTopicExpressionFaultType), Action="http://www.onvif.org/ver10/events/wsdl/EventPortType/CreatePullPointSubscriptionR" +
+            "equest", Name="InvalidTopicExpressionFault", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.TopicNotSupportedFaultType), Action="http://www.onvif.org/ver10/events/wsdl/EventPortType/CreatePullPointSubscriptionR" +
+            "equest", Name="TopicNotSupportedFault", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.InvalidProducerPropertiesExpressionFaultType), Action="http://www.onvif.org/ver10/events/wsdl/EventPortType/CreatePullPointSubscriptionR" +
+            "equest", Name="InvalidProducerPropertiesExpressionFault", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.InvalidMessageContentExpressionFaultType), Action="http://www.onvif.org/ver10/events/wsdl/EventPortType/CreatePullPointSubscriptionR" +
+            "equest", Name="InvalidMessageContentExpressionFault", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.UnacceptableInitialTerminationTimeFaultType), Action="http://www.onvif.org/ver10/events/wsdl/EventPortType/CreatePullPointSubscriptionR" +
+            "equest", Name="UnacceptableInitialTerminationTimeFault", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.UnrecognizedPolicyRequestFaultType), Action="http://www.onvif.org/ver10/events/wsdl/EventPortType/CreatePullPointSubscriptionR" +
+            "equest", Name="UnrecognizedPolicyRequestFault", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.UnsupportedPolicyRequestFaultType), Action="http://www.onvif.org/ver10/events/wsdl/EventPortType/CreatePullPointSubscriptionR" +
+            "equest", Name="UnsupportedPolicyRequestFault", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.NotifyMessageNotSupportedFaultType), Action="http://www.onvif.org/ver10/events/wsdl/EventPortType/CreatePullPointSubscriptionR" +
+            "equest", Name="NotifyMessageNotSupportedFault", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.SubscribeCreationFailedFaultType), Action="http://www.onvif.org/ver10/events/wsdl/EventPortType/CreatePullPointSubscriptionR" +
+            "equest", Name="SubscribeCreationFailedFault", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Events.CreatePullPointSubscriptionResponse> CreatePullPointSubscriptionAsync(OnvifSim.Onvif.Wsdl.Events.CreatePullPointSubscriptionRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/events/wsdl/EventPortType/GetEventPropertiesRequest", ReplyAction="http://www.onvif.org/ver10/events/wsdl/EventPortType/GetEventPropertiesResponse")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Events.GetEventPropertiesResponse> GetEventPropertiesAsync(OnvifSim.Onvif.Wsdl.Events.GetEventPropertiesRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/events/wsdl/EventPortType/AddEventBrokerRequest", ReplyAction="*")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Events.AddEventBrokerResponse> AddEventBrokerAsync(OnvifSim.Onvif.Wsdl.Events.AddEventBrokerRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/events/wsdl/EventPortType/DeleteEventBrokerRequest", ReplyAction="*")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Events.DeleteEventBrokerResponse> DeleteEventBrokerAsync(OnvifSim.Onvif.Wsdl.Events.DeleteEventBrokerRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/events/wsdl/EventPortType/GetEventBrokersRequest", ReplyAction="*")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Events.GetEventBrokersResponse> GetEventBrokersAsync(OnvifSim.Onvif.Wsdl.Events.GetEventBrokersRequest request);
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetServiceCapabilities", WrapperNamespace="http://www.onvif.org/ver10/events/wsdl", IsWrapped=true)]
+    public partial class GetServiceCapabilitiesRequest
+    {
+        
+        public GetServiceCapabilitiesRequest()
+        {
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetServiceCapabilitiesResponse", WrapperNamespace="http://www.onvif.org/ver10/events/wsdl", IsWrapped=true)]
+    public partial class GetServiceCapabilitiesResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/events/wsdl", Order=0)]
+        public OnvifSim.Onvif.Wsdl.Capabilities5 Capabilities;
+        
+        public GetServiceCapabilitiesResponse()
+        {
+        }
+        
+        public GetServiceCapabilitiesResponse(OnvifSim.Onvif.Wsdl.Capabilities5 Capabilities)
+        {
+            this.Capabilities = Capabilities;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="CreatePullPointSubscription", WrapperNamespace="http://www.onvif.org/ver10/events/wsdl", IsWrapped=true)]
+    public partial class CreatePullPointSubscriptionRequest
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/events/wsdl", Order=0)]
+        public OnvifSim.Onvif.Wsdl.FilterType Filter;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/events/wsdl", Order=1)]
+        [System.Xml.Serialization.XmlElementAttribute(IsNullable=true)]
+        public string InitialTerminationTime;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/events/wsdl", Order=2)]
+        public OnvifSim.Onvif.Wsdl.CreatePullPointSubscriptionSubscriptionPolicy SubscriptionPolicy;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="", Order=3)]
+        [System.Xml.Serialization.XmlAnyElementAttribute()]
+        public System.Xml.XmlElement[] Any;
+        
+        public CreatePullPointSubscriptionRequest()
+        {
+        }
+        
+        public CreatePullPointSubscriptionRequest(OnvifSim.Onvif.Wsdl.FilterType Filter, string InitialTerminationTime, OnvifSim.Onvif.Wsdl.CreatePullPointSubscriptionSubscriptionPolicy SubscriptionPolicy, System.Xml.XmlElement[] Any)
+        {
+            this.Filter = Filter;
+            this.InitialTerminationTime = InitialTerminationTime;
+            this.SubscriptionPolicy = SubscriptionPolicy;
+            this.Any = Any;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="CreatePullPointSubscriptionResponse", WrapperNamespace="http://www.onvif.org/ver10/events/wsdl", IsWrapped=true)]
+    public partial class CreatePullPointSubscriptionResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/events/wsdl", Order=0)]
+        public OnvifSim.Onvif.Wsdl.EndpointReferenceType SubscriptionReference;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2", Order=1)]
+        [System.Xml.Serialization.XmlElementAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        public System.DateTime CurrentTime;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2", Order=2)]
+        [System.Xml.Serialization.XmlElementAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2", IsNullable=true)]
+        public System.Nullable<System.DateTime> TerminationTime;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="", Order=3)]
+        [System.Xml.Serialization.XmlAnyElementAttribute()]
+        public System.Xml.XmlElement[] Any;
+        
+        public CreatePullPointSubscriptionResponse()
+        {
+        }
+        
+        public CreatePullPointSubscriptionResponse(OnvifSim.Onvif.Wsdl.EndpointReferenceType SubscriptionReference, System.DateTime CurrentTime, System.Nullable<System.DateTime> TerminationTime, System.Xml.XmlElement[] Any)
+        {
+            this.SubscriptionReference = SubscriptionReference;
+            this.CurrentTime = CurrentTime;
+            this.TerminationTime = TerminationTime;
+            this.Any = Any;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetEventProperties", WrapperNamespace="http://www.onvif.org/ver10/events/wsdl", IsWrapped=true)]
+    public partial class GetEventPropertiesRequest
+    {
+        
+        public GetEventPropertiesRequest()
+        {
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetEventPropertiesResponse", WrapperNamespace="http://www.onvif.org/ver10/events/wsdl", IsWrapped=true)]
+    public partial class GetEventPropertiesResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/events/wsdl", Order=0)]
+        [System.Xml.Serialization.XmlElementAttribute("TopicNamespaceLocation", DataType="anyURI")]
+        public string[] TopicNamespaceLocation;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2", Order=1)]
+        [System.Xml.Serialization.XmlElementAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        public bool FixedTopicSet;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://docs.oasis-open.org/wsn/t-1", Order=2)]
+        [System.Xml.Serialization.XmlElementAttribute(Namespace="http://docs.oasis-open.org/wsn/t-1")]
+        public OnvifSim.Onvif.Wsdl.TopicSetType TopicSet;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2", Order=3)]
+        [System.Xml.Serialization.XmlElementAttribute("TopicExpressionDialect", Namespace="http://docs.oasis-open.org/wsn/b-2", DataType="anyURI")]
+        public string[] TopicExpressionDialect;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/events/wsdl", Order=4)]
+        [System.Xml.Serialization.XmlElementAttribute("MessageContentFilterDialect", DataType="anyURI")]
+        public string[] MessageContentFilterDialect;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/events/wsdl", Order=5)]
+        [System.Xml.Serialization.XmlElementAttribute("ProducerPropertiesFilterDialect", DataType="anyURI")]
+        public string[] ProducerPropertiesFilterDialect;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/events/wsdl", Order=6)]
+        [System.Xml.Serialization.XmlElementAttribute("MessageContentSchemaLocation", DataType="anyURI")]
+        public string[] MessageContentSchemaLocation;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="", Order=7)]
+        [System.Xml.Serialization.XmlAnyElementAttribute()]
+        public System.Xml.XmlElement[] Any;
+        
+        public GetEventPropertiesResponse()
+        {
+        }
+        
+        public GetEventPropertiesResponse(string[] TopicNamespaceLocation, bool FixedTopicSet, OnvifSim.Onvif.Wsdl.TopicSetType TopicSet, string[] TopicExpressionDialect, string[] MessageContentFilterDialect, string[] ProducerPropertiesFilterDialect, string[] MessageContentSchemaLocation, System.Xml.XmlElement[] Any)
+        {
+            this.TopicNamespaceLocation = TopicNamespaceLocation;
+            this.FixedTopicSet = FixedTopicSet;
+            this.TopicSet = TopicSet;
+            this.TopicExpressionDialect = TopicExpressionDialect;
+            this.MessageContentFilterDialect = MessageContentFilterDialect;
+            this.ProducerPropertiesFilterDialect = ProducerPropertiesFilterDialect;
+            this.MessageContentSchemaLocation = MessageContentSchemaLocation;
+            this.Any = Any;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="AddEventBroker", WrapperNamespace="http://www.onvif.org/ver10/events/wsdl", IsWrapped=true)]
+    public partial class AddEventBrokerRequest
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/events/wsdl", Order=0)]
+        public OnvifSim.Onvif.Wsdl.EventBrokerConfig EventBroker;
+        
+        public AddEventBrokerRequest()
+        {
+        }
+        
+        public AddEventBrokerRequest(OnvifSim.Onvif.Wsdl.EventBrokerConfig EventBroker)
+        {
+            this.EventBroker = EventBroker;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="AddEventBrokerResponse", WrapperNamespace="http://www.onvif.org/ver10/events/wsdl", IsWrapped=true)]
+    public partial class AddEventBrokerResponse
+    {
+        
+        public AddEventBrokerResponse()
+        {
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="DeleteEventBroker", WrapperNamespace="http://www.onvif.org/ver10/events/wsdl", IsWrapped=true)]
+    public partial class DeleteEventBrokerRequest
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/events/wsdl", Order=0)]
+        [System.Xml.Serialization.XmlElementAttribute(DataType="anyURI")]
+        public string Address;
+        
+        public DeleteEventBrokerRequest()
+        {
+        }
+        
+        public DeleteEventBrokerRequest(string Address)
+        {
+            this.Address = Address;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="DeleteEventBrokerResponse", WrapperNamespace="http://www.onvif.org/ver10/events/wsdl", IsWrapped=true)]
+    public partial class DeleteEventBrokerResponse
+    {
+        
+        public DeleteEventBrokerResponse()
+        {
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetEventBrokers", WrapperNamespace="http://www.onvif.org/ver10/events/wsdl", IsWrapped=true)]
+    public partial class GetEventBrokersRequest
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/events/wsdl", Order=0)]
+        [System.Xml.Serialization.XmlElementAttribute(DataType="anyURI")]
+        public string Address;
+        
+        public GetEventBrokersRequest()
+        {
+        }
+        
+        public GetEventBrokersRequest(string Address)
+        {
+            this.Address = Address;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetEventBrokersResponse", WrapperNamespace="http://www.onvif.org/ver10/events/wsdl", IsWrapped=true)]
+    public partial class GetEventBrokersResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/events/wsdl", Order=0)]
+        [System.Xml.Serialization.XmlElementAttribute("EventBroker")]
+        public OnvifSim.Onvif.Wsdl.EventBrokerConfig[] EventBroker;
+        
+        public GetEventBrokersResponse()
+        {
+        }
+        
+        public GetEventBrokersResponse(OnvifSim.Onvif.Wsdl.EventBrokerConfig[] EventBroker)
+        {
+            this.EventBroker = EventBroker;
+        }
+    }
+    
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    public interface EventPortTypeChannel : OnvifSim.Onvif.Wsdl.Events.EventPortType, System.ServiceModel.IClientChannel
+    {
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    public partial class EventPortTypeClient : System.ServiceModel.ClientBase<OnvifSim.Onvif.Wsdl.Events.EventPortType>, OnvifSim.Onvif.Wsdl.Events.EventPortType
+    {
+        
+        public EventPortTypeClient(System.ServiceModel.Channels.Binding binding, System.ServiceModel.EndpointAddress remoteAddress) : 
+                base(binding, remoteAddress)
+        {
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Events.GetServiceCapabilitiesResponse> GetServiceCapabilitiesAsync(OnvifSim.Onvif.Wsdl.Events.GetServiceCapabilitiesRequest request)
+        {
+            return base.Channel.GetServiceCapabilitiesAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Events.CreatePullPointSubscriptionResponse> CreatePullPointSubscriptionAsync(OnvifSim.Onvif.Wsdl.Events.CreatePullPointSubscriptionRequest request)
+        {
+            return base.Channel.CreatePullPointSubscriptionAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Events.GetEventPropertiesResponse> GetEventPropertiesAsync(OnvifSim.Onvif.Wsdl.Events.GetEventPropertiesRequest request)
+        {
+            return base.Channel.GetEventPropertiesAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Events.AddEventBrokerResponse> AddEventBrokerAsync(OnvifSim.Onvif.Wsdl.Events.AddEventBrokerRequest request)
+        {
+            return base.Channel.AddEventBrokerAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Events.DeleteEventBrokerResponse> DeleteEventBrokerAsync(OnvifSim.Onvif.Wsdl.Events.DeleteEventBrokerRequest request)
+        {
+            return base.Channel.DeleteEventBrokerAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Events.GetEventBrokersResponse> GetEventBrokersAsync(OnvifSim.Onvif.Wsdl.Events.GetEventBrokersRequest request)
+        {
+            return base.Channel.GetEventBrokersAsync(request);
+        }
+        
+        public virtual System.Threading.Tasks.Task OpenAsync()
+        {
+            return System.Threading.Tasks.Task.Factory.FromAsync(((System.ServiceModel.ICommunicationObject)(this)).BeginOpen(null, null), new System.Action<System.IAsyncResult>(((System.ServiceModel.ICommunicationObject)(this)).EndOpen));
+        }
+        
+        #if !NET6_0_OR_GREATER
+        public virtual System.Threading.Tasks.Task CloseAsync()
+        {
+            return System.Threading.Tasks.Task.Factory.FromAsync(((System.ServiceModel.ICommunicationObject)(this)).BeginClose(null, null), new System.Action<System.IAsyncResult>(((System.ServiceModel.ICommunicationObject)(this)).EndClose));
+        }
+        #endif
+    }
+    
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.ServiceContractAttribute(Namespace="http://www.onvif.org/ver10/events/wsdl", ConfigurationName="OnvifSim.Onvif.Wsdl.Events.PullPointSubscription")]
+    public interface PullPointSubscription
+    {
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/events/wsdl/PullPointSubscription/PullMessagesRequest", ReplyAction="http://www.onvif.org/ver10/events/wsdl/PullPointSubscription/PullMessagesResponse" +
+            "")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.PullMessagesFaultResponse), Action="http://www.onvif.org/ver10/events/wsdl/PullPointSubscription/PullMessages/Fault/P" +
+            "ullMessagesFaultResponse", Name="PullMessagesFaultResponse")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Events.PullMessagesResponse> PullMessagesAsync(OnvifSim.Onvif.Wsdl.Events.PullMessagesRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/events/wsdl/PullPointSubscription/SeekRequest", ReplyAction="http://www.onvif.org/ver10/events/wsdl/PullPointSubscription/SeekResponse")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Events.SeekResponse> SeekAsync(OnvifSim.Onvif.Wsdl.Events.SeekRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/events/wsdl/PullPointSubscription/SetSynchronizationPo" +
+            "intRequest", ReplyAction="http://www.onvif.org/ver10/events/wsdl/PullPointSubscription/SetSynchronizationPo" +
+            "intResponse")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Events.SetSynchronizationPointResponse> SetSynchronizationPointAsync(OnvifSim.Onvif.Wsdl.Events.SetSynchronizationPointRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://docs.oasis-open.org/wsn/bw-2/SubscriptionManager/UnsubscribeRequest", ReplyAction="*")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.ResourceUnknownFaultType), Action="http://docs.oasis-open.org/wsn/bw-2/SubscriptionManager/UnsubscribeRequest", Name="ResourceUnknownFault", Namespace="http://docs.oasis-open.org/wsrf/r-2")]
+        [System.ServiceModel.FaultContractAttribute(typeof(OnvifSim.Onvif.Wsdl.UnableToDestroySubscriptionFaultType), Action="http://docs.oasis-open.org/wsn/bw-2/SubscriptionManager/UnsubscribeRequest", Name="UnableToDestroySubscriptionFault", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Wsn.UnsubscribeResponse> UnsubscribeAsync(OnvifSim.Onvif.Wsdl.Wsn.UnsubscribeRequest request);
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="PullMessages", WrapperNamespace="http://www.onvif.org/ver10/events/wsdl", IsWrapped=true)]
+    public partial class PullMessagesRequest
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/events/wsdl", Order=0)]
+        [System.Xml.Serialization.XmlElementAttribute(DataType="duration")]
+        public string Timeout;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/events/wsdl", Order=1)]
+        public int MessageLimit;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="", Order=2)]
+        [System.Xml.Serialization.XmlAnyElementAttribute()]
+        public System.Xml.XmlElement[] Any;
+        
+        public PullMessagesRequest()
+        {
+        }
+        
+        public PullMessagesRequest(string Timeout, int MessageLimit, System.Xml.XmlElement[] Any)
+        {
+            this.Timeout = Timeout;
+            this.MessageLimit = MessageLimit;
+            this.Any = Any;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="PullMessagesResponse", WrapperNamespace="http://www.onvif.org/ver10/events/wsdl", IsWrapped=true)]
+    public partial class PullMessagesResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/events/wsdl", Order=0)]
+        public System.DateTime CurrentTime;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/events/wsdl", Order=1)]
+        public System.DateTime TerminationTime;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://docs.oasis-open.org/wsn/b-2", Order=2)]
+        [System.Xml.Serialization.XmlElementAttribute("NotificationMessage", Namespace="http://docs.oasis-open.org/wsn/b-2")]
+        public OnvifSim.Onvif.Wsdl.NotificationMessageHolderType[] NotificationMessage;
+        
+        public PullMessagesResponse()
+        {
+        }
+        
+        public PullMessagesResponse(System.DateTime CurrentTime, System.DateTime TerminationTime, OnvifSim.Onvif.Wsdl.NotificationMessageHolderType[] NotificationMessage)
+        {
+            this.CurrentTime = CurrentTime;
+            this.TerminationTime = TerminationTime;
+            this.NotificationMessage = NotificationMessage;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="Seek", WrapperNamespace="http://www.onvif.org/ver10/events/wsdl", IsWrapped=true)]
+    public partial class SeekRequest
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/events/wsdl", Order=0)]
+        public System.DateTime UtcTime;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/events/wsdl", Order=1)]
+        public bool Reverse;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="", Order=2)]
+        [System.Xml.Serialization.XmlAnyElementAttribute()]
+        public System.Xml.XmlElement[] Any;
+        
+        public SeekRequest()
+        {
+        }
+        
+        public SeekRequest(System.DateTime UtcTime, bool Reverse, System.Xml.XmlElement[] Any)
+        {
+            this.UtcTime = UtcTime;
+            this.Reverse = Reverse;
+            this.Any = Any;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="SeekResponse", WrapperNamespace="http://www.onvif.org/ver10/events/wsdl", IsWrapped=true)]
+    public partial class SeekResponse
+    {
+        
+        public SeekResponse()
+        {
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="SetSynchronizationPoint", WrapperNamespace="http://www.onvif.org/ver10/events/wsdl", IsWrapped=true)]
+    public partial class SetSynchronizationPointRequest
+    {
+        
+        public SetSynchronizationPointRequest()
+        {
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="SetSynchronizationPointResponse", WrapperNamespace="http://www.onvif.org/ver10/events/wsdl", IsWrapped=true)]
+    public partial class SetSynchronizationPointResponse
+    {
+        
+        public SetSynchronizationPointResponse()
+        {
+        }
+    }
+    
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    public interface PullPointSubscriptionChannel : OnvifSim.Onvif.Wsdl.Events.PullPointSubscription, System.ServiceModel.IClientChannel
+    {
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    public partial class PullPointSubscriptionClient : System.ServiceModel.ClientBase<OnvifSim.Onvif.Wsdl.Events.PullPointSubscription>, OnvifSim.Onvif.Wsdl.Events.PullPointSubscription
+    {
+        
+        public PullPointSubscriptionClient(System.ServiceModel.Channels.Binding binding, System.ServiceModel.EndpointAddress remoteAddress) : 
+                base(binding, remoteAddress)
+        {
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Events.PullMessagesResponse> PullMessagesAsync(OnvifSim.Onvif.Wsdl.Events.PullMessagesRequest request)
+        {
+            return base.Channel.PullMessagesAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Events.SeekResponse> SeekAsync(OnvifSim.Onvif.Wsdl.Events.SeekRequest request)
+        {
+            return base.Channel.SeekAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Events.SetSynchronizationPointResponse> SetSynchronizationPointAsync(OnvifSim.Onvif.Wsdl.Events.SetSynchronizationPointRequest request)
+        {
+            return base.Channel.SetSynchronizationPointAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.Wsn.UnsubscribeResponse> UnsubscribeAsync(OnvifSim.Onvif.Wsdl.Wsn.UnsubscribeRequest request)
+        {
+            return base.Channel.UnsubscribeAsync(request);
         }
         
         public virtual System.Threading.Tasks.Task OpenAsync()

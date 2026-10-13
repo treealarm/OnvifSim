@@ -9,8 +9,10 @@ namespace OnvifSim.Onvif;
 
 // Marks a handler class: its public methods implement operations of the WCF contract interface, each
 // method named like the operation (GetProfiles for GetProfilesAsync), taking its request message and
-// returning its response message. Path is where the service is served on the camera's port; Major/Minor
-// go to GetServices. A service that RequiresPtz exists only on PTZ cameras.
+// returning its response message, or a task of it for an operation that waits. Path is where the
+// service is served on the camera's port; Major/Minor go to GetServices. A service that RequiresPtz
+// exists only on PTZ cameras; one that is not Listed is part of another service (the event service's
+// pull points) and is not in GetServices of its own.
 [AttributeUsage(AttributeTargets.Class)]
 public sealed class OnvifServiceAttribute(Type contract, string path, int major, int minor) : Attribute
 {
@@ -19,6 +21,7 @@ public sealed class OnvifServiceAttribute(Type contract, string path, int major,
     public int Major => major;
     public int Minor => minor;
     public bool RequiresPtz { get; set; }
+    public bool Listed { get; set; } = true;
 }
 
 // An operation that answers without credentials, as the ONVIF PRE_AUTH access class and the lab camera
@@ -26,7 +29,7 @@ public sealed class OnvifServiceAttribute(Type contract, string path, int major,
 [AttributeUsage(AttributeTargets.Method)]
 public sealed class PreAuthAttribute : Attribute;
 
-public sealed record OnvifServiceInfo(string Namespace, string Path, int Major, int Minor, bool RequiresPtz);
+public sealed record OnvifServiceInfo(string Namespace, string Path, int Major, int Minor, bool RequiresPtz, bool Listed);
 
 // Routes ONVIF requests to handler methods by the namespace and name of the body element, whatever path
 // they were posted to: some clients send everything to device_service.
@@ -51,11 +54,12 @@ public sealed class OnvifDispatcher
             {
                 var operation = OnvifOperation.Create(service.Contract, method.Name);
                 CheckSignature(handlerType, method, operation);
-                _bindings.Add(XName.Get(operation.Name, operation.Namespace),
+                _bindings.Add(operation.RequestElement,
                     new Binding(operation, method, method.GetCustomAttribute<PreAuthAttribute>() != null, service.RequiresPtz));
             }
             services.Add(new OnvifServiceInfo(
-                service.Contract.GetCustomAttribute<ServiceContractAttribute>()!.Namespace!, service.Path, service.Major, service.Minor, service.RequiresPtz));
+                service.Contract.GetCustomAttribute<ServiceContractAttribute>()!.Namespace!, service.Path, service.Major, service.Minor,
+                service.RequiresPtz, service.Listed));
         }
         Services = services;
     }
@@ -88,6 +92,11 @@ public sealed class OnvifDispatcher
             catch (TargetInvocationException ex) when (ex.InnerException != null)
             {
                 throw ex.InnerException;
+            }
+            if (response is Task pending)
+            {
+                await pending;
+                response = pending.GetType().GetProperty(nameof(Task<object>.Result))!.GetValue(pending)!;
             }
             _logger.LogDebug("ONVIF {Camera}: {Operation}", context.Camera.Id, binding.Operation.Name);
             await WriteAsync(http, 200, envelopeNamespace, SoapEnvelope.Write(envelopeNamespace, w => binding.Operation.WriteResponse(w, response)));
@@ -168,7 +177,8 @@ public sealed class OnvifDispatcher
 
     private static void CheckSignature(Type handlerType, MethodInfo method, OnvifOperation operation)
     {
-        if (method.GetParameters() is not [{ ParameterType: var parameter }] || parameter != operation.RequestType || method.ReturnType != operation.ResponseType)
+        bool returnsResponse = method.ReturnType == operation.ResponseType || method.ReturnType == typeof(Task<>).MakeGenericType(operation.ResponseType);
+        if (method.GetParameters() is not [{ ParameterType: var parameter }] || parameter != operation.RequestType || !returnsResponse)
             throw new InvalidOperationException(
                 $"{handlerType.Name}.{method.Name} must be ({operation.RequestType.Name}) -> {operation.ResponseType.Name} to implement {operation.Name}.");
     }
