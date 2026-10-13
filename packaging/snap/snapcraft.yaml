@@ -2,11 +2,12 @@
 #
 # Nothing is compiled here. The snap repackages the linux-x64 release zip (OnvifSim-linux-x64.zip on
 # GitHub Releases): the self-contained single-file server, the editor and the bundled ffmpeg. Run
-# ./stage.sh <zip-or-directory> <version> first; it fills payload/ (gitignored), the only input this
-# file reads. The release workflow does that in its "snap" job; README.md has the local recipe.
+# ./stage.sh <zip-or-directory> <version> first; it fills payload/ (gitignored). Beside it the snap
+# takes only its applications menu entry: launcher/open-editor, snap/gui/editor.desktop and icon.png. The release workflow stages and packs in its "snap" job; README.md has the local recipe.
 name: onvifsim
 title: OnvifSim
 summary: ONVIF IP camera simulator with PTZ, RTSP and a 3D world in the browser
+icon: icon.png
 description: |
   OnvifSim is an ONVIF IP camera simulator. It gives you virtual network cameras, fixed and PTZ, that
   behave like real hardware: every camera answers WS-Discovery and ONVIF on its own port (Device,
@@ -17,8 +18,8 @@ description: |
   routes) that you edit in the browser, so a PTZ camera really turns and people walk from one
   camera's view into the next.
 
-  The snap runs as a service. Open the editor at http://localhost:8080/ to build the world and place
-  cameras; they appear on ports 8001 and up, RTSP on 8554. The world is kept in
+  The snap runs as a service. Open the editor from the OnvifSim entry in the applications menu, or at
+  http://localhost:8080/, to build the world and place cameras; they appear on ports 8001 and up, RTSP on 8554. The world is kept in
   /var/snap/onvifsim/common/world.json.
 
   OnvifSim is MIT. The bundled ffmpeg (for the H.264 streams) is a GPL build from BtbN/FFmpeg-Builds.
@@ -56,6 +57,11 @@ apps:
       # Editor, ONVIF, RTSP and RTP on their ports; WS-Discovery on UDP 3702.
       - network
       - network-bind
+  # The applications menu entry (snap/gui/editor.desktop): opens the service's editor in the browser.
+  editor:
+    command: open-editor
+    plugs:
+      - desktop
 
 parts:
   server:
@@ -68,3 +74,6 @@ parts:
     override-build: |
       craftctl default
       craftctl set version="$(cat "$CRAFT_PROJECT_DIR/payload/version")"
+  launcher:
+    plugin: dump
+    source: launcher

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=OnvifSim
+GenericName=ONVIF camera simulator
+Comment=Open the editor of the simulated ONVIF cameras in the browser
+Exec=onvifsim.editor
+Icon=${SNAP}/meta/gui/icon.png
+Terminal=false
+Categories=Development;
+Keywords=onvif;camera;cctv;rtsp;ptz;simulator;

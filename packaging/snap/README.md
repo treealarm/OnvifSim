@@ -1,12 +1,15 @@
 # Snap: onvifsim
 
 [Snap Store](https://snapcraft.io/onvifsim) package of OnvifSim: `base: core24`, strict confinement,
-a service (`daemon: simple`) that starts with the system. It repackages the **linux-x64 release zip**
-(the single-file server, the editor and the bundled GPL ffmpeg); nothing is compiled by snapcraft.
+a service (`daemon: simple`) that starts with the system, and an **OnvifSim** entry in the
+applications menu that opens the service's editor in the browser. It repackages the **linux-x64
+release zip** (the single-file server, the editor and the bundled GPL ffmpeg); nothing is compiled by
+snapcraft.
 
 ```bash
 sudo snap install onvifsim
-# The editor: http://localhost:8080/   cameras: ONVIF on 8001 and up, RTSP on 8554
+# The editor: OnvifSim in the applications menu, or http://localhost:8080/
+# Cameras: ONVIF on 8001 and up, RTSP on 8554
 sudo snap logs onvifsim -f        # the server's log
 sudo snap restart onvifsim
 ```
@@ -20,6 +23,8 @@ there with sudo, or (better) in the editor.
 |---|---|
 | `snapcraft.yaml` | The recipe: `plugin: dump` of `payload/app`, the service, its plugs (`network`, `network-bind`). |
 | `stage.sh` | Fills `payload/` (gitignored) from the release zip or the directory it unpacks to, and writes the version. |
+| `launcher/open-editor` | The menu entry's command (`onvifsim.editor`): `xdg-open http://localhost:8080/`, which the base hands to snapd to open on the desktop. |
+| `snap/gui/editor.desktop`, `icon.png` | The menu entry and its icon, which is also the Store's. |
 
 ## Release workflow
 

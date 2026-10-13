@@ -100,8 +100,8 @@ what the cameras show depends on where they are and where they point.
   the Start menu; starting it opens the editor in the browser.
 - **Windows, Linux (x64, arm64)**: the portable zips from Releases; unzip and run `OnvifSim`.
 - **Docker**: see [below](#docker).
-- **Snap**: `sudo snap install onvifsim` runs it as a service, with the world in
-  `/var/snap/onvifsim/common`.
+- **Snap** (or Ubuntu's App Center): `sudo snap install onvifsim` runs it as a service, with the world
+  in `/var/snap/onvifsim/common`; OnvifSim in the applications menu opens the editor.
 
 Every package carries ffmpeg for the H.264 streams. The world is kept in `%LOCALAPPDATA%\OnvifSim`
 or `~/.local/share/OnvifSim`; on first start a default world is written there. The editor is at
