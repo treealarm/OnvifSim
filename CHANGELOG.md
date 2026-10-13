@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 (2026-10-13)
 
 - Analytics: every camera reports the people it sees in the ONVIF metadata track of its RTSP
   streams, boxes with object ids exact to the picture, people hidden behind houses and hills left out;
