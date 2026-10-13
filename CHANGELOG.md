@@ -1,8 +1,8 @@
 # Changelog
 
-## 0.1.0 (unreleased)
+## 0.1.0 (2026-10-13)
 
-First release.
+First release: an ONVIF IP camera simulator.
 
 - A low-poly world (terrain, trees, houses, rocks, roads, people walking their routes) drawn by a
   built-in software renderer; no GPU needed.

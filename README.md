@@ -11,14 +11,60 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="MIT"></a>
 </p>
 
-A virtual world whose cameras are ONVIF devices. Build a low-poly landscape (terrain, trees,
-houses, roads, people walking their routes) in the browser, put fixed and PTZ cameras into it, and
-every camera answers WS-Discovery, serves RTSP and takes PTZ commands — including AbsoluteMove —
-like real hardware. Point ONVIF Device Manager, an NVR or your own client at it; no cameras needed.
+**An ONVIF IP camera simulator.** Run one program and get as many virtual network cameras as you
+like: each one is found by WS-Discovery, answers ONVIF on its own port, streams RTSP and turns when
+it gets PTZ commands, just like real hardware. Point ONVIF Device Manager, an NVR or VMS, or your own
+ONVIF client at it; no cameras needed.
+
+What the cameras show is not a test pattern or a looped video: they look at a 3D world you build in
+the browser (terrain, trees, houses, roads, people walking their routes), so a PTZ camera really
+turns towards what you asked for, and a person walks out of one camera's view into the next.
 
 <p align="center">
   <img src="docs/images/editor.gif" alt="The editor: a PTZ camera turned with the joystick and zoomed in, its picture beside the 3D view" width="90%">
 </p>
+
+## Features
+
+**Cameras that behave like real ONVIF devices**
+- Fixed and PTZ cameras, each an ONVIF device on its own port
+  (`http://<host>:8001/onvif/device_service`, 8002, …).
+- WS-Discovery: clients that search the network find them by themselves.
+- ONVIF Device, Media, Media2, PTZ and Imaging services; the request and response types are generated
+  from the official ONVIF WSDL.
+- Authentication as on real cameras: WS-Security UsernameToken, HTTP Digest and Basic, per-camera users.
+- Settings changed over ONVIF (resolution, frame rate, bitrate, image settings, presets, home position)
+  are kept in the world file and survive a restart.
+
+**Video**
+- RTSP for every camera at `rtsp://<host>:8554/<camera id>`: Motion JPEG always, H.264 through the
+  bundled ffmpeg; RTP over UDP or interleaved in TCP.
+- Snapshot URIs, and a live Motion JPEG page for the browser.
+- Two streams per camera with their own resolution, frame rate and quality, as ONVIF profiles.
+
+**PTZ you can see**
+- AbsoluteMove, RelativeMove, ContinuousMove, Stop, GetStatus, presets and home.
+- The head turns at the camera's set speeds and the stream shows it turning; AbsoluteMove ends exactly
+  where asked, so a test can check the result on the picture.
+- An optional pan/tilt degree grid over the picture shows where the camera is pointing.
+
+**A world you edit in the browser**
+- Place trees, houses, rocks, cameras; sculpt the terrain; draw roads and routes for people who walk
+  them over and over.
+- See each camera's picture beside the 3D view and drive PTZ cameras with a joystick.
+- Every edit is live, on all streams within a moment; undo and redo; no Save button.
+- The world is one JSON file you can keep in git; an HTTP API changes it from scripts and tests.
+
+**Runs anywhere**
+- Windows installer (MSI), portable zips for Windows and Linux (x64, arm64), a Docker image (amd64,
+  arm64), a snap.
+- One self-contained program, no GPU: a built-in software renderer draws the pictures.
+
+**Use it for**
+- Developing and testing an ONVIF client, NVR or VMS without a shelf of cameras.
+- Automated tests in CI: the picture depends only on the world and the clock, so runs are repeatable.
+- Trying out PTZ control, presets and following a person from one camera to the next.
+- Demos and training: a whole site of cameras on a laptop.
 
 ## Why a simulator
 
@@ -34,9 +80,9 @@ what the cameras show depends on where they are and where they point.
 | Repeatable | The picture is a function of the world and the clock: the same world file gives the same frames, in CI too |
 | Setup | One program, one Docker image or one installer; the world is a JSON file you can keep in git |
 
-> **Status: first release on the way.** Everything below works and is tested against real clients
-> (OnvifLib and its Probe and GUI, onvif-zeep, ffmpeg, VLC, GStreamer, go2rtc); what changes is
-> listed in the [changelog](CHANGELOG.md).
+> Tested against real clients: OnvifLib and its Probe and GUI, onvif-zeep, ffmpeg, VLC, GStreamer
+> and go2rtc. What changes from release to release is in the
+> [changelog](CHANGELOG.md).
 
 ## Run
 

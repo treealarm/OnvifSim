@@ -303,7 +303,9 @@ jobs:
             dist/OnvifSim-win-x64.zip
             dist/OnvifSim-win-x64.msi
           body: |
-            Simulated ONVIF cameras in a 3D world you edit in the browser.
+            **OnvifSim is an ONVIF IP camera simulator.** One program gives you virtual network cameras, fixed and PTZ, that behave like real hardware: each is found by WS-Discovery, answers ONVIF on its own port (Device, Media, Media2, PTZ, Imaging; WS-Security and HTTP Digest) and streams RTSP (Motion JPEG and H.264, over UDP or TCP). Point ONVIF Device Manager, an NVR or VMS, or your own ONVIF client at it; no cameras needed.
+
+            The cameras look at a 3D world you build in the browser (terrain, trees, houses, roads, people walking their routes), so a PTZ camera really turns when told to (AbsoluteMove, RelativeMove, ContinuousMove, presets, home) and a person walks from one camera's view into the next. Every edit is live; the world is one JSON file. See the [README](https://github.com/treealarm/OnvifSim#readme) for the full feature list.
 
             ### Downloads
             - **OnvifSim-win-x64.msi**: Windows x64 installer (Program Files, Start menu entry that starts the simulator and opens the editor).

@@ -6,12 +6,16 @@
 # file reads. The release workflow does that in its "snap" job; README.md has the local recipe.
 name: onvifsim
 title: OnvifSim
-summary: Simulated ONVIF cameras in a 3D world you edit in the browser
+summary: ONVIF IP camera simulator with PTZ, RTSP and a 3D world in the browser
 description: |
-  OnvifSim is a virtual landscape (terrain, trees, houses, roads, people walking) whose cameras are
-  ONVIF devices. Every camera answers WS-Discovery, streams RTSP (Motion JPEG and H.264) and takes
-  PTZ commands, AbsoluteMove included, like real hardware: point ONVIF Device Manager, an NVR or your
-  own client at it, no cameras needed.
+  OnvifSim is an ONVIF IP camera simulator. It gives you virtual network cameras, fixed and PTZ, that
+  behave like real hardware: every camera answers WS-Discovery and ONVIF on its own port (Device,
+  Media, Media2, PTZ, Imaging), streams RTSP (Motion JPEG and H.264) and takes PTZ commands,
+  AbsoluteMove included. Point ONVIF Device Manager, an NVR or your own client at it, no cameras needed.
+
+  The cameras look at a virtual landscape (terrain, trees, houses, roads, people walking their
+  routes) that you edit in the browser, so a PTZ camera really turns and people walk from one
+  camera's view into the next.
 
   The snap runs as a service. Open the editor at http://localhost:8080/ to build the world and place
   cameras; they appear on ports 8001 and up, RTSP on 8554. The world is kept in
