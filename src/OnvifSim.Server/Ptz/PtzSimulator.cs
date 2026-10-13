@@ -14,6 +14,9 @@ public readonly record struct PtzState(PtzPosition Position, bool PanTiltMoving,
 // restart and the editor see where the camera stopped.
 public sealed class PtzSimulator : IDisposable
 {
+    // The least a save waits for the end of a move, so a rest too short for a timer cannot spin.
+    private static readonly TimeSpan MinimumWait = TimeSpan.FromMilliseconds(1);
+
     private readonly WorldStore _store;
     private readonly TimeProvider _time;
     private readonly ILogger _logger;
@@ -159,7 +162,17 @@ public sealed class PtzSimulator : IDisposable
         {
             // A newer command superseded the move this was scheduled for; it saves when it ends.
             if (!_heads.TryGetValue(cameraId, out var head) || head.Generation != generation) return;
-            position = head.PositionAt(_time.GetTimestamp(), limits, _time.TimestampFrequency);
+            long now = _time.GetTimestamp();
+            // Timers keep a coarser clock than the timestamps moves are timed by and can fire a few
+            // milliseconds early: wait out the rest of the move rather than save a head short of its target.
+            if (head.EndOfMove > now)
+            {
+                head.Timer?.Dispose();
+                var rest = TimeSpan.FromTicks(Math.Max(ElapsedTime(now, head.EndOfMove).Ticks, MinimumWait.Ticks));
+                head.Timer = _time.CreateTimer(_ => SaveIfStopped(cameraId, limits, generation), null, rest, Timeout.InfiniteTimeSpan);
+                return;
+            }
+            position = head.PositionAt(now, limits, _time.TimestampFrequency);
         }
         try
         {

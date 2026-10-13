@@ -54,6 +54,31 @@ public sealed class PtzSimulatorTests : IDisposable
     }
 
     [Fact]
+    public void ATimerFiringEarly_DoesNotSaveTheHeadShortOfItsTarget()
+    {
+        using var dir = new TempDir();
+        var store = new WorldStore(dir.Path);
+        var time = new EarlyTimers(TimeSpan.FromMilliseconds(50));
+        using var ptz = new PtzSimulator(store, time, NullLogger<PtzSimulator>.Instance);
+        CameraModel Cam2() => store.Current.Cameras.Single(c => c.Id == "cam2");
+
+        ptz.MoveTo(Cam2(), new PtzAxes(20, null, null), new PtzAxes(null, null, null));
+        // The timer goes off 50 ms before the 0.22 s move ends.
+        time.Advance(TimeSpan.FromSeconds(0.21));
+        Assert.Equal(0, Cam2().Ptz!.Pan);
+        time.Advance(TimeSpan.FromSeconds(0.02));
+        Assert.Equal(20, Cam2().Ptz!.Pan, 0.001f);
+    }
+
+    // A fake clock whose longer timers go off early, as real ones may by the timestamp clock; one due
+    // within the margin goes off on time.
+    private sealed class EarlyTimers(TimeSpan early) : FakeTimeProvider
+    {
+        public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period) =>
+            base.CreateTimer(callback, state, dueTime > early ? dueTime - early : dueTime, period);
+    }
+
+    [Fact]
     public void SpeedFraction_SlowsTheAxisDown()
     {
         _ptz.MoveTo(Cam2, new PtzAxes(45, null, null), new PtzAxes(0.5f, null, null));
