@@ -1,6 +1,6 @@
 # OnvifSim: виртуальный 3D-мир, камеры в котором работают как ONVIF-устройства
 
-> Temporary working plan (agreed 2026-10-13). Status: phases 1–3 done. Will be removed or turned into a roadmap once the MVP ships.
+> Temporary working plan (agreed 2026-10-13). Status: phases 1–4 done. Will be removed or turned into a roadmap once the MVP ships.
 
 ## Context
 Нужен мультиплатформенный тестовый ONVIF-сервер. В браузерном редакторе собирается примитивный 3D-мир (рельеф, деревья, дома), в нём расставляются фиксированные и PTZ-камеры. Каждая камера становится отдельным ONVIF-устройством: отвечает на discovery, отдаёт RTSP H.264 с рендером мира и управляется по PTZ, обязательно с AbsoluteMove. Всё запускается в Docker. Основная польза: на этом стенде можно гонять OnvifLib, Probe, GUI, ODM и NVR без железа, детерминированно, в том числе в CI.
@@ -52,7 +52,7 @@ Browser (React + react-three-fiber)  ──REST/SignalR──►  OnvifSim.Serve
 ### ONVIF
 - **SOAP пишем сами, без CoreWCF** (CoreWCF плохо переносит UsernameToken-digest поверх HTTP без TLS и клиентов без SOAP Action). Диспетчер разбирает envelope, проверяет WS-UsernameToken digest (nonce + created + sha1, допуск по времени), роутит по namespace + имени элемента. Ответы сериализуются `XmlSerializer` на своих стабах, сгенерированных dotnet-svcutil из официальных WSDL ONVIF (github.com/onvif/specs, тег зафиксирован в `src/OnvifSim.Server/Onvif/Wsdl/generate.sh`; Device, Media, Media2, PTZ, Imaging; все операции — message contracts). Не из OnvifLib: стенд не должен разделять код с клиентом, которого проверяет. Ошибки — ONVIF faults (ter:NotAuthorized, ter:ActionNotSupported, ter:InvalidArgVal).
 - **Каждой камере свой порт** (8001, 8002, …), путь `/onvif/device_service`, свой EndpointReference uuid, XAddrs из `ONVIFSIM_ADVERTISE_HOST`.
-- **PTZ.** Состояние: pan°, tilt°, fov°, лимиты скорости и ускорения. Generic space: pan [-1..1] ↔ [panMin..panMax], tilt [-1..1] ↔ [tiltMin..tiltMax], zoom [0..1] ↔ фокусное (логарифмически) → FOV. Absolute, Relative, Continuous (с Timeout), Stop, GetStatus (MOVING/IDLE, UtcTime), пресеты, home. Пространства в градусах — позже.
+- **PTZ.** Состояние: pan°, tilt°, zoom 0..1 и предельные скорости по осям (ускорение не моделируется: движение с постоянной скоростью, позиция — функция времени, без тикающего цикла; в world.json пишется, когда движение закончилось). Generic space: pan [-1..1] ↔ [panMin..panMax] (при диапазоне ≥ 360° — бесконечный поворот, absolute идёт коротким путём), tilt [-1..1] ↔ [tiltMin..tiltMax], zoom [0..1] ↔ фокусное (логарифмически) → FOV; generic translation 1 = весь диапазон оси. Absolute, Relative, Continuous (с Timeout), Stop, GetStatus (MOVING/IDLE, UtcTime), пресеты, home. Пространства в градусах — позже.
 - Объём MVP (Profile S + PTZ): Device (GetDeviceInformation, GetSystemDateAndTime, GetCapabilities, GetServices, GetServiceCapabilities, GetScopes, GetNetworkInterfaces, GetHostname, GetUsers); Media1 + Media2 (GetProfiles, GetStreamUri, GetSnapshotUri, GetVideoSources, GetVideoEncoderConfiguration(s)/Options, SetVideoEncoderConfiguration); PTZ (GetNodes/GetNode, GetConfigurations/Options, AbsoluteMove, RelativeMove, ContinuousMove, Stop, GetStatus, Get/Set/Goto/RemovePreset, Goto/SetHomePosition); Imaging минимум (GetImagingSettings/Options, brightness/contrast видны в картинке).
 
 ### Редактор (OnvifSim.Web)

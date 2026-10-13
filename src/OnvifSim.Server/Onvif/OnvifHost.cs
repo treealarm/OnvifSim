@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
+using OnvifSim.Ptz;
 using OnvifSim.Security;
 using OnvifSim.Streaming;
 using OnvifSim.Streaming.Rtsp;
@@ -11,7 +12,7 @@ namespace OnvifSim.Onvif;
 // /onvif/{service} and the snapshot at /onvif/snapshot.jpg. Listeners follow the world: cameras that
 // are added, removed or moved to another port are picked up whenever the world changes.
 public sealed class OnvifHost(
-    SimOptions options, WorldStore store, SceneState scene, OnvifDispatcher dispatcher, FeedManager feeds,
+    SimOptions options, WorldStore store, SceneState scene, PtzSimulator ptz, OnvifDispatcher dispatcher, FeedManager feeds,
     HttpAuthenticator authenticator, RtspServer rtsp, ILoggerFactory loggers) : IHostedService
 {
     private sealed record Listener(int RequestedPort, int Port, WebApplication App);
@@ -161,7 +162,7 @@ public sealed class OnvifHost(
             http.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
             return;
         }
-        await dispatcher.HandleAsync(http, new OnvifRequestContext(camera, store, dispatcher, http.Request, rtsp.Port));
+        await dispatcher.HandleAsync(http, new OnvifRequestContext(camera, store, ptz, dispatcher, http.Request, rtsp.Port));
     }
 
     // The URL GetSnapshotUri hands out, protected by the camera's users like everything else.

@@ -67,6 +67,7 @@ public sealed class CameraModel
     // Horizontal field of view of a fixed camera; a PTZ camera takes it from Ptz.FovWide/FovTele.
     public float HFov { get; set; } = 70;
     public VideoModel Video { get; set; } = new();
+    public ImagingModel Imaging { get; set; } = new();
     public PtzModel? Ptz { get; set; }
     // Port of the camera's ONVIF service; 0 means automatic: 8001 for the first camera, 8002 for the
     // second and so on (--onvif-base-port moves the start).
@@ -92,19 +93,54 @@ public sealed class VideoModel
     public int Quality { get; set; } = 70;
 }
 
+// Image adjustments of the ONVIF Imaging service, 0..100 with 50 leaving the picture as rendered.
+public sealed class ImagingModel
+{
+    public float Brightness { get; set; } = 50;
+    public float Contrast { get; set; } = 50;
+    public float ColorSaturation { get; set; } = 50;
+}
+
 public sealed class PtzModel
 {
-    // Physical limits in degrees relative to the mount orientation.
+    // Physical limits in degrees relative to the mount orientation. A pan range of 360 degrees or more
+    // is an endless pan: the head turns round and round instead of stopping at a limit.
     public float PanMin { get; set; } = -180;
     public float PanMax { get; set; } = 180;
     public float TiltMin { get; set; } = -90;
     public float TiltMax { get; set; } = 20;
     public float FovWide { get; set; } = 60;
     public float FovTele { get; set; } = 3;
-    // Current position, persisted so a restart keeps where the camera looked.
+    // Top speeds: degrees per second for pan and tilt, the whole zoom range (0..1) per second for zoom.
+    public float PanSpeed { get; set; } = 90;
+    public float TiltSpeed { get; set; } = 60;
+    public float ZoomSpeed { get; set; } = 0.5f;
+    // Current position, persisted when a move ends so a restart keeps where the camera looked.
     public float Pan { get; set; }
     public float Tilt { get; set; }
     public float Zoom { get; set; }
+    public PtzPosition Home { get; set; }
+    public List<PtzPresetModel> Presets { get; set; } = [];
+
+    [JsonIgnore]
+    public bool EndlessPan => PanMax - PanMin >= 360;
+
+    [JsonIgnore]
+    public PtzPosition Position
+    {
+        get => new(Pan, Tilt, Zoom);
+        set => (Pan, Tilt, Zoom) = (value.Pan, value.Tilt, value.Zoom);
+    }
 }
+
+public sealed class PtzPresetModel
+{
+    public string Token { get; set; } = "";
+    public string Name { get; set; } = "";
+    public PtzPosition Position { get; set; }
+}
+
+// Pan and tilt in degrees relative to the mount, zoom 0 (wide) .. 1 (tele).
+public readonly record struct PtzPosition(float Pan, float Tilt, float Zoom);
 
 public readonly record struct Vec3(float X, float Y, float Z);

@@ -200,12 +200,152 @@ public class OnvifServerTests(SimFactory factory) : IClassFixture<SimFactory>
         Assert.Null(host.PortOf("cam9"));
     }
 
-    private async Task<HttpResponseMessage> PostAsync(string cameraId, string envelope, string contentType = "application/soap+xml; charset=utf-8")
+    // cam2 pans -180..180 at 90 deg/s and tilts -90..20 from -10: generic (0.25, 0.4545) is 45 deg right.
+    [Fact]
+    public async Task AbsoluteMove_IsMovingThenIdleAtTheTarget_AndThePictureTurns()
+    {
+        var camera = Connect("cam2");
+        var ptz = await PtzAsync(camera);
+        var media = await MediaAsync(camera);
+        try
+        {
+            var before = (await media.GetImage())!.Data;
+            await ptz.AbsoluteMoveAsync("Profile_1", 0.25f, 0.4545f, 0f, 1f, 1f);
+            Assert.True((await ptz.GetStatusAsync("Profile_1"))!.Moving);
+
+            var status = await WaitUntilIdleAsync(ptz);
+            Assert.Equal(0.25f, status.Pan, 0.01f);
+            Assert.Equal(0.4545f, status.Tilt, 0.01f);
+            Assert.Equal(45, Store.Current.Cameras.Single(c => c.Id == "cam2").Ptz!.Pan, 0.5f);
+            Assert.NotEqual(before, (await media.GetImage())!.Data);
+        }
+        finally
+        {
+            ResetCam2();
+        }
+    }
+
+    [Fact]
+    public async Task RelativeAndContinuousMoves_AndStopWithoutArguments()
+    {
+        var ptz = await PtzAsync(Connect("cam2"));
+        try
+        {
+            // A generic step of 0.05 is 5% of the 110 degree tilt range.
+            await ptz.RelativeMoveAsync("Profile_1", 0f, 0.05f, 0f, 1f, 1f);
+            await WaitUntilIdleAsync(ptz);
+            Assert.Equal(-4.5f, Store.Current.Cameras.Single(c => c.Id == "cam2").Ptz!.Tilt, 0.1f);
+
+            await ptz.ContinuousMoveAsync("Profile_1", 0.5f, 0f, 0f, "PT30S");
+            await Task.Delay(300);
+            var stop = await PostAsync("cam2", Envelope(
+                "<Stop xmlns=\"http://www.onvif.org/ver20/ptz/wsdl\"><ProfileToken>Profile_1</ProfileToken></Stop>",
+                UsernameToken("admin", "admin", DateTime.UtcNow)), path: "ptz_service");
+            Assert.Equal(HttpStatusCode.OK, stop.StatusCode);
+            Assert.False((await ptz.GetStatusAsync("Profile_1"))!.Moving);
+            Assert.InRange(Store.Current.Cameras.Single(c => c.Id == "cam2").Ptz!.Pan, 10, 40);
+        }
+        finally
+        {
+            ResetCam2();
+        }
+    }
+
+    [Fact]
+    public async Task Presets_AreSaved_Reached_AndRemoved()
+    {
+        var ptz = await PtzAsync(Connect("cam2"));
+        try
+        {
+            Store.Update(w => w.Cameras.Single(c => c.Id == "cam2").Ptz!.Pan = 30);
+            var token = await ptz.SetPresetAsync("Profile_1", "Gate", "");
+            Assert.Equal("Gate", Assert.Single(await ptz.GetPresetsAsync("Profile_1"), p => p.Token == token).Name);
+            await Assert.ThrowsAnyAsync<Exception>(() => ptz.SetPresetAsync("Profile_1", "Gate", ""));
+
+            Store.Update(w => w.Cameras.Single(c => c.Id == "cam2").Ptz!.Pan = 0);
+            await ptz.GotoPresetAsync("Profile_1", token, 1f, 1f);
+            var status = await WaitUntilIdleAsync(ptz);
+            Assert.Equal((30f + 180) / 360 * 2 - 1, status.Pan, 0.01f);
+
+            await ptz.RemovePresetAsync("Profile_1", token);
+            Assert.Empty(await ptz.GetPresetsAsync("Profile_1"));
+            await Assert.ThrowsAnyAsync<Exception>(() => ptz.GotoPresetAsync("Profile_1", token));
+        }
+        finally
+        {
+            ResetCam2();
+        }
+    }
+
+    [Fact]
+    public async Task AFixedCamera_HasNoPtzService()
+    {
+        var services = await Connect("cam1").GetServicesAsync();
+        Assert.DoesNotContain("http://www.onvif.org/ver20/ptz/wsdl", services!.Keys);
+        Assert.Contains("http://www.onvif.org/ver20/ptz/wsdl", (await Connect("cam2").GetServicesAsync())!.Keys);
+
+        var nodes = await PostAsync("cam1", Envelope("<GetNodes xmlns=\"http://www.onvif.org/ver20/ptz/wsdl\"/>",
+            UsernameToken("admin", "admin", DateTime.UtcNow)), path: "ptz_service");
+        Assert.Equal(HttpStatusCode.InternalServerError, nodes.StatusCode);
+        Assert.Contains("ter:ActionNotSupported", await SubcodesAsync(nodes));
+    }
+
+    [Fact]
+    public async Task ImagingSettings_ChangeTheWorldAndThePicture()
+    {
+        var camera = Connect("cam1");
+        var imaging = await camera.GetImagingService() ?? throw new InvalidOperationException("no imaging service");
+        var media = await MediaAsync(camera);
+        try
+        {
+            var settings = (await imaging.GetImagingSettingsAsync("VideoSource_1"))!;
+            Assert.Equal((50f, 50f, 50f), (settings.Brightness, settings.Contrast, settings.ColorSaturation));
+            var before = (await media.GetImage())!.Data;
+
+            await imaging.SetImagingSettingsAsync("VideoSource_1", settings with { Brightness = 80, ColorSaturation = 0 });
+            var saved = Store.Current.Cameras.Single(c => c.Id == "cam1").Imaging;
+            Assert.Equal((80f, 50f, 0f), (saved.Brightness, saved.Contrast, saved.ColorSaturation));
+            Assert.NotEqual(before, (await media.GetImage())!.Data);
+
+            await Assert.ThrowsAnyAsync<Exception>(() => imaging.SetImagingSettingsAsync("VideoSource_1", settings with { Contrast = 150 }));
+        }
+        finally
+        {
+            Store.Update(w => w.Cameras.Single(c => c.Id == "cam1").Imaging = new ImagingModel());
+        }
+    }
+
+    private WorldStore Store => factory.Services.GetRequiredService<WorldStore>();
+
+    private static async Task<PtzService2> PtzAsync(Camera camera) =>
+        await camera.GetPtzService() ?? throw new InvalidOperationException("no PTZ service");
+
+    private static async Task<OnvifLib.PtzStatus> WaitUntilIdleAsync(PtzService2 ptz)
+    {
+        for (int i = 0; i < 50; i++)
+        {
+            var status = (await ptz.GetStatusAsync("Profile_1"))!;
+            if (!status.Moving) return status;
+            await Task.Delay(100);
+        }
+        throw new TimeoutException("The PTZ head kept moving.");
+    }
+
+    // Back to the default world's head: pan 0, tilt -10, wide, no presets.
+    private void ResetCam2() => Store.Update(w =>
+    {
+        var ptz = w.Cameras.Single(c => c.Id == "cam2").Ptz!;
+        ptz.Position = new PtzPosition(0, -10, 0);
+        ptz.Presets.Clear();
+    });
+
+    private async Task<HttpResponseMessage> PostAsync(
+        string cameraId, string envelope, string contentType = "application/soap+xml; charset=utf-8", string path = "device_service")
     {
         using var client = new HttpClient();
         var content = new StringContent(envelope, Encoding.UTF8);
         content.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(contentType);
-        return await client.PostAsync($"http://127.0.0.1:{PortOf(cameraId)}/onvif/device_service", content);
+        return await client.PostAsync($"http://127.0.0.1:{PortOf(cameraId)}/onvif/{path}", content);
     }
 
     private static async Task<string[]> SubcodesAsync(HttpResponseMessage response) =>

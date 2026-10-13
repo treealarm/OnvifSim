@@ -55,13 +55,15 @@ internal static class MessageContractSerializer
     }
 }
 
-// Conventional prefixes, so responses read like a camera's (tt:, tds:, trt:, tr2:) instead of d2p1:.
+// Conventional prefixes, so responses read like a camera's (tt:, tds:, trt:, tr2:, ...) instead of d2p1:.
 internal static class OnvifNamespaces
 {
     public const string Schema = "http://www.onvif.org/ver10/schema";
     public const string Device = "http://www.onvif.org/ver10/device/wsdl";
     public const string Media = "http://www.onvif.org/ver10/media/wsdl";
     public const string Media2 = "http://www.onvif.org/ver20/media/wsdl";
+    public const string Ptz = "http://www.onvif.org/ver20/ptz/wsdl";
+    public const string Imaging = "http://www.onvif.org/ver20/imaging/wsdl";
     public const string Errors = "http://www.onvif.org/ver10/error";
 
     public static readonly XmlSerializerNamespaces Prefixes = new(
@@ -70,5 +72,7 @@ internal static class OnvifNamespaces
         new XmlQualifiedName("tds", Device),
         new XmlQualifiedName("trt", Media),
         new XmlQualifiedName("tr2", Media2),
+        new XmlQualifiedName("tptz", Ptz),
+        new XmlQualifiedName("timg", Imaging),
     ]);
 }

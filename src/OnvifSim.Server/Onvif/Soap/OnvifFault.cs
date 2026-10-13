@@ -31,4 +31,43 @@ public sealed class OnvifFault(bool isSender, string[] subcodes, string reason) 
 
     public static OnvifFault WellFormed(string reason) =>
         new(true, ["WellFormed"], reason);
+
+    public static OnvifFault NoToken(string token) =>
+        new(true, ["InvalidArgVal", "NoToken"], $"No preset with token '{token}'.");
+
+    public static OnvifFault NoEntity(string token) =>
+        new(true, ["InvalidArgVal", "NoEntity"], $"No PTZ node with token '{token}'.");
+
+    public static OnvifFault SpaceNotSupported(string space) =>
+        new(true, ["InvalidArgVal", "SpaceNotSupported"], $"Space '{space}' is not supported; use the generic spaces.");
+
+    public static OnvifFault InvalidPosition(string reason) =>
+        new(true, ["InvalidArgVal", "InvalidPosition"], reason);
+
+    public static OnvifFault InvalidTranslation(string reason) =>
+        new(true, ["InvalidArgVal", "InvalidTranslation"], reason);
+
+    public static OnvifFault InvalidVelocity(string reason) =>
+        new(true, ["InvalidArgVal", "InvalidVelocity"], reason);
+
+    public static OnvifFault InvalidSpeed(string reason) =>
+        new(true, ["InvalidArgVal", "InvalidSpeed"], reason);
+
+    public static OnvifFault TimeoutNotSupported(string reason) =>
+        new(true, ["InvalidArgVal", "TimeoutNotSupported"], reason);
+
+    public static OnvifFault PresetExist(string name) =>
+        new(true, ["InvalidArgVal", "PresetExist"], $"Another preset is already named '{name}'.");
+
+    public static OnvifFault InvalidPresetName(string reason) =>
+        new(true, ["InvalidArgVal", "InvalidPresetName"], reason);
+
+    public static OnvifFault TooManyPresets(int maximum) =>
+        new(false, ["Action", "TooManyPresets"], $"The camera holds at most {maximum} presets.");
+
+    public static OnvifFault NoSource(string token) =>
+        new(true, ["InvalidArgVal", "NoSource"], $"No video source with token '{token}'.");
+
+    public static OnvifFault SettingsInvalid(string reason) =>
+        new(true, ["InvalidArgVal", "SettingsInvalid"], reason);
 }

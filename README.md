@@ -6,8 +6,8 @@ serves RTSP and takes PTZ commands — including AbsoluteMove — like real hard
 Device Manager, an NVR or your own client at it; no cameras needed.
 
 > **Status: early development.** Done so far: world model, software renderer, snapshots and MJPEG
-> over HTTP, RTSP with RTP/JPEG, ONVIF Device + Media + Media2 and WS-Discovery. Coming next: PTZ and
-> Imaging, H.264, the browser editor, Docker image and installers (MSI, winget, snap).
+> over HTTP, RTSP with RTP/JPEG, ONVIF Device + Media + Media2 + PTZ + Imaging and WS-Discovery.
+> Coming next: H.264, the browser editor, Docker image and installers (MSI, winget, snap).
 
 ## Run
 
@@ -52,6 +52,11 @@ WS-Discovery, so ONVIF Device Manager, an NVR or `OnvifLib.Probe --discovery` li
 - **Media** (ver10) and **Media2** (ver20): one JPEG profile with its RTSP and snapshot URIs;
   `SetVideoEncoderConfiguration` changes resolution, frame rate and quality within the offered
   options and is saved to `world.json`.
+- **PTZ** (ver20, PTZ cameras only): AbsoluteMove, RelativeMove, ContinuousMove, Stop and
+  GetStatus in the generic spaces, presets and a home position. The head moves at the camera's top
+  speeds (`ptz` in `world.json`), the stream shows it turning, and where it stops, its presets and
+  its home are saved to `world.json`.
+- **Imaging** (ver20): brightness, contrast and colour saturation, applied to the picture and saved.
 - **Authentication** as on real cameras: WS-Security UsernameToken or HTTP Digest/Basic with the
   camera's `users`; `GetSystemDateAndTime`, `GetCapabilities`, `GetServices` and `GetHostname` answer
   without credentials.

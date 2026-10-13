@@ -10,7 +10,7 @@ namespace OnvifSim.Onvif;
 // Marks a handler class: its public methods implement operations of the WCF contract interface, each
 // method named like the operation (GetProfiles for GetProfilesAsync), taking its request message and
 // returning its response message. Path is where the service is served on the camera's port; Major/Minor
-// go to GetServices.
+// go to GetServices. A service that RequiresPtz exists only on PTZ cameras.
 [AttributeUsage(AttributeTargets.Class)]
 public sealed class OnvifServiceAttribute(Type contract, string path, int major, int minor) : Attribute
 {
@@ -18,6 +18,7 @@ public sealed class OnvifServiceAttribute(Type contract, string path, int major,
     public string Path => path;
     public int Major => major;
     public int Minor => minor;
+    public bool RequiresPtz { get; set; }
 }
 
 // An operation that answers without credentials, as the ONVIF PRE_AUTH access class and the lab camera
@@ -25,13 +26,13 @@ public sealed class OnvifServiceAttribute(Type contract, string path, int major,
 [AttributeUsage(AttributeTargets.Method)]
 public sealed class PreAuthAttribute : Attribute;
 
-public sealed record OnvifServiceInfo(string Namespace, string Path, int Major, int Minor);
+public sealed record OnvifServiceInfo(string Namespace, string Path, int Major, int Minor, bool RequiresPtz);
 
 // Routes ONVIF requests to handler methods by the namespace and name of the body element, whatever path
 // they were posted to: some clients send everything to device_service.
 public sealed class OnvifDispatcher
 {
-    private sealed record Binding(OnvifOperation Operation, MethodInfo Method, bool PreAuth);
+    private sealed record Binding(OnvifOperation Operation, MethodInfo Method, bool PreAuth, bool RequiresPtz);
 
     private readonly Dictionary<XName, Binding> _bindings = [];
     private readonly HttpAuthenticator _authenticator;
@@ -51,10 +52,10 @@ public sealed class OnvifDispatcher
                 var operation = OnvifOperation.Create(service.Contract, method.Name);
                 CheckSignature(handlerType, method, operation);
                 _bindings.Add(XName.Get(operation.Name, operation.Namespace),
-                    new Binding(operation, method, method.GetCustomAttribute<PreAuthAttribute>() != null));
+                    new Binding(operation, method, method.GetCustomAttribute<PreAuthAttribute>() != null, service.RequiresPtz));
             }
             services.Add(new OnvifServiceInfo(
-                service.Contract.GetCustomAttribute<ServiceContractAttribute>()!.Namespace!, service.Path, service.Major, service.Minor));
+                service.Contract.GetCustomAttribute<ServiceContractAttribute>()!.Namespace!, service.Path, service.Major, service.Minor, service.RequiresPtz));
         }
         Services = services;
     }
@@ -68,7 +69,7 @@ public sealed class OnvifDispatcher
         {
             var envelope = SoapEnvelope.Parse(await BufferAsync(http.Request.Body, http.RequestAborted));
             envelopeNamespace = envelope.EnvelopeNamespace;
-            if (!_bindings.TryGetValue(envelope.Body.Name, out var binding))
+            if (!_bindings.TryGetValue(envelope.Body.Name, out var binding) || (binding.RequiresPtz && !context.HasPtz))
                 throw OnvifFault.ActionNotSupported(envelope.Body.Name.LocalName);
 
             if (!binding.PreAuth && !IsAuthorized(http, envelope, context))

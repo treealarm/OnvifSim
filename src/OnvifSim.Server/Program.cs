@@ -2,6 +2,7 @@ using System.Text.Json;
 using OnvifSim;
 using OnvifSim.Onvif;
 using OnvifSim.Onvif.Services;
+using OnvifSim.Ptz;
 using OnvifSim.Security;
 using OnvifSim.Streaming;
 using OnvifSim.Streaming.Rtsp;
@@ -21,12 +22,14 @@ builder.WebHost.ConfigureKestrel(k => k.ListenAnyIP(options.WebPort));
 builder.Services.AddSingleton(options);
 builder.Services.AddSingleton(store);
 builder.Services.AddSingleton<SceneState>();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<PtzSimulator>();
 builder.Services.AddSingleton<FeedManager>();
 builder.Services.AddSingleton<HttpAuthenticator>();
 builder.Services.AddSingleton<RtspServer>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<RtspServer>());
 builder.Services.AddSingleton(sp => new OnvifDispatcher(
-    [typeof(DeviceHandlers), typeof(MediaHandlers), typeof(Media2Handlers)],
+    [typeof(DeviceHandlers), typeof(MediaHandlers), typeof(Media2Handlers), typeof(PtzHandlers), typeof(ImagingHandlers)],
     sp.GetRequiredService<HttpAuthenticator>(), sp.GetRequiredService<ILogger<OnvifDispatcher>>()));
 builder.Services.AddSingleton<OnvifHost>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<OnvifHost>());

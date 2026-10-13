@@ -1,5 +1,6 @@
 using System.Net;
 using System.Xml;
+using OnvifSim.Ptz;
 using OnvifSim.World;
 
 namespace OnvifSim.Onvif;
@@ -8,12 +9,15 @@ namespace OnvifSim.Onvif;
 // stream and snapshot URIs) use the host and port the client itself addressed, so they stay valid
 // behind NAT or Docker port mapping.
 public sealed class OnvifRequestContext(
-    CameraModel camera, WorldStore store, OnvifDispatcher dispatcher, HttpRequest request, int rtspPort)
+    CameraModel camera, WorldStore store, PtzSimulator ptz, OnvifDispatcher dispatcher, HttpRequest request, int rtspPort)
 {
     // The camera as it was when the request arrived.
     public CameraModel Camera => camera;
+    public bool HasPtz => camera.Kind == CameraKind.Ptz && camera.Ptz != null;
     public WorldStore Store => store;
-    public IReadOnlyList<OnvifServiceInfo> Services => dispatcher.Services;
+    public PtzSimulator Ptz => ptz;
+    // The services this camera has: PTZ only on a PTZ camera.
+    public IReadOnlyList<OnvifServiceInfo> Services => dispatcher.Services.Where(s => HasPtz || !s.RequiresPtz).ToList();
     public int RtspPort => rtspPort;
     public IPAddress LocalAddress => request.HttpContext.Connection.LocalIpAddress is { } address
         ? address.IsIPv4MappedToIPv6 ? address.MapToIPv4() : address

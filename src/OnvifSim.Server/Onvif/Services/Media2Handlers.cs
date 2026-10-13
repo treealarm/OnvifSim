@@ -26,7 +26,7 @@ public sealed class Media2Handlers(OnvifRequestContext context)
             ProfileCapabilities = new ProfileCapabilities2
             {
                 MaximumNumberOfProfiles = 1, MaximumNumberOfProfilesSpecified = true,
-                ConfigurationsSupported = ["VideoSource", "VideoEncoder"],
+                ConfigurationsSupported = context.HasPtz ? ["VideoSource", "VideoEncoder", "PTZ"] : ["VideoSource", "VideoEncoder"],
             },
             StreamingCapabilities = new StreamingCapabilities1
             {
@@ -49,6 +49,7 @@ public sealed class Media2Handlers(OnvifRequestContext context)
         bool all = types.Contains("All");
         bool videoSource = all || types.Contains("VideoSource");
         bool videoEncoder = all || types.Contains("VideoEncoder");
+        bool ptz = context.HasPtz && (all || types.Contains("PTZ"));
         return new GetProfilesResponse
         {
             Profiles =
@@ -59,11 +60,12 @@ public sealed class Media2Handlers(OnvifRequestContext context)
                     @fixed = true,
                     fixedSpecified = true,
                     Name = ProfileName,
-                    Configurations = videoSource || videoEncoder
+                    Configurations = videoSource || videoEncoder || ptz
                         ? new ConfigurationSet
                         {
                             VideoSource = videoSource ? VideoSourceConfiguration(Camera) : null,
                             VideoEncoder = videoEncoder ? VideoEncoderConfiguration() : null,
+                            PTZ = ptz ? CameraPtz.Configuration() : null,
                         }
                         : null,
                 },

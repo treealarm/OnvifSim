@@ -89,17 +89,22 @@ public sealed class DeviceHandlers(OnvifRequestContext context)
     public GetCapabilitiesResponse GetCapabilities(GetCapabilitiesRequest request)
     {
         var categories = request.Category is { Length: > 0 } c ? c : [CapabilityCategory.All];
-        bool all = categories.Contains(CapabilityCategory.All);
-        var unsupported = categories.Where(c => c is not (CapabilityCategory.All or CapabilityCategory.Device or CapabilityCategory.Media)).ToList();
+        CapabilityCategory[] offered = context.HasPtz
+            ? [CapabilityCategory.All, CapabilityCategory.Device, CapabilityCategory.Media, CapabilityCategory.Imaging, CapabilityCategory.PTZ]
+            : [CapabilityCategory.All, CapabilityCategory.Device, CapabilityCategory.Media, CapabilityCategory.Imaging];
+        var unsupported = categories.Except(offered).ToList();
         if (unsupported.Count > 0)
             throw OnvifFault.NoSuchService($"The device has no {string.Join(", ", unsupported)} service.");
 
+        bool Wants(CapabilityCategory category) => categories.Contains(CapabilityCategory.All) || categories.Contains(category);
         return new GetCapabilitiesResponse
         {
             Capabilities = new Capabilities
             {
-                Device = all || categories.Contains(CapabilityCategory.Device) ? DeviceCapabilities() : null,
-                Media = all || categories.Contains(CapabilityCategory.Media) ? MediaCapabilities() : null,
+                Device = Wants(CapabilityCategory.Device) ? DeviceCapabilities() : null,
+                Media = Wants(CapabilityCategory.Media) ? MediaCapabilities() : null,
+                Imaging = Wants(CapabilityCategory.Imaging) ? new ImagingCapabilities { XAddr = context.XAddr("imaging_service") } : null,
+                PTZ = context.HasPtz && Wants(CapabilityCategory.PTZ) ? new PTZCapabilities { XAddr = context.XAddr("ptz_service") } : null,
             },
         };
     }

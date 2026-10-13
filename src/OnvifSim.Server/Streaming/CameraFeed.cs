@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Threading.Channels;
+using OnvifSim.Ptz;
 using OnvifSim.World;
 
 namespace OnvifSim.Streaming;
@@ -11,7 +12,7 @@ public sealed record EncodedFrame(byte[] Jpeg, int Width, int Height, long Captu
 // Renders one camera only while somebody watches: the first subscriber starts the frame loop, the
 // last one leaving stops it. Every subscriber gets the same frames through a one-slot channel that
 // drops stale frames, so a slow client never holds back the others.
-public sealed class CameraFeed(string cameraId, SceneState scene, CachingFrameRenderer renderer, ILogger logger)
+public sealed class CameraFeed(string cameraId, SceneState scene, CachingFrameRenderer renderer, PtzSimulator ptz, ILogger logger)
 {
     private readonly Lock _gate = new();
     private readonly List<Channel<EncodedFrame>> _subscribers = [];
@@ -75,7 +76,7 @@ public sealed class CameraFeed(string cameraId, SceneState scene, CachingFrameRe
                     return;
                 }
                 var video = cam.Video;
-                var encoded = new EncodedFrame(renderer.Render(snap, cam), video.Width, video.Height, next);
+                var encoded = new EncodedFrame(renderer.Render(snap, cam, ptz.PositionOf(cam)), video.Width, video.Height, next);
                 lock (_gate)
                     foreach (var s in _subscribers)
                         s.Writer.TryWrite(encoded);

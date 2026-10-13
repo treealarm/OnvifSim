@@ -8,12 +8,15 @@ namespace OnvifSim.Rendering;
 // field of view.
 public readonly record struct CameraPose(Vector3 Position, float Heading, float Pitch, float Roll, float HFov)
 {
-    // Pose of a camera from its configuration; a PTZ camera adds its current pan/tilt/zoom to the mount.
-    public static CameraPose From(CameraModel cam, Terrain terrain)
+    // Pose of a camera from its configuration; a PTZ camera adds its stored pan/tilt/zoom to the mount.
+    public static CameraPose From(CameraModel cam, Terrain terrain) => From(cam, terrain, cam.Ptz?.Position ?? default);
+
+    // Pose of a camera whose PTZ head is at ptz (a fixed camera ignores it).
+    public static CameraPose From(CameraModel cam, Terrain terrain, PtzPosition ptz)
     {
         var pos = new Vector3(cam.Position.X, terrain.HeightAt(cam.Position.X, cam.Position.Z) + cam.Position.Y, cam.Position.Z);
-        if (cam.Kind == CameraKind.Ptz && cam.Ptz is { } ptz)
-            return new CameraPose(pos, cam.Heading + ptz.Pan, cam.Pitch + ptz.Tilt, cam.Roll, ZoomToHFov(ptz.Zoom, ptz.FovWide, ptz.FovTele));
+        if (cam.Kind == CameraKind.Ptz && cam.Ptz is { } limits)
+            return new CameraPose(pos, cam.Heading + ptz.Pan, cam.Pitch + ptz.Tilt, cam.Roll, ZoomToHFov(ptz.Zoom, limits.FovWide, limits.FovTele));
         return new CameraPose(pos, cam.Heading, cam.Pitch, cam.Roll, cam.HFov);
     }
 

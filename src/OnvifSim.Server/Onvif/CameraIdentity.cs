@@ -40,6 +40,7 @@ public static class CameraIdentity
     public static IReadOnlyList<string> Scopes(CameraModel camera) =>
     [
         "onvif://www.onvif.org/type/video_encoder",
+        .. camera.Kind == CameraKind.Ptz ? ["onvif://www.onvif.org/type/ptz"] : Array.Empty<string>(),
         "onvif://www.onvif.org/type/Network_Video_Transmitter",
         "onvif://www.onvif.org/Profile/Streaming",
         $"onvif://www.onvif.org/hardware/{HardwareId(camera)}",
