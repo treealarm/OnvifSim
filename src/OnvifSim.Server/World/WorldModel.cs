@@ -67,6 +67,8 @@ public sealed class CameraModel
     // Horizontal field of view of a fixed camera; a PTZ camera takes it from Ptz.FovWide/FovTele.
     public float HFov { get; set; } = 70;
     public VideoModel Video { get; set; } = new();
+    // The H.264 stream, served when ffmpeg is available; its settings are independent of the JPEG ones.
+    public H264Model H264 { get; set; } = new();
     public ImagingModel Imaging { get; set; } = new();
     public PtzModel? Ptz { get; set; }
     // Port of the camera's ONVIF service; 0 means automatic: 8001 for the first camera, 8002 for the
@@ -91,6 +93,17 @@ public sealed class VideoModel
     public int Fps { get; set; } = 10;
     // JPEG quality 1..100.
     public int Quality { get; set; } = 70;
+}
+
+// A record: two settings are the same when all their values are, which is how a feed notices a change.
+public sealed record H264Model
+{
+    public int Width { get; set; } = 640;
+    public int Height { get; set; } = 360;
+    public int Fps { get; set; } = 10;
+    public int BitrateKbps { get; set; } = 1024;
+    // Frames from one key frame to the next; a client joining the stream waits for the next one.
+    public int GovLength { get; set; } = 10;
 }
 
 // Image adjustments of the ONVIF Imaging service, 0..100 with 50 leaving the picture as rendered.

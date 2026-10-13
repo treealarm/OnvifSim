@@ -1,0 +1,48 @@
+using OnvifSim.Streaming.H264;
+
+namespace OnvifSim.Streaming.Rtp;
+
+// RTP payload format for H.264 (RFC 6184, packetization-mode=1): a NAL unit that fits goes in a packet of
+// its own, a larger one is split into FU-A fragments. SPS and PPS travel in-band before every key frame,
+// so no aggregation packets are needed.
+public static class H264Packetizer
+{
+    // Dynamic payload type, announced in the SDP.
+    public const byte PayloadType = 96;
+
+    private const int FuA = 28;
+    private const int FuHeadersSize = 2;
+    private const int MaxPayload = RtpStream.MaxPacketSize - RtpStream.HeaderSize;
+
+    // Appends the packets of one access unit; the last packet of the access unit carries the marker bit.
+    public static void Packetize(RtpStream stream, H264AccessUnit accessUnit, RtpPacketBatch batch)
+    {
+        uint timestamp = stream.TimestampOf(accessUnit.CaptureTimestamp);
+        for (int n = 0; n < accessUnit.Nals.Count; n++)
+        {
+            var nal = accessUnit.Nals[n].Span;
+            bool lastNal = n == accessUnit.Nals.Count - 1;
+            if (nal.Length <= MaxPayload)
+            {
+                nal.CopyTo(stream.AppendPacket(batch, nal.Length, lastNal, timestamp));
+                continue;
+            }
+
+            // The NAL header is not sent as such: its F/NRI bits go into the FU indicator, its type into
+            // the FU header.
+            byte indicator = (byte)((nal[0] & 0xE0) | FuA);
+            byte type = (byte)(nal[0] & 0x1F);
+            var body = nal[1..];
+            for (int offset = 0; offset < body.Length;)
+            {
+                int chunk = Math.Min(body.Length - offset, MaxPayload - FuHeadersSize);
+                bool first = offset == 0, last = offset + chunk == body.Length;
+                var payload = stream.AppendPacket(batch, FuHeadersSize + chunk, lastNal && last, timestamp);
+                payload[0] = indicator;
+                payload[1] = (byte)((first ? 0x80 : 0) | (last ? 0x40 : 0) | type);
+                body.Slice(offset, chunk).CopyTo(payload[FuHeadersSize..]);
+                offset += chunk;
+            }
+        }
+    }
+}

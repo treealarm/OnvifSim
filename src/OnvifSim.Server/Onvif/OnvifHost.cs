@@ -162,7 +162,7 @@ public sealed class OnvifHost(
             http.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
             return;
         }
-        await dispatcher.HandleAsync(http, new OnvifRequestContext(camera, store, ptz, dispatcher, http.Request, rtsp.Port));
+        await dispatcher.HandleAsync(http, new OnvifRequestContext(camera, store, ptz, dispatcher, http.Request, rtsp.Port, feeds.H264Available));
     }
 
     // The URL GetSnapshotUri hands out, protected by the camera's users like everything else.

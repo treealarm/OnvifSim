@@ -18,10 +18,12 @@ public class RtpJpegTests
         return frame;
     }
 
-    private static List<byte[]> Packetize(JpegRtpStream stream, byte[] jpeg, long captureTimestamp = 0)
+    private static RtpStream NewStream() => new(JpegPacketizer.PayloadType);
+
+    private static List<byte[]> Packetize(RtpStream stream, byte[] jpeg, long captureTimestamp = 0)
     {
         var batch = new RtpPacketBatch();
-        stream.Packetize(new EncodedFrame(jpeg, 0, 0, captureTimestamp), batch);
+        JpegPacketizer.Packetize(stream, new EncodedFrame(jpeg, 0, 0, captureTimestamp), batch);
         return Enumerable.Range(0, batch.Count).Select(i => batch.Packet(i).ToArray()).ToList();
     }
 
@@ -60,7 +62,7 @@ public class RtpJpegTests
     public void Packets_RebuiltAsRfc2435Describes_DecodeToTheSamePixels()
     {
         var jpeg = JpegEncoder.Encode(NoisyFrame(), 70);
-        var packets = Packetize(new JpegRtpStream(), jpeg);
+        var packets = Packetize(NewStream(), jpeg);
 
         var rebuilt = Rfc2435Reference.Depacketize(packets);
 
@@ -73,18 +75,18 @@ public class RtpJpegTests
     [Fact]
     public void Packets_FitTheMtu_AndOnlyTheLastHasTheMarker()
     {
-        var stream = new JpegRtpStream();
+        var stream = NewStream();
         ushort firstSequence = stream.NextSequenceNumber;
         var packets = Packetize(stream, JpegEncoder.Encode(NoisyFrame(), 70));
 
         Assert.True(packets.Count > 10);
-        Assert.All(packets, p => Assert.InRange(p.Length, 21, JpegRtpStream.MaxPacketSize));
+        Assert.All(packets, p => Assert.InRange(p.Length, 21, RtpStream.MaxPacketSize));
         for (int i = 0; i < packets.Count; i++)
         {
             var p = packets[i];
             Assert.Equal(0x80, p[0]);
             Assert.Equal(i == packets.Count - 1, (p[1] & 0x80) != 0);
-            Assert.Equal(JpegRtpStream.PayloadType, p[1] & 0x7F);
+            Assert.Equal(JpegPacketizer.PayloadType, p[1] & 0x7F);
             Assert.Equal((ushort)(firstSequence + i), BinaryPrimitives.ReadUInt16BigEndian(p.AsSpan(2)));
             Assert.Equal(stream.InitialTimestamp, BinaryPrimitives.ReadUInt32BigEndian(p.AsSpan(4)));
             Assert.Equal(stream.Ssrc, BinaryPrimitives.ReadUInt32BigEndian(p.AsSpan(8)));
@@ -94,7 +96,7 @@ public class RtpJpegTests
     [Fact]
     public void Timestamps_Follow_TheCaptureClock_At90kHz()
     {
-        var stream = new JpegRtpStream();
+        var stream = NewStream();
         var jpeg = JpegEncoder.Encode(NoisyFrame(64, 64), 70);
         long start = Stopwatch.GetTimestamp();
         Packetize(stream, jpeg, start);
@@ -107,7 +109,7 @@ public class RtpJpegTests
     [Fact]
     public void SenderReport_IsACompoundSrAndSdesPacket()
     {
-        var stream = new JpegRtpStream();
+        var stream = NewStream();
         Packetize(stream, JpegEncoder.Encode(NoisyFrame(64, 64), 70), Stopwatch.GetTimestamp());
         var batch = new RtpPacketBatch();
         stream.WriteSenderReport(batch, "onvifsim-cam1");

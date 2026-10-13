@@ -281,10 +281,8 @@ public sealed class PtzHandlers(OnvifRequestContext context)
         return value < MaxTimeout ? value : MaxTimeout;
     }
 
-    private static void RequireProfile(string? token)
-    {
-        if (token != CameraMedia.ProfileToken) throw OnvifFault.NoProfile(token ?? "");
-    }
+    // Every profile of a PTZ camera carries its PTZ configuration.
+    private void RequireProfile(string? token) => CameraMedia.CodecOfProfile(context, token);
 
     private static void CheckSpace(string? space, string supported)
     {

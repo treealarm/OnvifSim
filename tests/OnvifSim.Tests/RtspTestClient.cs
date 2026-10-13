@@ -79,14 +79,16 @@ public sealed class RtspTestClient : IAsyncDisposable
     }
 
     // The RTP packets of the next complete frame on the given channel, starting at a frame boundary.
-    public async Task<List<byte[]>> ReadFrameAsync(int channel = 0)
+    // A JPEG frame starts at fragment offset 0 (RFC 2435); an H.264 stream starts at a frame boundary
+    // anyway, so for it pass anyPacketStartsFrame.
+    public async Task<List<byte[]>> ReadFrameAsync(int channel = 0, bool anyPacketStartsFrame = false)
     {
         var packets = new List<byte[]>();
         while (true)
         {
             var (packetChannel, data) = _interleaved.Count > 0 ? _interleaved.Dequeue() : await ReadInterleavedPacketAsync();
             if (packetChannel != channel) continue;
-            bool startsFrame = data[13] == 0 && data[14] == 0 && data[15] == 0;
+            bool startsFrame = anyPacketStartsFrame || (data[13] == 0 && data[14] == 0 && data[15] == 0);
             if (packets.Count == 0 && !startsFrame) continue;
             packets.Add(data);
             if ((data[1] & 0x80) != 0) return packets;

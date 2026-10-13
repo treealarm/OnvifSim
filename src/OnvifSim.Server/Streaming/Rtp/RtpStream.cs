@@ -5,20 +5,17 @@ using System.Text;
 
 namespace OnvifSim.Streaming.Rtp;
 
-// One outgoing RTP stream of JPEG frames (RFC 3550 + RFC 2435): owns the SSRC, the sequence numbers and
-// the mapping from the render clock to the 90 kHz RTP clock, and writes RTCP sender reports for it.
-// Not thread-safe: one stream belongs to one RTSP session's sending loop.
-public sealed class JpegRtpStream
+// One outgoing RTP stream (RFC 3550): owns the SSRC, the sequence numbers and the mapping from the render
+// clock to the 90 kHz RTP clock, and writes RTCP sender reports for it. What goes into the packets is the
+// packetizer's business (JpegPacketizer, H264Packetizer). Not thread-safe: one stream belongs to one
+// RTSP session's sending loop.
+public sealed class RtpStream(byte payloadType)
 {
-    public const int PayloadType = 26;
+    // Every video payload format here (RFC 2435, RFC 6184) uses a 90 kHz clock.
     public const int ClockRate = 90000;
     // Whole RTP packet, so that with IP and UDP headers it stays inside a 1500-byte Ethernet MTU.
     public const int MaxPacketSize = 1400;
-
-    private const int RtpHeaderSize = 12;
-    private const int JpegHeaderSize = 8;
-    private const int QuantizationHeaderSize = 4;
-    private const byte DynamicQuantization = 255;
+    public const int HeaderSize = 12;
 
     private long _firstFrameClock = -1;
     private uint _packetCount;
@@ -39,49 +36,26 @@ public sealed class JpegRtpStream
         return InitialTimestamp + (uint)(ulong)(elapsed * ClockRate / Stopwatch.Frequency);
     }
 
-    // Appends the packets of one frame to the batch; the last one carries the marker bit.
-    public void Packetize(EncodedFrame frame, RtpPacketBatch batch)
+    // RTP time of a frame captured at a Stopwatch timestamp; the first frame defines the origin.
+    public uint TimestampOf(long captureTimestamp)
     {
-        var scan = JpegScan.Parse(frame.Jpeg);
-        if (_firstFrameClock < 0) _firstFrameClock = frame.CaptureTimestamp;
-        uint timestamp = RtpTimeAt(frame.CaptureTimestamp);
+        if (_firstFrameClock < 0) _firstFrameClock = captureTimestamp;
+        return RtpTimeAt(captureTimestamp);
+    }
 
-        var data = scan.EntropyData.Span;
-        int fragmentOffset = 0;
-        do
-        {
-            bool first = fragmentOffset == 0;
-            int headers = RtpHeaderSize + JpegHeaderSize + (first ? QuantizationHeaderSize + scan.QuantizationTables.Length : 0);
-            int chunk = Math.Min(data.Length - fragmentOffset, MaxPacketSize - headers);
-            bool last = fragmentOffset + chunk == data.Length;
-
-            var packet = batch.Append(headers + chunk);
-            WriteRtpHeader(packet, last, timestamp);
-            var jpegHeader = packet[RtpHeaderSize..];
-            jpegHeader[0] = 0; // type-specific
-            jpegHeader[1] = (byte)(fragmentOffset >> 16);
-            jpegHeader[2] = (byte)(fragmentOffset >> 8);
-            jpegHeader[3] = (byte)fragmentOffset;
-            jpegHeader[4] = (byte)scan.Type;
-            jpegHeader[5] = DynamicQuantization;
-            jpegHeader[6] = (byte)(scan.Width / 8);
-            jpegHeader[7] = (byte)(scan.Height / 8);
-            var payload = jpegHeader[JpegHeaderSize..];
-            if (first)
-            {
-                payload[0] = 0; // MBZ
-                payload[1] = 0; // precision: all tables 8-bit
-                BinaryPrimitives.WriteUInt16BigEndian(payload[2..], (ushort)scan.QuantizationTables.Length);
-                scan.QuantizationTables.Span.CopyTo(payload[QuantizationHeaderSize..]);
-                payload = payload[(QuantizationHeaderSize + scan.QuantizationTables.Length)..];
-            }
-            data.Slice(fragmentOffset, chunk).CopyTo(payload);
-
-            fragmentOffset += chunk;
-            _packetCount++;
-            _octetCount += (uint)(packet.Length - RtpHeaderSize);
-        }
-        while (fragmentOffset < data.Length);
+    // Appends a packet with its RTP header written and returns its payload for the packetizer to fill.
+    // The marker bit goes on the last packet of a frame.
+    public Span<byte> AppendPacket(RtpPacketBatch batch, int payloadLength, bool marker, uint timestamp)
+    {
+        var packet = batch.Append(HeaderSize + payloadLength);
+        packet[0] = 0x80; // version 2, no padding, no extension, no CSRC
+        packet[1] = (byte)((marker ? 0x80 : 0) | payloadType);
+        BinaryPrimitives.WriteUInt16BigEndian(packet[2..], NextSequenceNumber++);
+        BinaryPrimitives.WriteUInt32BigEndian(packet[4..], timestamp);
+        BinaryPrimitives.WriteUInt32BigEndian(packet[8..], Ssrc);
+        _packetCount++;
+        _octetCount += (uint)payloadLength;
+        return packet[HeaderSize..];
     }
 
     // Appends a compound RTCP packet: a sender report tying RTP time to wall-clock time, and the SDES
@@ -116,15 +90,6 @@ public sealed class JpegRtpStream
         sdes[8] = 1; // CNAME
         sdes[9] = (byte)cname.Length;
         cname.CopyTo(sdes[10..]);
-    }
-
-    private void WriteRtpHeader(Span<byte> packet, bool marker, uint timestamp)
-    {
-        packet[0] = 0x80; // version 2, no padding, no extension, no CSRC
-        packet[1] = (byte)((marker ? 0x80 : 0) | PayloadType);
-        BinaryPrimitives.WriteUInt16BigEndian(packet[2..], NextSequenceNumber++);
-        BinaryPrimitives.WriteUInt32BigEndian(packet[4..], timestamp);
-        BinaryPrimitives.WriteUInt32BigEndian(packet[8..], Ssrc);
     }
 
     private static ulong ToNtpTime(DateTime utc)

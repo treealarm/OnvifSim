@@ -9,11 +9,13 @@ namespace OnvifSim.Onvif;
 // stream and snapshot URIs) use the host and port the client itself addressed, so they stay valid
 // behind NAT or Docker port mapping.
 public sealed class OnvifRequestContext(
-    CameraModel camera, WorldStore store, PtzSimulator ptz, OnvifDispatcher dispatcher, HttpRequest request, int rtspPort)
+    CameraModel camera, WorldStore store, PtzSimulator ptz, OnvifDispatcher dispatcher, HttpRequest request, int rtspPort, bool hasH264)
 {
     // The camera as it was when the request arrived.
     public CameraModel Camera => camera;
     public bool HasPtz => camera.Kind == CameraKind.Ptz && camera.Ptz != null;
+    // Whether the server can encode H.264, which gives every camera its H.264 profile.
+    public bool HasH264 => hasH264;
     public WorldStore Store => store;
     public PtzSimulator Ptz => ptz;
     // The services this camera has: PTZ only on a PTZ camera.
@@ -32,6 +34,7 @@ public sealed class OnvifRequestContext(
     public XmlElement? ServiceCapabilities(string serviceNamespace) => dispatcher.ServiceCapabilities(serviceNamespace, this);
 
     public string XAddr(string servicePath) => $"http://{Authority}/onvif/{servicePath}";
+    // The camera's JPEG stream; its H.264 stream is below it (CameraMedia.StreamUriOf).
     public string StreamUri => $"rtsp://{HostName}:{rtspPort}/{Uri.EscapeDataString(camera.Id)}";
     public string SnapshotUri => $"http://{Authority}/onvif/snapshot.jpg";
 

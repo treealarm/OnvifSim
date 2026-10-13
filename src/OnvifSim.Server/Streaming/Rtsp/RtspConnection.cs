@@ -11,12 +11,16 @@ namespace OnvifSim.Streaming.Rtsp;
 // One RTSP control connection. Requests are answered in order; RTP of sessions set up over TCP shares
 // the socket, so every write goes through one lock.
 //
-// URLs: rtsp://host:port/{cameraId} is the stream, {cameraId}/track1 its only track. A session set up
-// on this connection over TCP ends with it; a UDP session outlives it until TEARDOWN or timeout, as
-// RFC 2326 intends.
+// URLs: rtsp://host:port/{cameraId} is the JPEG stream and {cameraId}/h264 the H.264 one (when ffmpeg is
+// available); {stream}/track1 is a stream's only track. A session set up on this connection over TCP
+// ends with it; a UDP session outlives it until TEARDOWN or timeout, as RFC 2326 intends.
 public sealed class RtspConnection : IAsyncDisposable
 {
     private const string TrackName = "track1";
+    private const string H264Path = "h264";
+    // Constrained Baseline, level 4.1: what FfmpegH264Encoder asks x264 for. Taken from the SPS itself
+    // once the camera has encoded a key frame.
+    private const string DefaultProfileLevelId = "42C029";
     private const string PublicMethods = "OPTIONS, DESCRIBE, SETUP, PLAY, PAUSE, TEARDOWN, GET_PARAMETER, SET_PARAMETER";
     private static readonly TimeSpan WriteTimeout = TimeSpan.FromSeconds(10);
 
@@ -139,20 +143,20 @@ public sealed class RtspConnection : IAsyncDisposable
 
     private RtspResponse Describe(RtspRequest request)
     {
-        if (!TryResolve(request.Url, out var camera, out var streamUrl)) return new RtspResponse(404);
+        if (!TryResolve(request.Url, out var camera, out var codec, out var streamUrl)) return new RtspResponse(404);
         if (!IsAuthorized(request, camera)) return Unauthorized();
         return new RtspResponse(200)
             .With("Content-Base", streamUrl + "/")
-            .WithBody("application/sdp", BuildSdp(camera, streamUrl));
+            .WithBody("application/sdp", BuildSdp(camera, codec, streamUrl));
     }
 
     private (RtspResponse, RtspSession?) Setup(RtspRequest request, RtspSession? existing)
     {
-        if (!TryResolve(request.Url, out var camera, out _)) return (new RtspResponse(404), existing);
+        if (!TryResolve(request.Url, out var camera, out var codec, out _)) return (new RtspResponse(404), existing);
         if (existing != null)
         {
             // One track only, so a repeated SETUP can only confirm what is already set up.
-            var confirmation = string.Equals(existing.CameraId, camera.Id, StringComparison.OrdinalIgnoreCase)
+            var confirmation = string.Equals(existing.CameraId, camera.Id, StringComparison.OrdinalIgnoreCase) && existing.Codec == codec
                 ? new RtspResponse(200).With("Transport", existing.TransportHeader)
                 : new RtspResponse(459);
             return (confirmation, existing);
@@ -162,10 +166,10 @@ public sealed class RtspConnection : IAsyncDisposable
         var transport = NegotiateTransport(request.Header("Transport"));
         if (transport == null) return (new RtspResponse(461), null);
 
-        var session = new RtspSession(camera.Id, request.Url, transport, _logger);
+        var session = new RtspSession(camera.Id, codec, request.Url, transport, _logger);
         _server.AddSession(session);
-        _logger.LogInformation("RTSP {Client}: session {Session} for {Camera} over {Transport}",
-            RemoteEndPoint, session.Id, camera.Id, transport is InterleavedTransport ? "TCP" : "UDP");
+        _logger.LogInformation("RTSP {Client}: session {Session} for {Camera} ({Codec}) over {Transport}",
+            RemoteEndPoint, session.Id, camera.Id, codec, transport is InterleavedTransport ? "TCP" : "UDP");
         return (new RtspResponse(200).With("Transport", session.TransportHeader), session);
     }
 
@@ -183,9 +187,7 @@ public sealed class RtspConnection : IAsyncDisposable
 
     private void StartPlaying(RtspSession session)
     {
-        var feed = _server.Feeds.Get(session.CameraId);
-        if (feed == null) return;
-        session.Play(feed, failed =>
+        session.Play(_server.Feeds, failed =>
         {
             _ = _server.CloseSessionAsync(failed);
             // Over TCP the stream and the control connection are one: a client whose stream ended
@@ -263,24 +265,32 @@ public sealed class RtspConnection : IAsyncDisposable
         return response;
     }
 
-    // Maps a request URL to a camera. streamUrl is the URL of the camera's stream as the client
-    // addresses this server (scheme, host and port from the request, no credentials or query), so
-    // the control URLs in the SDP work through NAT and port mapping.
-    private bool TryResolve(string url, out CameraModel camera, out string streamUrl)
+    // Maps a request URL to a camera and codec. streamUrl is the URL of the stream as the client
+    // addresses this server (scheme, host and port from the request, no credentials or query), so the
+    // control URLs in the SDP work through NAT and port mapping.
+    private bool TryResolve(string url, out CameraModel camera, out VideoCodec codec, out string streamUrl)
     {
         camera = null!;
+        codec = VideoCodec.Jpeg;
         streamUrl = "";
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return false;
         var segments = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-        if (segments.Length is 0 or > 2) return false;
-        if (segments.Length == 2 && segments[1] != TrackName) return false;
-        if (_server.Scene.FindCamera(Uri.UnescapeDataString(segments[0])) is not { } found) return false;
+        if (segments.Length == 0 || _server.Scene.FindCamera(Uri.UnescapeDataString(segments[0])) is not { } found) return false;
+
+        var rest = segments[1..];
+        if (rest is [H264Path, ..])
+        {
+            if (!_server.Feeds.H264Available) return false;
+            codec = VideoCodec.H264;
+            rest = rest[1..];
+        }
+        if (rest is not ([] or [TrackName])) return false;
         camera = found;
-        streamUrl = $"{uri.Scheme}://{uri.Authority}/{segments[0]}";
+        streamUrl = $"{uri.Scheme}://{uri.Authority}/{segments[0]}" + (codec == VideoCodec.H264 ? $"/{H264Path}" : "");
         return true;
     }
 
-    private string BuildSdp(CameraModel camera, string streamUrl)
+    private string BuildSdp(CameraModel camera, VideoCodec codec, string streamUrl)
     {
         var address = LocalEndPoint.Address;
         string addressType = address.AddressFamily == AddressFamily.InterNetworkV6 ? "IP6" : "IP4";
@@ -291,11 +301,28 @@ public sealed class RtspConnection : IAsyncDisposable
             .Append($"c=IN {addressType} {(addressType == "IP6" ? "::" : "0.0.0.0")}\r\n")
             .Append("t=0 0\r\n")
             .Append("a=control:*\r\n")
-            .Append("a=range:npt=0-\r\n")
-            .Append($"m=video 0 RTP/AVP {JpegRtpStream.PayloadType}\r\n")
-            .Append($"a=rtpmap:{JpegRtpStream.PayloadType} JPEG/{JpegRtpStream.ClockRate}\r\n")
-            .Append($"a=framerate:{camera.Video.Fps}\r\n")
-            .Append($"a=control:{streamUrl}/{TrackName}\r\n");
+            .Append("a=range:npt=0-\r\n");
+        if (codec == VideoCodec.H264)
+            sdp.Append($"m=video 0 RTP/AVP {H264Packetizer.PayloadType}\r\n")
+                .Append($"a=rtpmap:{H264Packetizer.PayloadType} H264/{RtpStream.ClockRate}\r\n")
+                .Append($"a=fmtp:{H264Packetizer.PayloadType} {H264FormatParameters(camera)}\r\n")
+                .Append($"a=framerate:{camera.H264.Fps}\r\n");
+        else
+            sdp.Append($"m=video 0 RTP/AVP {JpegPacketizer.PayloadType}\r\n")
+                .Append($"a=rtpmap:{JpegPacketizer.PayloadType} JPEG/{RtpStream.ClockRate}\r\n")
+                .Append($"a=framerate:{camera.Video.Fps}\r\n");
+        sdp.Append($"a=control:{streamUrl}/{TrackName}\r\n");
         return sdp.ToString();
+    }
+
+    // SPS and PPS go into the SDP when the camera has already encoded a key frame at its current
+    // settings; before that clients take them from the stream, where they precede every key frame.
+    private string H264FormatParameters(CameraModel camera)
+    {
+        var parameterSets = _server.Feeds.GetH264(camera.Id)?.ParameterSetsFor(camera.H264);
+        if (parameterSets is not var (sps, pps))
+            return $"packetization-mode=1;profile-level-id={DefaultProfileLevelId}";
+        return $"packetization-mode=1;profile-level-id={Convert.ToHexString(sps, 1, 3)}" +
+               $";sprop-parameter-sets={Convert.ToBase64String(sps)},{Convert.ToBase64String(pps)}";
     }
 }

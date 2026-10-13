@@ -6,8 +6,8 @@ serves RTSP and takes PTZ commands — including AbsoluteMove — like real hard
 Device Manager, an NVR or your own client at it; no cameras needed.
 
 > **Status: early development.** Done so far: world model, software renderer, snapshots and MJPEG
-> over HTTP, RTSP with RTP/JPEG, ONVIF Device + Media + Media2 + PTZ + Imaging and WS-Discovery.
-> Coming next: H.264, the browser editor, Docker image and installers (MSI, winget, snap).
+> over HTTP, RTSP with RTP/JPEG and H.264, ONVIF Device + Media + Media2 + PTZ + Imaging and
+> WS-Discovery. Coming next: the browser editor, Docker image and installers (MSI, winget, snap).
 
 ## Run
 
@@ -41,6 +41,18 @@ camera with no users accepts anyone. Resolution, frame rate and JPEG quality are
 ffmpeg-based players need about 20 frames to start (they measure the frame rate first): ~2 s at the
 default 10 fps, ~7 s at 3 fps. VLC and GStreamer show the first frame at once.
 
+### H.264
+
+When an ffmpeg with libx264 is on `PATH` (or named with `--ffmpeg <path>`, `ONVIFSIM_FFMPEG`), every
+camera also streams H.264 (RTP, RFC 6184) at `rtsp://<host>:8554/<camera id>/h264`, with settings of
+its own (`h264` in `world.json`: 640×360, 10 fps, 1024 kbit/s, a key frame every 10 frames by
+default). One ffmpeg process per camera runs while someone watches; a new viewer starts at the next
+key frame. Without ffmpeg (or with `--ffmpeg none`) cameras stream JPEG only.
+
+```bash
+ffplay -rtsp_transport tcp rtsp://admin:admin@localhost:8554/cam1/h264
+```
+
 ## ONVIF
 
 Every camera is a device of its own, on its own port: `http://<host>:8001/onvif/device_service` for
@@ -49,9 +61,10 @@ WS-Discovery, so ONVIF Device Manager, an NVR or `OnvifLib.Probe --discovery` li
 
 - **Device**: device information, clock, `GetServices`/`GetCapabilities`, scopes, users, a read-only
   view of the network settings.
-- **Media** (ver10) and **Media2** (ver20): one JPEG profile with its RTSP and snapshot URIs;
-  `SetVideoEncoderConfiguration` changes resolution, frame rate and quality within the offered
-  options and is saved to `world.json`.
+- **Media** (ver10) and **Media2** (ver20): `Profile_1` with the JPEG stream and, when H.264 is on,
+  `Profile_2` with the H.264 one, each with its RTSP and snapshot URIs.
+  `SetVideoEncoderConfiguration` changes resolution, frame rate, JPEG quality, H.264 bitrate and GOV
+  length within the offered options and is saved to `world.json`.
 - **PTZ** (ver20, PTZ cameras only): AbsoluteMove, RelativeMove, ContinuousMove, Stop and
   GetStatus in the generic spaces, presets and a home position. The head moves at the camera's top
   speeds (`ptz` in `world.json`), the stream shows it turning, and where it stops, its presets and
@@ -81,7 +94,7 @@ reachable from outside, e.g. in a container.
 
 One .NET 10 process, no native dependencies: the world is rendered by a built-in CPU rasterizer
 (a 640×360 frame takes about 5 ms), encoded to JPEG in-process, and a camera only renders while
-someone is watching it.
+someone is watching it. H.264 is the one optional extra: raw frames piped through an ffmpeg process.
 
 ONVIF requests and responses are (de)serialized with types generated from the official ONVIF WSDL
 ([onvif/specs](https://github.com/onvif/specs)); `src/OnvifSim.Server/Onvif/Wsdl/generate.sh`

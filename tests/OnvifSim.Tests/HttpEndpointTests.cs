@@ -15,6 +15,10 @@ public class SimFactory : WebApplicationFactory<Program>
     // Off unless a test class needs it: 3702 is shared with every other WS-Discovery listener.
     protected virtual int DiscoveryPort => 0;
 
+    // JPEG only unless a test class needs H.264, so tests do not depend on what the machine has
+    // installed; "" looks for ffmpeg on PATH.
+    protected virtual string Ffmpeg => "none";
+
     // Settings reach the app as --name=value arguments, so every factory has its own data directory
     // even when test classes run in parallel; port 0 picks free RTSP and RTP ports, which also keeps the
     // tests clear of a simulator started by hand.
@@ -25,6 +29,7 @@ public class SimFactory : WebApplicationFactory<Program>
         builder.UseSetting("rtp-port", "0");
         builder.UseSetting("onvif-base-port", "0");
         builder.UseSetting("discovery-port", DiscoveryPort.ToString());
+        builder.UseSetting("ffmpeg", Ffmpeg);
     }
 
     protected override void Dispose(bool disposing)
