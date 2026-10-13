@@ -1,7 +1,7 @@
 # OnvifSim
 
 <p align="center">
-  <img src="docs/images/banner.jpg" alt="OnvifSim: a village with roads and people walking, rendered by the simulator" width="100%">
+  <img src="docs/images/banner.jpg" alt="OnvifSim, an ONVIF IP camera simulator: four simulated cameras, one of them PTZ, showing a village with a person walking down the road" width="100%">
 </p>
 
 <p align="center">
