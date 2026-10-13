@@ -1,4 +1,4 @@
-import { setTool, useEditor, type BrushKind, type Placeable, type Tool } from '../store';
+import { redo, setTool, undo, useEditor, type BrushKind, type Placeable, type Tool } from '../store';
 
 const placeables: { what: Placeable; label: string }[] = [
   { what: 'tree.pine', label: 'Pine' },
@@ -38,9 +38,19 @@ export function Toolbar() {
   const gizmo = useEditor((s) => s.gizmo);
   const radius = useEditor((s) => s.brushRadius);
   const strength = useEditor((s) => s.brushStrength);
+  const undoSteps = useEditor((s) => s.undoSteps);
+  const redoSteps = useEditor((s) => s.redoSteps);
 
   return (
     <nav className="toolbar" aria-label="Tools">
+      <div className="group" role="group" aria-label="History">
+        <button type="button" disabled={undoSteps === 0} onClick={undo} title="Ctrl+Z">
+          Undo
+        </button>
+        <button type="button" disabled={redoSteps === 0} onClick={redo} title="Ctrl+Shift+Z, Ctrl+Y">
+          Redo
+        </button>
+      </div>
       <div className="group" role="group" aria-label="Edit">
         <ToolButton current={tool} value={{ kind: 'select' }} label="Select" />
         <button type="button" aria-pressed={gizmo === 'move'} onClick={() => useEditor.setState({ gizmo: 'move' })} title="G">

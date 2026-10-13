@@ -6,10 +6,7 @@ import { discoveryPort } from './ports';
 // The plan's acceptance check for the editor: a camera and a tree added in the browser show up as an
 // ONVIF device on WS-Discovery and in the camera's picture.
 test('a camera and a tree placed in the editor are live at once', async ({ page, request }) => {
-  await page.goto('/');
-  await expect(page.getByText('124 objects, 2 cameras.')).toBeVisible();
-  // The viewport takes clicks once it has drawn a frame.
-  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  await openEditor(page);
 
   // A fixed camera, then aimed by hand: 3 m up at (0, 100), looking north with a narrow view.
   await placeOnGround(page, 'Fixed camera');
@@ -39,6 +36,58 @@ test('a camera and a tree placed in the editor are live at once', async ({ page,
   expect(matches.some((m) => m.includes('onvif://www.onvif.org/name/E2E%20camera'))).toBe(true);
 });
 
+test('undo walks back through several edits and redo forward again', async ({ page, request }) => {
+  await openEditor(page);
+
+  await placeOnGround(page, 'Rock');
+  await expect(page.getByRole('heading', { level: 2 })).toContainText('Rock');
+  const id = (await page.getByRole('heading', { level: 2 }).locator('span').textContent()) ?? '';
+  const placedX = (await objectById(request, id))?.position.x;
+  // Edits of one field a second apart are separate steps.
+  await setNumber(page, 'X (east)', 10);
+  await expect.poll(async () => (await objectById(request, id))?.position.x).toBe(10);
+  await page.waitForTimeout(1100);
+  await setNumber(page, 'X (east)', 20);
+  await expect.poll(async () => (await objectById(request, id))?.position.x).toBe(20);
+  await page.keyboard.press('Delete');
+  await expect.poll(async () => await objectById(request, id)).toBeUndefined();
+
+  const undo = page.getByRole('button', { name: 'Undo' });
+  const redo = page.getByRole('button', { name: 'Redo' });
+  await undo.click();
+  await expect.poll(async () => (await objectById(request, id))?.position.x).toBe(20);
+  await undo.click();
+  await expect.poll(async () => (await objectById(request, id))?.position.x).toBe(10);
+  await undo.click();
+  await expect.poll(async () => (await objectById(request, id))?.position.x).toBe(placedX);
+  await page.keyboard.press('Control+z');
+  await expect.poll(async () => await objectById(request, id)).toBeUndefined();
+  await redo.click();
+  await expect.poll(async () => (await objectById(request, id))?.position.x).toBe(placedX);
+  await page.keyboard.press('Control+Shift+z');
+  await expect.poll(async () => (await objectById(request, id))?.position.x).toBe(10);
+
+  // A brush stroke is one step, undone to the very same heights.
+  const heights = await terrainHeights(request);
+  await page.getByRole('button', { name: 'Raise', exact: true }).click();
+  const box = await page.locator('.viewport canvas').boundingBox();
+  if (!box) throw new Error('The viewport is not on screen.');
+  await page.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.8);
+  await page.mouse.down();
+  for (let i = 1; i <= 10; i++) await page.mouse.move(box.x + box.width * 0.3 + i * 4, box.y + box.height * 0.8);
+  await page.mouse.up();
+  await expect.poll(() => terrainHeights(request)).not.toBe(heights);
+  await undo.click();
+  await expect.poll(() => terrainHeights(request)).toBe(heights);
+});
+
+async function openEditor(page: Page) {
+  await page.goto('/');
+  await expect(page.getByText(/\d+ objects, \d+ cameras\./)).toBeVisible();
+  // The viewport takes clicks once it has drawn a frame.
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+}
+
 async function placeOnGround(page: Page, tool: string) {
   await page.getByRole('button', { name: tool, exact: true }).click();
   const viewport = page.locator('.viewport canvas');
@@ -57,7 +106,8 @@ async function setNumber(page: Page, label: string, value: number) {
 async function world(request: APIRequestContext) {
   return (await (await request.get('/api/world')).json()) as {
     cameras: { id: string; name: string; hFov: number }[];
-    objects: { type: string; position: { x: number; z: number } }[];
+    objects: { id: string; type: string; position: { x: number; z: number } }[];
+    terrain: { heights: string };
   };
 }
 
@@ -67,6 +117,14 @@ async function cameraOf(request: APIRequestContext, id: string) {
 
 async function objectAt(request: APIRequestContext, x: number, z: number) {
   return (await world(request)).objects.find((o) => o.position.x === x && o.position.z === z);
+}
+
+async function objectById(request: APIRequestContext, id: string) {
+  return (await world(request)).objects.find((o) => o.id === id);
+}
+
+async function terrainHeights(request: APIRequestContext): Promise<string> {
+  return (await world(request)).terrain.heights;
 }
 
 async function snapshot(request: APIRequestContext, id: string): Promise<Buffer> {

@@ -8,7 +8,14 @@ export type CameraDraft = Omit<Partial<CameraModel>, 'ptz'> & Pick<CameraModel, 
 // The server's editor API (Editor/EditorApi.cs). Every call throws ApiError with the server's reason
 // when the change is refused.
 
-export class ApiError extends Error {}
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+  }
+}
 
 async function send(method: string, path: string, body?: unknown): Promise<Response> {
   const response = await fetch(path, {
@@ -16,7 +23,7 @@ async function send(method: string, path: string, body?: unknown): Promise<Respo
     headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  if (!response.ok) throw new ApiError(await reasonOf(response));
+  if (!response.ok) throw new ApiError(await reasonOf(response), response.status);
   return response;
 }
 

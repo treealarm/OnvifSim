@@ -98,8 +98,13 @@ button {
   cursor: pointer;
 }
 
-button:hover {
+button:hover:not(:disabled) {
   border-color: var(--accent);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 button[aria-pressed='true'] {
@@ -196,6 +201,19 @@ main {
 .field input[type='range'] {
   grid-column: 2;
   width: 100%;
+}
+
+.field input[type='color'] {
+  grid-column: 2;
+  justify-self: start;
+  width: 48px;
+  height: 24px;
+  padding: 1px;
+}
+
+.field input.hex[type='text'] {
+  grid-column: 3;
+  width: 84px;
 }
 
 .field input[type='number'] {

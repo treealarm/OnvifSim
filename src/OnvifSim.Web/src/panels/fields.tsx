@@ -110,12 +110,33 @@ export function SelectField<T extends string>({ label, value, options, onChange 
   );
 }
 
+const hexColor = /^#[0-9a-f]{6}$/i;
+
+// A swatch that opens the system colour picker, plus the hex code to type or paste. The swatch sits
+// on the left of the panel, so the picker opens towards the middle of the window rather than past
+// its right edge.
 export function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
   const id = useId();
+  const [draft, setDraft] = useState<string | null>(null);
+
+  function type(text: string) {
+    setDraft(text);
+    if (hexColor.test(text)) onChange(text.toLowerCase());
+  }
+
   return (
     <div className="field">
       <label htmlFor={id}>{label}</label>
       <input id={id} type="color" value={value} onChange={(e) => onChange(e.target.value)} />
+      <input
+        type="text"
+        className={draft !== null && !hexColor.test(draft) ? 'hex pending' : 'hex'}
+        aria-label={`${label} hex code`}
+        spellCheck={false}
+        value={draft ?? value}
+        onChange={(e) => type(e.target.value)}
+        onBlur={() => setDraft(null)}
+      />
     </div>
   );
 }

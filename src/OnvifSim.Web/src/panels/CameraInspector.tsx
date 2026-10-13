@@ -1,6 +1,5 @@
-import { api } from '../api';
-import type { CameraKind, CameraModel, PtzSettings, ServerStatus, Vec3 } from '../model';
-import { removeSelected, showError, updateCamera, useEditor } from '../store';
+import type { CameraModel, PtzSettings, ServerStatus, Vec3 } from '../model';
+import { changeCameraKind, removeSelected, updateCamera, useEditor } from '../store';
 import { CheckboxField, NumberField, Section, SelectField, TextField } from './fields';
 import { PtzControl } from './PtzControl';
 
@@ -30,7 +29,7 @@ export function CameraInspector({ camera }: { camera: CameraModel }) {
 
       <Section title="Camera">
         <TextField label="Name" value={camera.name} onChange={(name) => change({ name })} />
-        <SelectField label="Kind" value={camera.kind} options={kindOptions} onChange={(kind) => changeKind(camera, kind)} />
+        <SelectField label="Kind" value={camera.kind} options={kindOptions} onChange={(kind) => void changeCameraKind(camera, kind)} />
         <CheckboxField label="Degree grid" checked={camera.angleGrid} onChange={(angleGrid) => change({ angleGrid })} />
       </Section>
 
@@ -77,12 +76,6 @@ export function CameraInspector({ camera }: { camera: CameraModel }) {
       </button>
     </>
   );
-}
-
-// Switching kind is sent as it is: a new PTZ head gets the server's default limits, which only the
-// server's next world brings, so there is nothing to show before then.
-function changeKind(camera: CameraModel, kind: CameraKind) {
-  api.putCamera({ ...camera, kind, ptz: kind === 'ptz' ? (camera.ptz ?? {}) : null }).catch(showError);
 }
 
 function Addresses({ camera, status }: { camera: CameraModel; status: ServerStatus }) {

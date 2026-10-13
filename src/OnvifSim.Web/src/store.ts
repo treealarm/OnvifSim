@@ -1,8 +1,9 @@
 import { create } from 'zustand';
-import { api } from './api';
+import { api, ApiError } from './api';
 import {
   decodeWorld,
   nextId,
+  type CameraKind,
   type CameraModel,
   type Environment,
   type Head,
@@ -32,6 +33,8 @@ interface EditorState {
   brushRadius: number;
   brushStrength: number;
   error: string | null;
+  undoSteps: number;
+  redoSteps: number;
 }
 
 export const useEditor = create<EditorState>()(() => ({
@@ -45,6 +48,8 @@ export const useEditor = create<EditorState>()(() => ({
   brushRadius: 12,
   brushStrength: 0.5,
   error: null,
+  undoSteps: 0,
+  redoSteps: 0,
 }));
 
 const set = useEditor.setState;
@@ -133,40 +138,166 @@ async function flush(key: string) {
   await flush(key);
 }
 
-// ---- Edits ----
+// ---- Edits and their history ----
+//
+// Every edit replaces one part of the world: an object, a camera (either may be absent: not created
+// yet, or deleted), the terrain or the environment. Undo puts back what the part was before; the
+// server applies that like any other edit. Moving a PTZ head is driving the camera, not editing the
+// world, and stays out of the history.
+
+type Part =
+  | { kind: 'object'; id: string; value: WorldObject | null }
+  | { kind: 'camera'; id: string; value: CameraModel | null }
+  | { kind: 'terrain'; value: Terrain }
+  | { kind: 'environment'; value: Environment };
+
+interface HistoryEntry {
+  // The part as it was before the edit, to be put back.
+  part: Part;
+  // When the step was last added to; 0 for a step nothing may be merged into.
+  at: number;
+}
+
+// Edits of one part this close together are one step: a dragged slider, a typed number.
+const mergeWithinMs = 1000;
+const historyLimit = 100;
+const undoStack: HistoryEntry[] = [];
+const redoStack: HistoryEntry[] = [];
+
+function keyOf(part: Part): string {
+  return part.kind === 'object' || part.kind === 'camera' ? `${part.kind}:${part.id}` : part.kind;
+}
+
+// The same part as it is in the world now.
+function currentOf(world: World, part: Part): Part {
+  switch (part.kind) {
+    case 'object':
+      return { ...part, value: world.objects.find((o) => o.id === part.id) ?? null };
+    case 'camera':
+      return { ...part, value: world.cameras.find((c) => c.id === part.id) ?? null };
+    case 'terrain':
+      return { kind: 'terrain', value: world.terrain };
+    case 'environment':
+      return { kind: 'environment', value: world.environment };
+  }
+}
+
+function upsert<T extends { id: string }>(items: T[], id: string, item: T | null): T[] {
+  if (item === null) return items.filter((i) => i.id !== id);
+  return items.some((i) => i.id === id) ? items.map((i) => (i.id === id ? item : i)) : [...items, item];
+}
+
+function applyPart(world: World, part: Part): World {
+  switch (part.kind) {
+    case 'object':
+      return { ...world, objects: upsert(world.objects, part.id, part.value) };
+    case 'camera':
+      return { ...world, cameras: upsert(world.cameras, part.id, part.value) };
+    case 'terrain':
+      return { ...world, terrain: part.value };
+    case 'environment':
+      return { ...world, environment: part.value };
+  }
+}
+
+async function sendPart(part: Part): Promise<unknown> {
+  switch (part.kind) {
+    case 'object':
+      return part.value ? api.putObject(part.value) : ignoreMissing(api.deleteObject(part.id));
+    case 'camera':
+      return part.value ? api.putCamera(part.value) : ignoreMissing(api.deleteCamera(part.id));
+    case 'terrain':
+      return api.putTerrain(part.value);
+    case 'environment':
+      return api.putEnvironment(part.value);
+  }
+}
+
+// Deleting what is already gone (undoing a creation twice over, say) has nothing left to do.
+async function ignoreMissing(request: Promise<unknown>): Promise<unknown> {
+  try {
+    return await request;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return undefined;
+    throw error;
+  }
+}
+
+function commit(part: Part, delayMs = sendDelayMs) {
+  edit(keyOf(part), (w) => applyPart(w, part), () => sendPart(part), delayMs);
+}
+
+function remember(before: Part, merge: boolean) {
+  const now = Date.now();
+  const last = undoStack.at(-1);
+  if (merge && last && keyOf(last.part) === keyOf(before) && now - last.at < mergeWithinMs) last.at = now;
+  else {
+    // A step that must stay a step of its own (creating, deleting) takes no edits after it in.
+    undoStack.push({ part: before, at: merge ? now : 0 });
+    if (undoStack.length > historyLimit) undoStack.shift();
+  }
+  redoStack.length = 0;
+  set({ undoSteps: undoStack.length, redoSteps: 0 });
+}
+
+function change(part: Part, { merge = true, delayMs = sendDelayMs } = {}) {
+  const world = useEditor.getState().world;
+  if (!world) return;
+  remember(currentOf(world, part), merge);
+  commit(part, delayMs);
+}
+
+// Puts the part of the newest step on one stack back, and keeps what it replaces on the other.
+function step(from: HistoryEntry[], to: HistoryEntry[]) {
+  const world = useEditor.getState().world;
+  const entry = from.pop();
+  if (!world || !entry) return;
+  to.push({ part: currentOf(world, entry.part), at: 0 });
+  commit(entry.part, 0);
+  set({ undoSteps: undoStack.length, redoSteps: redoStack.length });
+}
+
+export function undo() {
+  step(undoStack, redoStack);
+}
+
+export function redo() {
+  step(redoStack, undoStack);
+}
 
 export function updateObject(obj: WorldObject) {
-  edit(
-    `object:${obj.id}`,
-    (w) => ({ ...w, objects: w.objects.map((o) => (o.id === obj.id ? obj : o)) }),
-    () => api.putObject(obj),
-  );
+  change({ kind: 'object', id: obj.id, value: obj });
 }
 
 export function updateCamera(camera: CameraModel) {
-  edit(
-    `camera:${camera.id}`,
-    (w) => ({ ...w, cameras: w.cameras.map((c) => (c.id === camera.id ? camera : c)) }),
-    () => api.putCamera(camera),
-  );
+  change({ kind: 'camera', id: camera.id, value: camera });
 }
 
+// Every stroke of a brush is a step of its own, however quickly the next one follows.
 export function updateTerrain(terrain: Terrain) {
-  edit('terrain', (w) => ({ ...w, terrain }), () => api.putTerrain(terrain));
+  change({ kind: 'terrain', value: terrain }, { merge: false });
 }
 
 export function updateEnvironment(environment: Environment) {
-  edit('environment', (w) => ({ ...w, environment }), () => api.putEnvironment(environment));
+  change({ kind: 'environment', value: environment });
 }
 
 export function removeSelected() {
   const { selection } = useEditor.getState();
   if (!selection) return;
-  const { kind, id } = selection;
-  if (kind === 'object')
-    edit(`object:${id}`, (w) => ({ ...w, objects: w.objects.filter((o) => o.id !== id) }), () => api.deleteObject(id), 0);
-  else edit(`camera:${id}`, (w) => ({ ...w, cameras: w.cameras.filter((c) => c.id !== id) }), () => api.deleteCamera(id), 0);
+  change({ kind: selection.kind, id: selection.id, value: null }, { merge: false, delayMs: 0 });
   set({ selection: null });
+}
+
+// Switching kind is sent as it is, without showing it first: a new PTZ head gets the server's default
+// limits, which only the server's next world brings.
+export async function changeCameraKind(camera: CameraModel, kind: CameraKind) {
+  try {
+    await api.putCamera({ ...camera, kind, ptz: kind === 'ptz' ? (camera.ptz ?? {}) : null });
+    remember({ kind: 'camera', id: camera.id, value: camera }, false);
+  } catch (error) {
+    showError(error);
+  }
 }
 
 // Sizes a new object starts with: about what the default world has.
@@ -196,10 +327,12 @@ export async function place(what: Placeable, x: number, z: number) {
         ptz: ptz ? {} : null,
         users: [{ username: 'admin', password: 'admin' }],
       });
+      remember({ kind: 'camera', id, value: null }, false);
       select({ kind: 'camera', id });
     } else {
       const id = nextId('o', world.objects.map((o) => o.id));
       await api.putObject({ id, type: what, position: { x, y: 0, z }, scale: defaultScale[what], seed: randomSeed() });
+      remember({ kind: 'object', id, value: null }, false);
       select({ kind: 'object', id });
     }
   } catch (error) {

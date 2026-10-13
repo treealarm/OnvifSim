@@ -22,7 +22,8 @@ change. Without Node.js the server still builds and serves everything except the
 ## Editor
 
 The browser editor shows the world in 3D and changes it live; there is no Save button, every edit
-reaches the cameras within a moment.
+reaches the cameras and `world.json` within a moment. Undo and Redo (Ctrl+Z, Ctrl+Shift+Z or
+Ctrl+Y) step back and forth through the last 100 edits; turning a PTZ camera is not an edit.
 
 - **Place** trees, houses, rocks, boxes and fixed or PTZ cameras: pick one on the toolbar and click
   the ground. Click anything to select it; drag the gizmo to move it (G) or turn it (R), or type

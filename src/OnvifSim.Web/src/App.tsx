@@ -3,7 +3,7 @@ import { CameraInspector } from './panels/CameraInspector';
 import { ObjectInspector } from './panels/ObjectInspector';
 import { Toolbar } from './panels/Toolbar';
 import { WorldInspector } from './panels/WorldInspector';
-import { connect, removeSelected, select, useEditor } from './store';
+import { connect, redo, removeSelected, select, undo, useEditor } from './store';
 import { Viewport } from './viewport/Viewport';
 
 export function App() {
@@ -63,11 +63,18 @@ function Inspector() {
   return <WorldInspector world={world} />;
 }
 
-// Delete removes the selection, Escape drops it, G and R switch the gizmo; not while typing in a field.
+// Ctrl+Z undoes, Ctrl+Shift+Z and Ctrl+Y redo, Delete removes the selection, Escape drops it, G and R
+// switch the gizmo. Not while typing in a field, where the keys belong to the field.
 function onShortcut(e: KeyboardEvent) {
   if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement || e.target instanceof HTMLTextAreaElement) return;
-  if (e.key === 'Delete') removeSelected();
+  const key = e.key.toLowerCase();
+  if (e.ctrlKey || e.metaKey) {
+    if (key === 'z' && !e.shiftKey) undo();
+    else if (key === 'y' || (key === 'z' && e.shiftKey)) redo();
+    else return;
+    e.preventDefault();
+  } else if (e.key === 'Delete') removeSelected();
   else if (e.key === 'Escape') select(null);
-  else if (e.key === 'g') useEditor.setState({ gizmo: 'move' });
-  else if (e.key === 'r') useEditor.setState({ gizmo: 'rotate' });
+  else if (key === 'g') useEditor.setState({ gizmo: 'move' });
+  else if (key === 'r') useEditor.setState({ gizmo: 'rotate' });
 }
