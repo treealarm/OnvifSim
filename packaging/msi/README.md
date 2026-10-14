@@ -5,6 +5,9 @@ unpacked `OnvifSim-win-x64.zip`. It installs into `Program Files\TreeAlarm\Onvif
 entry that starts the simulator (a console window with its log) and opens the editor in the browser.
 The world stays per user in `%LOCALAPPDATA%\OnvifSim`, so uninstalling keeps it.
 
+CI's **msi** job (`.github/workflows/ci.yml`) builds it from every change, with stand-ins for the
+editor and ffmpeg, installs it on the Windows runner, starts the installed server and uninstalls it.
+
 The icon (`src/OnvifSim.Server/OnvifSim.ico`, also built into `OnvifSim.exe`) and the dialog pictures
 `Banner.bmp` (493×58) and `Dialog.bmp` (493×312) are made from the snap's `icon.png`.
 

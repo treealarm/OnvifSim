@@ -49,6 +49,65 @@ jobs:
           name: e2e-results
           path: src/OnvifSim.Web/test-results/
 
+  # WiX builds only on Windows and the release builds the MSI only from a tag, after which the snap and
+  # the image are already out: this builds it from every change, installs it, starts what it installed
+  # and removes it again. Nothing is published.
+  msi:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      # The editor and ffmpeg come in with the release's zip; stand-ins satisfy the installer's checks,
+      # and the server takes the stand-in ffmpeg for one that does not run (JPEG only).
+      - name: Build the MSI
+        shell: pwsh
+        run: |
+          dotnet publish src/OnvifSim.Server -c Release -r win-x64 --self-contained `
+            -p:PublishSingleFile=true -p:DebugType=None -p:BuildEditor=false -o payload --nologo
+          New-Item -ItemType Directory -Force payload/wwwroot, payload/ffmpeg | Out-Null
+          Set-Content payload/wwwroot/index.html '<!doctype html>'
+          Set-Content payload/ffmpeg/ffmpeg.exe 'stand-in'
+          # Forward slashes: MSBuild -p: values ending in a backslash lose their closing quote.
+          $payload = (Resolve-Path payload).Path -replace '\\', '/'
+          dotnet build packaging/msi/OnvifSim.Setup.wixproj -c Release -p:Platform=x64 "-p:PayloadDir=$payload/" --nologo
+          $msi = Get-ChildItem -Recurse packaging/msi/bin -Filter OnvifSim.msi | Select-Object -First 1
+          if (-not $msi) { throw "The WiX build produced no OnvifSim.msi" }
+          Copy-Item $msi.FullName OnvifSim.msi
+
+      - name: Install, start and uninstall
+        shell: pwsh
+        run: |
+          $installed = Join-Path $env:ProgramFiles 'TreeAlarm\OnvifSim\OnvifSim.exe'
+          $shortcut = Join-Path $env:ProgramData 'Microsoft\Windows\Start Menu\Programs\OnvifSim.lnk'
+          $msiLog = Join-Path $env:RUNNER_TEMP msi.log
+          function Invoke-Msiexec($action) {
+            $p = Start-Process msiexec -ArgumentList $action, (Resolve-Path OnvifSim.msi), '/qn', '/l*v', $msiLog -Wait -PassThru
+            if ($p.ExitCode -ne 0) { Get-Content $msiLog -Tail 40; throw "msiexec $action exited with $($p.ExitCode)" }
+          }
+
+          Invoke-Msiexec '/i'
+          if (-not (Test-Path $installed)) { throw "No $installed" }
+          if (-not (Test-Path $shortcut)) { throw "No Start menu entry at $shortcut" }
+
+          $log = Join-Path $env:RUNNER_TEMP server.log
+          $server = Start-Process $installed -PassThru -NoNewWindow `
+            -ArgumentList '--no-browser', '--data', (Join-Path $env:RUNNER_TEMP data) -RedirectStandardOutput $log
+          $up = $false
+          foreach ($i in 1..30) {
+            try { Invoke-WebRequest http://localhost:8080/api/world -UseBasicParsing | Out-Null; $up = $true; break } catch { Start-Sleep 1 }
+          }
+          Stop-Process $server
+          Get-Content $log
+          if (-not $up) { throw "The installed OnvifSim did not answer on port 8080" }
+
+          Invoke-Msiexec '/x'
+          if (Test-Path $installed) { throw "Uninstalling left $installed" }
+          if (Test-Path $shortcut) { throw "Uninstalling left the Start menu entry" }
+
   docker:
     runs-on: ubuntu-latest
     steps:
