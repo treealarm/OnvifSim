@@ -1,13 +1,13 @@
 using System.Net;
 using System.Net.Sockets;
 
-namespace OnvifSim.Streaming.Rtsp;
+namespace OnvifSim.Rtsp;
 
 // The server's RTP/RTCP UDP port pair, shared by every UDP session: a single fixed pair is easy to open
 // in a firewall or map out of a container, and sessions differ by their destination anyway.
 // Datagrams arriving on either port (RTCP receiver reports, NAT hole punching) tell sessions that their
 // client is still alive.
-public sealed class RtpUdpSockets : IDisposable
+internal sealed class RtpUdpSockets : IDisposable
 {
     private const int BindAttempts = 50;
 

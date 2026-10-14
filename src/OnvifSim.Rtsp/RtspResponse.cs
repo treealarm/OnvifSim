@@ -1,11 +1,9 @@
 using System.Text;
 
-namespace OnvifSim.Streaming.Rtsp;
+namespace OnvifSim.Rtsp;
 
-public sealed class RtspResponse(int status)
+internal sealed class RtspResponse(int status)
 {
-    public static readonly string ServerName = "OnvifSim/" + Onvif.CameraIdentity.FirmwareVersion;
-
     private readonly List<(string Name, string Value)> _headers = [];
     private string _body = "";
 
@@ -23,14 +21,14 @@ public sealed class RtspResponse(int status)
         return With("Content-Type", contentType);
     }
 
-    public byte[] Serialize(string cseq)
+    public byte[] Serialize(string cseq, string serverName)
     {
         var body = Encoding.UTF8.GetBytes(_body);
         var text = new StringBuilder()
             .Append($"RTSP/1.0 {status} {ReasonPhrase(status)}\r\n")
             .Append($"CSeq: {cseq}\r\n")
             .Append($"Date: {DateTime.UtcNow:r}\r\n")
-            .Append($"Server: {ServerName}\r\n");
+            .Append($"Server: {serverName}\r\n");
         foreach (var (name, value) in _headers) text.Append($"{name}: {value}\r\n");
         if (body.Length > 0) text.Append($"Content-Length: {body.Length}\r\n");
         text.Append("\r\n");

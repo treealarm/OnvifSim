@@ -5,10 +5,10 @@ using OnvifSim.Onvif;
 using OnvifSim.Onvif.Events;
 using OnvifSim.Onvif.Services;
 using OnvifSim.Ptz;
+using OnvifSim.Rtsp;
 using OnvifSim.Security;
 using OnvifSim.Streaming;
 using OnvifSim.Streaming.H264;
-using OnvifSim.Streaming.Rtsp;
 using OnvifSim.World;
 
 var options = SimOptions.Parse(args);
@@ -36,6 +36,11 @@ builder.Services.AddSingleton<FeedManager>();
 builder.Services.AddSingleton<AnalyticsManager>();
 builder.Services.AddSingleton<PullPoints>();
 builder.Services.AddSingleton<HttpAuthenticator>();
+builder.Services.AddSingleton<IRtspMediaSource, CameraStreams>();
+builder.Services.AddSingleton(new RtspServerOptions
+{
+    Port = options.RtspPort, RtpPort = options.RtpPort, ServerName = "OnvifSim/" + CameraIdentity.FirmwareVersion,
+});
 builder.Services.AddSingleton<RtspServer>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<RtspServer>());
 builder.Services.AddSingleton(sp => new OnvifDispatcher(

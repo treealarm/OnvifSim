@@ -52,7 +52,7 @@ public class OnvifServerTests(SimFactory factory) : IClassFixture<SimFactory>
         var profile = Assert.Single(media.GetProfiles());
         Assert.Equal(("Profile_1", "JPEG", 640, 360), (profile.Token, profile.Encoding, profile.Width, profile.Height));
 
-        int rtspPort = factory.Services.GetRequiredService<Streaming.Rtsp.RtspServer>().Port;
+        int rtspPort = factory.Services.GetRequiredService<Rtsp.RtspServer>().Port;
         Assert.Equal($"rtsp://127.0.0.1:{rtspPort}/cam1", await media.GetStreamUri(profile.Token));
 
         var jpeg = (await media.GetImage())?.Data;

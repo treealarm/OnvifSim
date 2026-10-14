@@ -2,15 +2,26 @@ using System.Buffers;
 using System.IO.Pipelines;
 using System.Text;
 
-namespace OnvifSim.Streaming.Rtsp;
+namespace OnvifSim.Rtsp;
 
-public sealed class RtspRequest(string method, string url, Dictionary<string, string> headers, byte[] body)
+// A request as the server read it.
+public sealed class RtspRequest
 {
-    public string Method { get; } = method;
-    public string Url { get; } = url;
-    public byte[] Body { get; } = body;
+    private readonly Dictionary<string, string> _headers;
 
-    public string? Header(string name) => headers.GetValueOrDefault(name);
+    internal RtspRequest(string method, string url, Dictionary<string, string> headers, byte[] body)
+    {
+        Method = method;
+        Url = url;
+        _headers = headers;
+        Body = body;
+    }
+
+    public string Method { get; }
+    public string Url { get; }
+    public byte[] Body { get; }
+
+    public string? Header(string name) => _headers.GetValueOrDefault(name);
     public string CSeq => Header("CSeq") ?? "0";
     // The session id without the ";timeout=" parameter some clients echo back.
     public string? SessionId => Header("Session")?.Split(';')[0].Trim();
@@ -19,7 +30,7 @@ public sealed class RtspRequest(string method, string url, Dictionary<string, st
 // Reads requests from an RTSP control connection. While a session plays over TCP the client also sends
 // interleaved binary packets ('$', channel, 16-bit length, data — RTCP receiver reports) on the same
 // stream; they are skipped, since the connection itself already proves the client is alive.
-public sealed class RtspRequestReader(Stream stream)
+internal sealed class RtspRequestReader(Stream stream)
 {
     private const int MaxHeaderBytes = 16 * 1024;
     private const int MaxBodyBytes = 64 * 1024;

@@ -280,6 +280,10 @@ One .NET 10 process, no native dependencies: the world is rendered by a built-in
 someone is watching it, and then only when its picture changes: a still camera with nobody walking
 in view sends the same frame again. H.264 is the one optional extra: raw frames piped through an ffmpeg process.
 
+The RTSP server and the RTP payload formats (JPEG, H.264, ONVIF metadata) are a library of their
+own, [src/OnvifSim.Rtsp](src/OnvifSim.Rtsp), which knows nothing of the simulator: the cameras reach
+it through one interface.
+
 ONVIF requests and responses are (de)serialized with types generated from the official ONVIF WSDL
 ([onvif/specs](https://github.com/onvif/specs)); `src/OnvifSim.Server/Onvif/Wsdl/generate.sh`
 regenerates them.

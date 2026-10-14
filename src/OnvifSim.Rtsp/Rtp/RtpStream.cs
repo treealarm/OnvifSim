@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace OnvifSim.Streaming.Rtp;
+namespace OnvifSim.Rtsp.Rtp;
 
 // One outgoing RTP stream (RFC 3550): owns the SSRC, the sequence numbers and the mapping from the render
 // clock to the 90 kHz RTP clock, and writes RTCP sender reports for it. What goes into the packets is the
@@ -11,7 +11,8 @@ namespace OnvifSim.Streaming.Rtp;
 // RTSP session's sending loop.
 public sealed class RtpStream(byte payloadType)
 {
-    // Every video payload format here (RFC 2435, RFC 6184) uses a 90 kHz clock.
+    // Every payload format here (RFC 2435, RFC 6184, ONVIF metadata) uses a 90 kHz clock, and the SDP
+    // announces every track with it.
     public const int ClockRate = 90000;
     // Whole RTP packet, so that with IP and UDP headers it stays inside a 1500-byte Ethernet MTU.
     public const int MaxPacketSize = 1400;

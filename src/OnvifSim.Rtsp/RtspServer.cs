@@ -1,17 +1,24 @@
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
-using OnvifSim.Analytics;
-using OnvifSim.Security;
-using OnvifSim.World;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
-namespace OnvifSim.Streaming.Rtsp;
+namespace OnvifSim.Rtsp;
 
-// The RTSP server: one TCP port for every camera (rtsp://host:8554/{cameraId}) and one shared UDP port
-// pair for RTP/RTCP. Owns the sessions, which may outlive the connection that created them (UDP).
-public sealed class RtspServer(
-    SimOptions options, SceneState scene, FeedManager feeds, AnalyticsManager analytics, HttpAuthenticator authenticator,
-    ILogger<RtspServer> logger) : BackgroundService
+public sealed class RtspServerOptions
+{
+    // The TCP port of the control connections; 0 takes any free one.
+    public int Port { get; init; } = 554;
+    // The UDP port RTP goes out from, RTCP from the next one; 0 takes any free pair.
+    public int RtpPort { get; init; } = 6970;
+    // The Server header of every response.
+    public string ServerName { get; init; } = "OnvifSim.Rtsp";
+}
+
+// The RTSP server: one TCP port for every stream the media source has and one shared UDP port pair for
+// RTP/RTCP. Owns the sessions, which may outlive the connection that created them (UDP).
+public sealed class RtspServer(RtspServerOptions options, IRtspMediaSource media, ILogger<RtspServer> logger) : BackgroundService
 {
     private static readonly TimeSpan TimeoutCheckInterval = TimeSpan.FromSeconds(5);
 
@@ -22,18 +29,16 @@ public sealed class RtspServer(
     public int Port { get; private set; }
     public int? RtpPort => Udp?.RtpPort;
 
-    public SceneState Scene => scene;
-    public FeedManager Feeds => feeds;
-    public AnalyticsManager Analytics => analytics;
-    public HttpAuthenticator Authenticator => authenticator;
+    internal IRtspMediaSource Media => media;
+    internal string ServerName => options.ServerName;
     // Null when the UDP port pair could not be bound; SETUP then offers TCP only.
-    public RtpUdpSockets? Udp { get; private set; }
+    internal RtpUdpSockets? Udp { get; private set; }
 
     // Binds before the host reports itself started, so a port conflict fails the start and tests can
     // read the actual ports right away.
     public override Task StartAsync(CancellationToken cancellationToken)
     {
-        _listener = TcpListener.Create(options.RtspPort);
+        _listener = TcpListener.Create(options.Port);
         _listener.Start();
         Port = ((IPEndPoint)_listener.LocalEndpoint).Port;
         try
@@ -44,7 +49,7 @@ public sealed class RtspServer(
         {
             logger.LogWarning("RTSP over UDP is off: cannot bind UDP ports {Rtp}-{Rtcp}: {Reason}", options.RtpPort, options.RtpPort + 1, ex.Message);
         }
-        logger.LogInformation("RTSP at rtsp://localhost:{Port}/{{camera}}, RTP over UDP from ports {Udp}",
+        logger.LogInformation("RTSP at rtsp://localhost:{Port}/, RTP over UDP from ports {Udp}",
             Port, Udp == null ? "(off)" : $"{Udp.RtpPort}-{Udp.RtcpPort}");
         return base.StartAsync(cancellationToken);
     }
@@ -65,19 +70,19 @@ public sealed class RtspServer(
             Udp?.ReceiveAsync(OnDatagram, stoppingToken) ?? Task.CompletedTask,
             CloseTimedOutSessionsAsync(stoppingToken));
 
-    public RtspSession? FindSession(string id) => _sessions.GetValueOrDefault(id);
+    internal RtspSession? FindSession(string id) => _sessions.GetValueOrDefault(id);
 
-    public void AddSession(RtspSession session) => _sessions[session.Id] = session;
+    internal void AddSession(RtspSession session) => _sessions[session.Id] = session;
 
-    public async Task CloseSessionAsync(RtspSession session)
+    internal async Task CloseSessionAsync(RtspSession session)
     {
         if (!_sessions.TryRemove(session.Id, out _)) return;
         await session.StopAsync();
-        logger.LogInformation("RTSP session {Session} for {Camera} closed", session.Id, session.CameraId);
+        logger.LogInformation("RTSP session {Session} for {Path} closed", session.Id, session.PathText);
     }
 
     // A TCP session cannot outlive its connection: its packets have nowhere else to go.
-    public Task CloseSessionsOfAsync(RtspConnection connection) =>
+    internal Task CloseSessionsOfAsync(RtspConnection connection) =>
         Task.WhenAll(_sessions.Values
             .Where(s => s.BelongsTo(connection))
             .Select(CloseSessionAsync));

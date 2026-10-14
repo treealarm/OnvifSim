@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The RTSP server and the RTP payload formats, with nothing of the simulator in them: the application
+    hands the server its streams through IRtspMediaSource. Kept in this solution for now; see README.md.
+  -->
+  <PropertyGroup>
+    <RootNamespace>OnvifSim.Rtsp</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OnvifSim.Tests" />
+  </ItemGroup>
+</Project>

@@ -1,8 +1,8 @@
 using System.Buffers.Binary;
 using System.Diagnostics;
 using OnvifSim.Rendering;
+using OnvifSim.Rtsp.Rtp;
 using OnvifSim.Streaming;
-using OnvifSim.Streaming.Rtp;
 using StbImageSharp;
 
 namespace OnvifSim.Tests;
@@ -23,7 +23,7 @@ public class RtpJpegTests
     private static List<byte[]> Packetize(RtpStream stream, byte[] jpeg, long captureTimestamp = 0)
     {
         var batch = new RtpPacketBatch();
-        JpegPacketizer.Packetize(stream, new EncodedFrame(jpeg, 0, 0, captureTimestamp), batch);
+        JpegPacketizer.Packetize(stream, jpeg, captureTimestamp, batch);
         return Enumerable.Range(0, batch.Count).Select(i => batch.Packet(i).ToArray()).ToList();
     }
 

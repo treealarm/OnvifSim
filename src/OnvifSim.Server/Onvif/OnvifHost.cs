@@ -4,7 +4,7 @@ using OnvifSim.Onvif.Events;
 using OnvifSim.Ptz;
 using OnvifSim.Security;
 using OnvifSim.Streaming;
-using OnvifSim.Streaming.Rtsp;
+using OnvifSim.Rtsp;
 using OnvifSim.World;
 
 namespace OnvifSim.Onvif;

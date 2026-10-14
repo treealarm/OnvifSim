@@ -1,10 +1,10 @@
 using System.Net;
-using OnvifSim.Streaming.Rtp;
+using OnvifSim.Rtsp.Rtp;
 
-namespace OnvifSim.Streaming.Rtsp;
+namespace OnvifSim.Rtsp;
 
 // Where a session's RTP and RTCP packets go, as negotiated by SETUP.
-public interface IRtpTransport
+internal interface IRtpTransport
 {
     // The Transport header of the SETUP response.
     string ResponseHeader { get; }
@@ -13,7 +13,7 @@ public interface IRtpTransport
 }
 
 // RTP/AVP/TCP: packets interleaved into the RTSP control connection (RFC 2326 section 10.12).
-public sealed class InterleavedTransport(RtspConnection connection, byte rtpChannel, byte rtcpChannel) : IRtpTransport
+internal sealed class InterleavedTransport(RtspConnection connection, byte rtpChannel, byte rtcpChannel) : IRtpTransport
 {
     public RtspConnection Connection => connection;
 
@@ -32,7 +32,7 @@ public sealed class InterleavedTransport(RtspConnection connection, byte rtpChan
 // RTP/AVP over UDP from the server's shared port pair to the client's ports. The destination is always
 // the address the RTSP connection came from: honouring a "destination=" parameter would let anyone
 // point the stream at a third party.
-public sealed class UdpTransport(RtpUdpSockets sockets, IPAddress client, int clientRtpPort, int clientRtcpPort) : IRtpTransport
+internal sealed class UdpTransport(RtpUdpSockets sockets, IPAddress client, int clientRtpPort, int clientRtcpPort) : IRtpTransport
 {
     private readonly IPEndPoint _rtpDestination = new(client, clientRtpPort);
     private readonly IPEndPoint _rtcpDestination = new(client, clientRtcpPort);

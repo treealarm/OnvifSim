@@ -1,6 +1,6 @@
 using System.Buffers.Binary;
 
-namespace OnvifSim.Streaming.Rtp;
+namespace OnvifSim.Rtsp.Rtp;
 
 // What RTP/JPEG (RFC 2435) needs from a baseline JPEG file: the frame size, the chroma subsampling as an
 // RFC type, the two quantization tables and the entropy-coded scan. Everything else in the file (JFIF,

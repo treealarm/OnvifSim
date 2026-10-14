@@ -27,7 +27,7 @@ Browser (React + react-three-fiber)  ──REST/SSE──►  OnvifSim.Server (A
                                                          └─ WsDiscovery      UDP 3702 multicast, ProbeMatch на каждую камеру
 ```
 
-Структура репо: `src/OnvifSim.Server`, `src/OnvifSim.Web`, `tests/OnvifSim.Tests`, `docker/`, `world.sample.json`.
+Структура репо: `src/OnvifSim.Server`, `src/OnvifSim.Rtsp` (RTSP-сервер и форматы RTP без знания о симуляторе; потоки ему отдаёт `CameraStreams` через `IRtspMediaSource`; отдельным пакетом — когда появится второй потребитель), `src/OnvifSim.Web`, `tests/OnvifSim.Tests`, `docker/`, `world.sample.json`.
 
 ### Мир
 - **Единый JSON.** terrain (размер, сетка, heightmap), objects (type, transform, params, seed), cameras (fixed/ptz, позиция, монтаж, FOV, разрешение, fps, PTZ-лимиты и скорости, порт, логин/пароль, пресеты).

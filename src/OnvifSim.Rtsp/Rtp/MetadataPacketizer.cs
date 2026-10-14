@@ -1,4 +1,4 @@
-namespace OnvifSim.Streaming.Rtp;
+namespace OnvifSim.Rtsp.Rtp;
 
 // RTP payload of the ONVIF metadata stream (ONVIF Streaming spec 5.1.2.1, "vnd.onvif.metadata"): the
 // XML document as is, split across packets when it is longer than one; the last carries the marker bit.

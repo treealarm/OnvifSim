@@ -1,6 +1,4 @@
-using OnvifSim.Streaming.H264;
-
-namespace OnvifSim.Streaming.Rtp;
+namespace OnvifSim.Rtsp.Rtp;
 
 // RTP payload format for H.264 (RFC 6184, packetization-mode=1): a NAL unit that fits goes in a packet of
 // its own, a larger one is split into FU-A fragments. SPS and PPS travel in-band before every key frame,
@@ -14,14 +12,15 @@ public static class H264Packetizer
     private const int FuHeadersSize = 2;
     private const int MaxPayload = RtpStream.MaxPacketSize - RtpStream.HeaderSize;
 
-    // Appends the packets of one access unit; the last packet of the access unit carries the marker bit.
-    public static void Packetize(RtpStream stream, H264AccessUnit accessUnit, RtpPacketBatch batch)
+    // Appends the packets of one access unit (its NAL units without start codes, captured at a Stopwatch
+    // timestamp); the last packet of the access unit carries the marker bit.
+    public static void Packetize(RtpStream stream, IReadOnlyList<ReadOnlyMemory<byte>> nals, long captureTimestamp, RtpPacketBatch batch)
     {
-        uint timestamp = stream.TimestampOf(accessUnit.CaptureTimestamp);
-        for (int n = 0; n < accessUnit.Nals.Count; n++)
+        uint timestamp = stream.TimestampOf(captureTimestamp);
+        for (int n = 0; n < nals.Count; n++)
         {
-            var nal = accessUnit.Nals[n].Span;
-            bool lastNal = n == accessUnit.Nals.Count - 1;
+            var nal = nals[n].Span;
+            bool lastNal = n == nals.Count - 1;
             if (nal.Length <= MaxPayload)
             {
                 nal.CopyTo(stream.AppendPacket(batch, nal.Length, lastNal, timestamp));
@@ -45,4 +44,14 @@ public static class H264Packetizer
             }
         }
     }
+
+    // The SDP fmtp of a stream: profile and level from the SPS, and both parameter sets for clients that
+    // want them before the first key frame.
+    public static string FormatParameters(byte[] sps, byte[] pps) =>
+        $"packetization-mode=1;profile-level-id={Convert.ToHexString(sps, 1, 3)}" +
+        $";sprop-parameter-sets={Convert.ToBase64String(sps)},{Convert.ToBase64String(pps)}";
+
+    // The SDP fmtp before the parameter sets are known: the profile and level the encoder is asked for.
+    public static string FormatParameters(string profileLevelId) =>
+        $"packetization-mode=1;profile-level-id={profileLevelId}";
 }

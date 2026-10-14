@@ -3,9 +3,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using OnvifLib;
 using OnvifSim.Onvif;
+using OnvifSim.Rtsp;
+using OnvifSim.Rtsp.Rtp;
 using OnvifSim.Streaming.H264;
-using OnvifSim.Streaming.Rtp;
-using OnvifSim.Streaming.Rtsp;
 using OnvifSim.World;
 
 namespace OnvifSim.Tests;
@@ -51,7 +51,7 @@ public class AnnexBTests
         var idr = Nal(0x65, 3000, 0x33);
         var unit = new H264AccessUnit([sps, idr], CaptureTimestamp: 0);
         var batch = new RtpPacketBatch();
-        H264Packetizer.Packetize(new RtpStream(H264Packetizer.PayloadType), unit, batch);
+        H264Packetizer.Packetize(new RtpStream(H264Packetizer.PayloadType), unit.Nals, unit.CaptureTimestamp, batch);
         var packets = Enumerable.Range(0, batch.Count).Select(i => batch.Packet(i).ToArray()).ToList();
 
         Assert.All(packets, p => Assert.InRange(p.Length, 13, RtpStream.MaxPacketSize));

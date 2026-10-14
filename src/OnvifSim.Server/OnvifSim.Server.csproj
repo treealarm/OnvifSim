@@ -17,6 +17,9 @@
     <PackageReference Include="StbImageWriteSharp" Version="1.16.7" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\OnvifSim.Rtsp\OnvifSim.Rtsp.csproj" />
+  </ItemGroup>
+  <ItemGroup>
     <InternalsVisibleTo Include="OnvifSim.Tests" />
   </ItemGroup>
 

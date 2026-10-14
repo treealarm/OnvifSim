@@ -1,4 +1,4 @@
-namespace OnvifSim.Streaming.Rtp;
+namespace OnvifSim.Rtsp.Rtp;
 
 // The packets of one frame in one buffer, each preceded by four spare bytes. Over UDP every packet is
 // sent on its own; over RTSP-interleaved TCP the spare bytes take the '$', channel, length framing and

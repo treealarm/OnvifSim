@@ -10,7 +10,7 @@ using OnvifSim.Geometry;
 using OnvifSim.Onvif;
 using OnvifSim.Ptz;
 using OnvifSim.Streaming;
-using OnvifSim.Streaming.Rtsp;
+using OnvifSim.Rtsp;
 using OnvifSim.World;
 
 namespace OnvifSim.Editor;

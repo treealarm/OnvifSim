@@ -2,7 +2,7 @@ using System.Buffers.Binary;
 using System.Net;
 using System.Net.Sockets;
 using Microsoft.Extensions.DependencyInjection;
-using OnvifSim.Streaming.Rtsp;
+using OnvifSim.Rtsp;
 using OnvifSim.World;
 using StbImageSharp;
 

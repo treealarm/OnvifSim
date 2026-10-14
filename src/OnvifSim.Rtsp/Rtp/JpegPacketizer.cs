@@ -1,6 +1,6 @@
 using System.Buffers.Binary;
 
-namespace OnvifSim.Streaming.Rtp;
+namespace OnvifSim.Rtsp.Rtp;
 
 // RTP payload format for JPEG (RFC 2435): the entropy-coded scan split across packets behind an 8-byte
 // JPEG header, with the quantization tables in-band in the first packet (Q = 255).
@@ -12,11 +12,12 @@ public static class JpegPacketizer
     private const int QuantizationHeaderSize = 4;
     private const byte DynamicQuantization = 255;
 
-    // Appends the packets of one frame to the batch; the last one carries the marker bit.
-    public static void Packetize(RtpStream stream, EncodedFrame frame, RtpPacketBatch batch)
+    // Appends the packets of one frame (a JPEG file captured at a Stopwatch timestamp) to the batch; the
+    // last one carries the marker bit.
+    public static void Packetize(RtpStream stream, byte[] jpeg, long captureTimestamp, RtpPacketBatch batch)
     {
-        var scan = JpegScan.Parse(frame.Jpeg);
-        uint timestamp = stream.TimestampOf(frame.CaptureTimestamp);
+        var scan = JpegScan.Parse(jpeg);
+        uint timestamp = stream.TimestampOf(captureTimestamp);
 
         var data = scan.EntropyData.Span;
         int fragmentOffset = 0;

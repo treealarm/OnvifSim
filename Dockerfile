@@ -15,8 +15,10 @@ ARG TARGETARCH
 ARG VERSION=0.0.0-dev
 WORKDIR /src
 COPY Directory.Build.props ./
+COPY src/OnvifSim.Rtsp/OnvifSim.Rtsp.csproj src/OnvifSim.Rtsp/
 COPY src/OnvifSim.Server/OnvifSim.Server.csproj src/OnvifSim.Server/
 RUN dotnet restore src/OnvifSim.Server -a $TARGETARCH
+COPY src/OnvifSim.Rtsp/ src/OnvifSim.Rtsp/
 COPY src/OnvifSim.Server/ src/OnvifSim.Server/
 COPY --from=editor /src/src/OnvifSim.Web/dist src/OnvifSim.Web/dist/
 RUN dotnet publish src/OnvifSim.Server -c Release -a $TARGETARCH --no-restore --self-contained false \
