@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.2 (2026-10-14)
+
+- Windows: OnvifSim.exe and the MSI carry the camera icon (Installed apps, the Start menu entry, the
+  installer's own dialogs).
+- The RTSP server and the RTP payload formats are a library of their own in the solution,
+  `src/OnvifSim.Rtsp`; nothing changes for clients except that the RTCP CNAME is now the session id.
+
 ## 0.2.1 (2026-10-13)
 
 - Snap: an OnvifSim entry in the applications menu (and an icon in App Center) that opens the editor
