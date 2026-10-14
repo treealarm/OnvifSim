@@ -2,6 +2,7 @@
   <PropertyGroup>
     <AssemblyName>OnvifSim</AssemblyName>
     <RootNamespace>OnvifSim</RootNamespace>
+    <ApplicationIcon>OnvifSim.ico</ApplicationIcon>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- With tiered JIT the rasterizer and the JPEG encoder never reached fully optimized code in the
          running server: 2 cameras x 30 fps took 31 CPU s per 20 s instead of 13 (the same with dynamic PGO,

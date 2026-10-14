@@ -19,6 +19,10 @@
     <Property Id="ARPURLINFOABOUT" Value="https://github.com/treealarm/OnvifSim" />
     <Property Id="ARPCOMMENTS" Value="Simulated ONVIF cameras in a 3D world" />
 
+    <!-- The camera of OnvifSim.exe, for Installed apps and the Start menu entry. -->
+    <Icon Id="OnvifSim.ico" SourceFile="..\..\src\OnvifSim.Server\OnvifSim.ico" />
+    <Property Id="ARPPRODUCTICON" Value="OnvifSim.ico" />
+
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="CompanyFolder" Name="TreeAlarm">
         <Directory Id="INSTALLFOLDER" Name="OnvifSim" />
@@ -35,6 +39,8 @@
 
     <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
     <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
+    <WixVariable Id="WixUIBannerBmp" Value="Banner.bmp" />
+    <WixVariable Id="WixUIDialogBmp" Value="Dialog.bmp" />
   </Package>
 
   <Fragment>
@@ -45,6 +51,7 @@
           Name="OnvifSim"
           Description="Start the simulated ONVIF cameras and open the editor"
           Target="[INSTALLFOLDER]OnvifSim.exe"
+          Icon="OnvifSim.ico"
           WorkingDirectory="INSTALLFOLDER" />
         <RegistryValue
           Root="HKCU"
