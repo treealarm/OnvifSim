@@ -102,7 +102,7 @@ public class AnalyticsTests
     {
         var tracker = new ObjectTracker();
         var box = new FrameBox(-0.1f, 0.2f, 0.1f, -0.2f);
-        Sighting Seen(string walker) => new(walker, box);
+        Sighting Seen(string walker) => new(walker, box, default);
 
         var first = tracker.Update([Seen("a"), Seen("b")]);
         Assert.Equal([1, 2], first.Select(o => o.ObjectId));
@@ -122,7 +122,7 @@ public class AnalyticsTests
         };
         var time = new DateTimeOffset(2026, 10, 13, 12, 0, 0, 250, TimeSpan.Zero);
         var frame = new AnalyticsFrame(time, camera,
-            [new TrackedObject(7, "w", new FrameBox(-0.5f, 0.25f, -0.25f, -0.75f))],
+            [new TrackedObject(7, "w", new FrameBox(-0.5f, 0.25f, -0.25f, -0.75f), default)],
             new PtzState(new PtzPosition(0, 0, 0.5f), PanTiltMoving: true, ZoomMoving: false));
 
         var root = XDocument.Parse(System.Text.Encoding.UTF8.GetString(MetadataDocument.Write(frame))).Root!;

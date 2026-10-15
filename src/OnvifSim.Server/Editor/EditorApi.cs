@@ -9,6 +9,7 @@ using OnvifSim.Analytics;
 using OnvifSim.Geometry;
 using OnvifSim.Onvif;
 using OnvifSim.Ptz;
+using OnvifSim.Rendering;
 using OnvifSim.Streaming;
 using OnvifSim.Rtsp;
 using OnvifSim.World;
@@ -34,6 +35,7 @@ public static class EditorApi
         MapCameraStreams(app);
         MapPtz(app);
         MapAnalytics(app);
+        MapGroundTruth(app);
 
         app.MapPost("/api/meshes", (List<WorldObject> objects) =>
             objects.DistinctBy(o => o.Id).ToDictionary(o => o.Id, o => MeshData.From(SceneBuilder.ObjectMesh(o))));
@@ -159,7 +161,9 @@ public static class EditorApi
     }
 
     // What the camera's analytics sees, look by look: the boxes and object ids its metadata stream sends,
-    // for the editor to draw over the camera's picture.
+    // for the editor to draw over the camera's picture. Each box also says where on the ground the walker
+    // stands (x, z) and which way they face, which the metadata stream does not: ground truth for
+    // checking what a client made of the box.
     private static void MapAnalytics(WebApplication app) =>
         app.MapGet("/api/cameras/{id}/analytics", (string id, AnalyticsManager analytics, IHostApplicationLifetime lifetime, CancellationToken requestAborted) =>
             analytics.Get(id) is { } camera
@@ -174,7 +178,11 @@ public static class EditorApi
         while (await WaitToReadAsync(looks.Frames, stop.Token))
             while (looks.Frames.TryRead(out var frame))
                 yield return new SseItem<string>(JsonSerializer.Serialize(
-                    frame.Objects.Select(o => new { id = o.ObjectId, walker = o.WalkerId, o.Box.Left, o.Box.Top, o.Box.Right, o.Box.Bottom }),
+                    frame.Objects.Select(o => new
+                    {
+                        id = o.ObjectId, walker = o.WalkerId, o.Box.Left, o.Box.Top, o.Box.Right, o.Box.Bottom,
+                        x = o.Walk.X, z = o.Walk.Z, heading = o.Walk.Heading,
+                    }),
                     CompactJson), "objects");
     }
 
@@ -188,6 +196,42 @@ public static class EditorApi
         {
             return false;
         }
+    }
+
+    // Ground truth for tests outside the simulator: where a camera stands and looks, and where a walker is,
+    // at this moment. A client that calibrates a camera or aims one at a person can be checked against
+    // these; the editor does not use them. A camera's position is absolute (the terrain under it plus its
+    // own height), its heading and pitch include the PTZ head, and hfov follows the zoom.
+    private static void MapGroundTruth(WebApplication app)
+    {
+        app.MapGet("/api/cameras/{id}/pose", (string id, SceneState scene, PtzSimulator ptz, TimeProvider time) =>
+        {
+            var camera = scene.FindCamera(id);
+            if (camera == null) return Results.NotFound();
+            var head = camera.Kind == CameraKind.Ptz && camera.Ptz != null ? ptz.StateOf(camera) : (PtzState?)null;
+            var pose = CameraPose.From(camera, scene.Current.Scene.Terrain, head?.Position ?? default);
+            return Results.Json(new
+            {
+                utcTime = time.GetUtcNow(),
+                position = new { x = pose.Position.X, y = pose.Position.Y, z = pose.Position.Z },
+                heading = pose.Heading, pitch = pose.Pitch, roll = pose.Roll, hfov = pose.HFov,
+                pan = head?.Position.Pan, tilt = head?.Position.Tilt, zoom = head?.Position.Zoom,
+                moving = head is { } h ? h.PanTiltMoving || h.ZoomMoving : (bool?)null,
+            }, CompactJson);
+        });
+
+        app.MapGet("/api/walkers/{id}/pose", (string id, SceneState scene, TimeProvider time) =>
+        {
+            var snapshot = scene.Current;
+            var walker = snapshot.World.Walkers.FirstOrDefault(w => SameId(w.Id, id));
+            if (walker == null) return Results.NotFound();
+            var now = time.GetUtcNow();
+            var walk = WalkerMotion.PoseAt(walker, now);
+            return Results.Json(new
+            {
+                utcTime = now, x = walk.X, y = snapshot.Scene.Terrain.HeightAt(walk.X, walk.Z), z = walk.Z, heading = walk.Heading,
+            }, CompactJson);
+        });
     }
 
     // The editor's joystick, sliders and home button drive the same simulator as ONVIF clients do.

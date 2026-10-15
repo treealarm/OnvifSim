@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Ground truth for testing clients that calibrate cameras or aim one at a person:
+  `GET /api/cameras/{id}/pose` (where a camera stands and looks, PTZ head included) and
+  `GET /api/walkers/{id}/pose`; the boxes in `GET /api/cameras/{id}/analytics` say where on the
+  ground each walker stands.
+
 ## 0.2.2 (2026-10-14)
 
 - Windows: OnvifSim.exe and the MSI carry the camera icon (Installed apps, the Start menu entry, the

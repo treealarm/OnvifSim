@@ -174,7 +174,9 @@ port 8080; `npm run e2e` runs the browser test.
 | `GET /api/cameras` | camera list |
 | `GET /api/cameras/{id}/snapshot.jpg` | one rendered frame |
 | `GET /api/cameras/{id}/mjpeg` | live Motion JPEG (open it in a browser) |
-| `GET /api/cameras/{id}/analytics` | server-sent events: the people the camera's analytics sees, five times a second |
+| `GET /api/cameras/{id}/analytics` | server-sent events: the people the camera's analytics sees, five times a second, each with where they stand on the ground (`x`, `z`, `heading`) |
+| `GET /api/cameras/{id}/pose` | ground truth: where the camera stands (absolute, terrain included) and looks (heading and pitch with the PTZ head, field of view from the zoom) |
+| `GET /api/walkers/{id}/pose` | ground truth: where a walker is at this moment |
 
 A change the simulator cannot run with (an unknown object type, a frame size that is not a
 multiple of 8, two cameras on one port…) is refused with 400 and the reason.

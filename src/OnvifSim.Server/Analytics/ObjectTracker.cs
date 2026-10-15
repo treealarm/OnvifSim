@@ -1,6 +1,8 @@
+using OnvifSim.World;
+
 namespace OnvifSim.Analytics;
 
-public readonly record struct TrackedObject(int ObjectId, string WalkerId, FrameBox Box);
+public readonly record struct TrackedObject(int ObjectId, string WalkerId, FrameBox Box, WalkerPose Walk);
 
 // Gives each person a camera sees an object id that stays theirs for as long as they stay in view.
 // Like a camera's own tracker it does not recognise people: someone who leaves the picture and comes
@@ -18,7 +20,7 @@ public sealed class ObjectTracker
         {
             if (!_ids.TryGetValue(sighting.WalkerId, out int id)) id = _nextId++;
             ids[sighting.WalkerId] = id;
-            objects.Add(new TrackedObject(id, sighting.WalkerId, sighting.Box));
+            objects.Add(new TrackedObject(id, sighting.WalkerId, sighting.Box, sighting.Walk));
         }
         _ids = ids;
         return objects;

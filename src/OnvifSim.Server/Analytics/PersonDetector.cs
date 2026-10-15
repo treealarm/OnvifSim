@@ -13,7 +13,9 @@ public readonly record struct FrameBox(float Left, float Top, float Right, float
     public float CenterY => (Top + Bottom) / 2;
 }
 
-public readonly record struct Sighting(string WalkerId, FrameBox Box);
+// Walk is where the walker stands at that moment: ground truth that no real analytics engine has, kept
+// for tests that check what a client made of the box.
+public readonly record struct Sighting(string WalkerId, FrameBox Box, WalkerPose Walk);
 
 // The people a camera sees, as an analytics engine on the camera would report them, except that these
 // are exact: the box is the walker's figure as the picture draws it, cut to the frame. A person counts
@@ -49,7 +51,7 @@ public static class PersonDetector
 
             var feet = new Vector3(walk.X, scene.Terrain.HeightAt(walk.X, walk.Z), walk.Z);
             if (SightHeights.Any(h => LineOfSight.IsClear(scene, pose.Position, feet + Vector3.UnitY * (walker.Height * h))))
-                sightings.Add(new Sighting(walker.Id, box));
+                sightings.Add(new Sighting(walker.Id, box, walk));
         }
         return sightings;
     }

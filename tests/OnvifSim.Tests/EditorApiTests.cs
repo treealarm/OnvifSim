@@ -130,6 +130,89 @@ public class EditorApiTests(SimFactory factory) : IClassFixture<SimFactory>
         Assert.True(meshes.TryGetProperty("b", out _));
     }
 
+    private static async Task<JsonElement> GetJson(HttpClient client, string url) =>
+        JsonDocument.Parse(await client.GetStringAsync(url)).RootElement;
+
+    [Fact]
+    public async Task CameraPose_IsTheMountPlusTheHeadOnTopOfTheTerrain()
+    {
+        var client = factory.CreateClient();
+        var cam1 = await GetJson(client, "/api/cameras/cam1/pose");
+        var ground = new Terrain(Store.Current.Terrain).HeightAt(0, 60);
+        Assert.Equal(6 + ground, cam1.GetProperty("position").GetProperty("y").GetSingle(), 3);
+        Assert.Equal((0f, -8f, 75f), (cam1.GetProperty("heading").GetSingle(), cam1.GetProperty("pitch").GetSingle(), cam1.GetProperty("hfov").GetSingle()));
+        Assert.Equal(JsonValueKind.Null, cam1.GetProperty("pan").ValueKind);
+
+        await client.PutAsync("/api/cameras/test-pose", Json(new { name = "pose", kind = "ptz", position = new { x = 10, y = 5, z = 10 }, heading = 100, pitch = -5, ptz = new { } }));
+        try
+        {
+            Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsync("/api/cameras/test-pose/ptz/goto", Json(new { pan = 20, tilt = -10, zoom = 0 }))).StatusCode);
+            JsonElement pose;
+            var deadline = DateTime.UtcNow.AddSeconds(5);
+            do
+            {
+                await Task.Delay(50);
+                pose = await GetJson(client, "/api/cameras/test-pose/pose");
+            }
+            while (pose.GetProperty("moving").GetBoolean() && DateTime.UtcNow < deadline);
+
+            Assert.False(pose.GetProperty("moving").GetBoolean());
+            Assert.Equal(20f, pose.GetProperty("pan").GetSingle(), 3);
+            Assert.Equal(120f, pose.GetProperty("heading").GetSingle(), 3);
+            Assert.Equal(-15f, pose.GetProperty("pitch").GetSingle(), 3);
+            Assert.Equal(60f, pose.GetProperty("hfov").GetSingle(), 3);
+        }
+        finally
+        {
+            await client.DeleteAsync("/api/cameras/test-pose");
+        }
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/api/cameras/test-pose/pose")).StatusCode);
+    }
+
+    [Fact]
+    public async Task WalkerPose_IsWhereTheRouteSaysAtThisMoment()
+    {
+        var client = factory.CreateClient();
+        await client.PutAsync("/api/walkers/test-standing", Json(new { route = new[] { new { x = 3, z = -4 } } }));
+        try
+        {
+            var pose = await GetJson(client, "/api/walkers/test-standing/pose");
+            Assert.Equal((3f, -4f), (pose.GetProperty("x").GetSingle(), pose.GetProperty("z").GetSingle()));
+            Assert.Equal(new Terrain(Store.Current.Terrain).HeightAt(3, -4), pose.GetProperty("y").GetSingle(), 3);
+        }
+        finally
+        {
+            await client.DeleteAsync("/api/walkers/test-standing");
+        }
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/api/walkers/test-standing/pose")).StatusCode);
+    }
+
+    [Fact]
+    public async Task AnalyticsBoxes_SayWhereTheWalkerStands()
+    {
+        var client = factory.CreateClient();
+        await client.PutAsync("/api/walkers/test-seen", Json(new { route = new[] { new { x = 2, z = 45 } } }));
+        try
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            using var response = await client.GetAsync("/api/cameras/cam1/analytics", HttpCompletionOption.ResponseHeadersRead, cts.Token);
+            using var reader = new StreamReader(await response.Content.ReadAsStreamAsync(cts.Token));
+            JsonElement? seen = null;
+            while (seen == null && await reader.ReadLineAsync(cts.Token) is { } line)
+            {
+                if (!line.StartsWith("data: ")) continue;
+                foreach (var o in JsonDocument.Parse(line["data: ".Length..]).RootElement.EnumerateArray())
+                    if (o.GetProperty("walker").GetString() == "test-seen") seen = o;
+            }
+            Assert.NotNull(seen);
+            Assert.Equal((2f, 45f), (seen.Value.GetProperty("x").GetSingle(), seen.Value.GetProperty("z").GetSingle()));
+        }
+        finally
+        {
+            await client.DeleteAsync("/api/walkers/test-seen");
+        }
+    }
+
     [Fact]
     public async Task Events_StartWithTheWorld_TheServicesAndThePtzHeads()
     {
