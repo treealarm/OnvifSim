@@ -9,6 +9,7 @@
   <a href="https://github.com/treealarm/OnvifSim/releases"><img src="https://img.shields.io/github/v/release/treealarm/OnvifSim?filter=v*&style=flat-square" alt="Release"></a>
   <a href="https://github.com/treealarm/OnvifSim/pkgs/container/onvifsim"><img src="https://img.shields.io/badge/docker-ghcr.io%2Ftreealarm%2Fonvifsim-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="MIT"></a>
+  <a href="https://github.com/sponsors/treealarm"><img src="https://img.shields.io/badge/sponsor-%E2%99%A5-ea4aaa?style=flat-square&logo=githubsponsors&logoColor=white" alt="Sponsor"></a>
 </p>
 
 **An ONVIF IP camera simulator.** Run one program and get as many virtual network cameras as you
