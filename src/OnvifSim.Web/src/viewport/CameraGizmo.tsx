@@ -2,30 +2,37 @@ import { Line, TransformControls } from '@react-three/drei';
 import type { ThreeEvent } from '@react-three/fiber';
 import { useState } from 'react';
 import { Matrix4, Quaternion, Vector3, type Object3D } from 'three';
-import { heightAt, zoomToHFov, type CameraModel, type Head, type Terrain } from '../model';
+import { heightAt, zoomToHFov, type CameraModel, type Environment, type Head, type Terrain } from '../model';
 import { select, updateCamera, useEditor } from '../store';
+import { castFootprint, footprintSegments } from './footprint';
 import { Label } from './Label';
-import { cameraBasis, yawDegrees } from './orientation';
+import { lookOf, yawDegrees } from './orientation';
 
-const frustumLength = 20;
+// Above the ground and the roads, as CameraMarkers lifts the grid in the camera pictures.
+const wireLift = 0.2;
 
 interface CameraGizmoProps {
   camera: CameraModel;
   head: Head | undefined;
   terrain: Terrain;
+  environment: Environment;
   selected: boolean;
 }
 
-// A camera in the viewport: a body on a mast and the pyramid it sees, which follows a PTZ head as it
-// moves. The group turns with the mount heading, so the rotate gizmo sets the heading.
-export function CameraGizmo({ camera, head, terrain, selected }: CameraGizmoProps) {
+// A camera in the viewport: a body on a mast and the wire frame of what it sees, down to the ground it
+// covers, which follows a PTZ head as it moves. The group turns with the mount heading, so the rotate
+// gizmo sets the heading; the wire frame is drawn in world space, where the ground is.
+export function CameraGizmo({ camera, head, terrain, environment, selected }: CameraGizmoProps) {
   const [group, setGroup] = useState<Object3D | null>(null);
   const gizmo = useEditor((s) => s.gizmo);
   const ground = heightAt(terrain, camera.position.x, camera.position.z);
   const { pan, tilt, hFov } = viewOf(camera, head);
-  const { forward, right, up } = cameraBasis(pan, camera.pitch + tilt, camera.roll);
-  const lens = new Quaternion().setFromRotationMatrix(new Matrix4().makeBasis(right, up, forward.clone().negate()));
-  const corners = frustumCorners(forward, right, up, hFov, camera.video.height / camera.video.width);
+  // The body inside the group, which carries the heading already.
+  const body = lookOf(camera, pan, tilt, 0).head;
+  const lens = new Quaternion().setFromRotationMatrix(new Matrix4().makeBasis(body.right, body.up, body.forward.clone().negate()));
+  const eye = new Vector3(camera.position.x, ground + camera.position.y, camera.position.z);
+  const footprint = castFootprint(eye, lookOf(camera, pan, tilt).picture, hFov, camera.video.width / camera.video.height, terrain,
+    environment.fogEnd, environment.frustumLength);
   const color = camera.kind === 'ptz' ? '#ff9f1c' : '#3aa0ff';
 
   function onClick(e: ThreeEvent<MouseEvent>) {
@@ -59,9 +66,9 @@ export function CameraGizmo({ camera, head, terrain, selected }: CameraGizmoProp
           <boxGeometry args={[1, 0.8, 1.6]} />
           <meshLambertMaterial color={color} emissive={selected ? '#444444' : '#000000'} />
         </mesh>
-        <Line points={corners.flatMap((corner, i) => [[0, 0, 0], corner, corner, corners[(i + 1) % 4]])} segments color={color} lineWidth={selected ? 2.5 : 1.5} />
         <Label text={camera.name || camera.id} position={[0, 1.2, 0]} onClick={onClick} />
       </group>
+      <Line points={footprintSegments(eye, footprint, wireLift)} segments color={color} lineWidth={selected ? 2.5 : 1.5} />
       {selected && group && (
         <TransformControls
           object={group}
@@ -83,19 +90,4 @@ function viewOf(camera: CameraModel, head: Head | undefined) {
   if (camera.kind !== 'ptz' || !camera.ptz) return { pan: 0, tilt: 0, hFov: camera.hFov };
   const position = head ?? camera.ptz;
   return { pan: position.pan, tilt: position.tilt, hFov: zoomToHFov(position.zoom, camera.ptz.fovWide, camera.ptz.fovTele) };
-}
-
-function frustumCorners(forward: Vector3, right: Vector3, up: Vector3, hFov: number, aspect: number): [number, number, number][] {
-  const halfWidth = Math.tan((hFov * Math.PI) / 360) * frustumLength;
-  const halfHeight = halfWidth * aspect;
-  const centre = forward.clone().multiplyScalar(frustumLength);
-  return [
-    [1, 1],
-    [-1, 1],
-    [-1, -1],
-    [1, -1],
-  ].map(([sx, sy]) => {
-    const corner = centre.clone().addScaledVector(right, sx * halfWidth).addScaledVector(up, sy * halfHeight);
-    return [corner.x, corner.y, corner.z];
-  });
 }

@@ -14,6 +14,10 @@ public sealed class RenderScene
         public required Vector3[] Positions { get; init; }
         public required Vector3[] Colors { get; init; }
         public required int[] Indices { get; init; }
+        // Pairs of vertices joined by a one-pixel line, drawn after every triangle where nothing hides it,
+        // blended in by LineAlpha, and hiding nothing itself.
+        public int[] Lines { get; init; } = [];
+        public float LineAlpha { get; init; } = 1;
         public Vector3 Center { get; init; }
         public float Radius { get; init; }
     }
@@ -26,6 +30,9 @@ public sealed class RenderScene
     public float FogStart { get; init; }
     public float FogEnd { get; init; }
     public int MaxChunkVertices { get; init; }
+    public bool ShowCameras { get; init; }
+    public bool ShowFrustums { get; init; }
+    public float FrustumLength { get; init; }
 
     public static RenderScene Build(WorldModel world) => Build(world, SceneBuilder.Build(world));
 
@@ -46,11 +53,26 @@ public sealed class RenderScene
             FogStart = env.FogStart,
             FogEnd = Math.Max(env.FogEnd, env.FogStart + 1),
             MaxChunkVertices = lit.Count == 0 ? 0 : lit.Max(c => c.Positions.Length),
+            ShowCameras = env.ShowCameras,
+            ShowFrustums = env.ShowFrustums,
+            FrustumLength = env.FrustumLength,
         };
     }
 
     // A chunk lit like the rest of the scene: for what moves, built for every frame.
     public Chunk Light(SceneChunk chunk) => Light(chunk, ToSun);
+
+    // A chunk in its own colours, unlit, with lines between pairs of its vertices: for marks drawn into
+    // the world rather than things standing in it.
+    public static Chunk Unlit(Mesh mesh, float lineAlpha, int[] lines)
+    {
+        var (center, radius) = mesh.BoundingSphere();
+        return new Chunk
+        {
+            Positions = [.. mesh.Positions], Colors = [.. mesh.Colors], Indices = [.. mesh.Indices], Lines = lines,
+            LineAlpha = lineAlpha, Center = center, Radius = radius,
+        };
+    }
 
     private static Chunk Light(SceneChunk chunk, Vector3 toSun)
     {

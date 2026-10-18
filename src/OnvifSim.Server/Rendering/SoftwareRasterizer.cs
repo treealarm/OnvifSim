@@ -4,8 +4,9 @@ using System.Runtime.CompilerServices;
 namespace OnvifSim.Rendering;
 
 // CPU renderer for the low-poly world: sky gradient, z-buffer, Gouraud colours (lighting is baked into
-// the scene), per-vertex distance fog, perspective-correct interpolation. No native dependencies, and
-// the output is bit-for-bit deterministic for a given scene and pose.
+// the scene), per-vertex distance fog, perspective-correct interpolation, and lines drawn after all
+// triangles where nothing stands in front of them. No native dependencies, and the output is
+// bit-for-bit deterministic for a given scene and pose.
 public sealed class SoftwareRasterizer : ICameraRenderer
 {
     private float[] _depth = [];
@@ -43,10 +44,8 @@ public sealed class SoftwareRasterizer : ICameraRenderer
         var fog = scene.SkyHorizon;
         float fogStart = scene.FogStart, fogInv = 1 / (scene.FogEnd - scene.FogStart);
 
-        foreach (var chunk in scene.Chunks.Concat(moving))
+        void Transform(RenderScene.Chunk chunk)
         {
-            if (!frustum.Sees(chunk.Center, chunk.Radius)) continue;
-
             var pos = chunk.Positions;
             var col = chunk.Colors;
             for (int i = 0; i < pos.Length; i++)
@@ -56,12 +55,92 @@ public sealed class SoftwareRasterizer : ICameraRenderer
                 float f = Math.Clamp((p.W - fogStart) * fogInv, 0, 1);
                 _color[i] = Vector3.Lerp(col[i], fog, f);
             }
+        }
 
+        var chunks = scene.Chunks.Concat(moving);
+        foreach (var chunk in chunks)
+        {
+            if (chunk.Indices.Length == 0 || !frustum.Sees(chunk.Center, chunk.Radius)) continue;
+            Transform(chunk);
             var idx = chunk.Indices;
             for (int t = 0; t < idx.Length; t += 3)
                 DrawTriangle(frame, idx[t], idx[t + 1], idx[t + 2]);
         }
+        // Lines last, so a triangle drawn after one cannot cover it from behind.
+        foreach (var chunk in chunks)
+        {
+            if (chunk.Lines.Length == 0 || !frustum.Sees(chunk.Center, chunk.Radius)) continue;
+            Transform(chunk);
+            var lines = chunk.Lines;
+            for (int l = 0; l + 1 < lines.Length; l += 2)
+                DrawLine(frame, lines[l], lines[l + 1], chunk.LineAlpha);
+        }
     }
+
+    // A one-pixel line between two transformed vertices, cut at the near plane, depth-tested against
+    // what is drawn and hiding nothing itself.
+    private void DrawLine(Frame frame, int i0, int i1, float alpha)
+    {
+        var a = _clip[i0];
+        var b = _clip[i1];
+        var ca = _color[i0];
+        var cb = _color[i1];
+        if (a.Z < 0 && b.Z < 0) return;
+        if ((a.X > a.W && b.X > b.W) || (a.X < -a.W && b.X < -b.W) || (a.Y > a.W && b.Y > b.W) || (a.Y < -a.W && b.Y < -b.W))
+            return;
+        if (a.Z < 0 || b.Z < 0)
+        {
+            float t = a.Z / (a.Z - b.Z);
+            var cut = Vector4.Lerp(a, b, t);
+            var cutColor = Vector3.Lerp(ca, cb, t);
+            if (a.Z < 0) (a, ca) = (cut, cutColor);
+            else (b, cb) = (cut, cutColor);
+        }
+        int w = frame.Width, h = frame.Height;
+        float ax = (a.X / a.W + 1) * 0.5f * w, ay = (1 - a.Y / a.W) * 0.5f * h, az = a.Z / a.W;
+        float bx = (b.X / b.W + 1) * 0.5f * w, by = (1 - b.Y / b.W) * 0.5f * h, bz = b.Z / b.W;
+        // Only the part of the segment over the picture is walked (Liang-Barsky against its edges).
+        float t0 = 0, t1 = 1, dx = bx - ax, dy = by - ay;
+        if (!Clip(-dx, ax, ref t0, ref t1) || !Clip(dx, w - ax, ref t0, ref t1) ||
+            !Clip(-dy, ay, ref t0, ref t1) || !Clip(dy, h - ay, ref t0, ref t1))
+            return;
+        int steps = Math.Max(1, (int)MathF.Ceiling(Math.Max(MathF.Abs(dx), MathF.Abs(dy)) * (t1 - t0)));
+        var px = frame.Rgba;
+        for (int k = 0; k <= steps; k++)
+        {
+            float t = t0 + (t1 - t0) * k / steps;
+            int x = (int)(ax + dx * t), y = (int)(ay + dy * t);
+            if ((uint)x >= (uint)w || (uint)y >= (uint)h) continue;
+            int i = y * w + x;
+            float z = az + (bz - az) * t;
+            if (z < 0 || z >= _depth[i]) continue;
+            var col = Vector3.Lerp(ca, cb, t) * 255;
+            int o = i * 4;
+            px[o] = Blend(px[o], col.X, alpha);
+            px[o + 1] = Blend(px[o + 1], col.Y, alpha);
+            px[o + 2] = Blend(px[o + 2], col.Z, alpha);
+        }
+    }
+
+    private static bool Clip(float p, float q, ref float t0, ref float t1)
+    {
+        if (p == 0) return q >= 0;
+        float r = q / p;
+        if (p < 0)
+        {
+            if (r > t1) return false;
+            if (r > t0) t0 = r;
+        }
+        else
+        {
+            if (r < t0) return false;
+            if (r < t1) t1 = r;
+        }
+        return true;
+    }
+
+    private static byte Blend(byte under, float over, float alpha) =>
+        (byte)Math.Clamp(under + (over - under) * alpha, 0, 255);
 
     private static void DrawSky(RenderScene scene, Frame frame, Vector3 fwd, Vector3 right, Vector3 up, float tanH, float tanV)
     {

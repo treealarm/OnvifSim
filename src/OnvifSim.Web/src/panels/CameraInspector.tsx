@@ -13,6 +13,13 @@ const kindOptions = [
   { value: 'ptz', label: 'PTZ' },
 ] as const;
 
+const rotateOptions = [
+  { value: '0', label: 'Upright' },
+  { value: '90', label: '90° clockwise' },
+  { value: '180', label: '180°' },
+  { value: '270', label: '90° anticlockwise' },
+] as const;
+
 export function CameraInspector({ camera }: { camera: CameraModel }) {
   const head = useEditor((s) => s.heads[camera.id]);
   const status = useEditor((s) => s.status);
@@ -43,6 +50,12 @@ export function CameraInspector({ camera }: { camera: CameraModel }) {
         <NumberField label="Heading" value={camera.heading} min={0} max={360} slider onChange={(heading) => change({ heading })} />
         <NumberField label="Pitch" value={camera.pitch} min={-90} max={90} slider onChange={(pitch) => change({ pitch })} />
         <NumberField label="Roll" value={camera.roll} min={-180} max={180} slider onChange={(roll) => change({ roll })} />
+        <SelectField
+          label="Picture turned"
+          value={String(camera.video.rotate) as (typeof rotateOptions)[number]['value']}
+          options={rotateOptions}
+          onChange={(rotate) => change({ video: { ...camera.video, rotate: Number(rotate) } })}
+        />
         {camera.kind === 'fixed' && (
           <NumberField label="Field of view" value={camera.hFov} min={1} max={170} slider onChange={(hFov) => change({ hFov })} />
         )}
@@ -140,6 +153,8 @@ function PtzLimits({ ptz, onChange }: { ptz: PtzSettings; onChange: (ptz: PtzSet
       <NumberField label="Pan speed, °/s" value={ptz.panSpeed} min={1} max={720} onChange={(panSpeed) => change({ panSpeed })} />
       <NumberField label="Tilt speed, °/s" value={ptz.tiltSpeed} min={1} max={720} onChange={(tiltSpeed) => change({ tiltSpeed })} />
       <NumberField label="Zoom speed, range/s" value={ptz.zoomSpeed} min={0.01} max={10} step={0.05} onChange={(zoomSpeed) => change({ zoomSpeed })} />
+      <CheckboxField label="ONVIF pan reversed" checked={ptz.panReverse} onChange={(panReverse) => change({ panReverse })} />
+      <CheckboxField label="ONVIF tilt reversed" checked={ptz.tiltReverse} onChange={(tiltReverse) => change({ tiltReverse })} />
     </Section>
   );
 }

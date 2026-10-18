@@ -7,7 +7,9 @@ namespace OnvifSim.Onvif.Services;
 // The PTZ head of a simulated camera as ONVIF sees it: one node, one configuration in the camera's one
 // profile, and the generic spaces only. Generic positions map linearly onto the camera's limits in
 // degrees (pan -1..1 onto PanMin..PanMax, tilt -1..1 onto TiltMin..TiltMax) and zoom 0..1 is the
-// simulator's own zoom; an endless pan maps -1..1 onto one full turn starting at PanMin.
+// simulator's own zoom; an endless pan maps -1..1 onto one full turn starting at PanMin. A reversed
+// axis (PanReverse, TiltReverse) maps -1..1 the other way round, and its steps and velocities change
+// sign with it.
 public static class CameraPtz
 {
     public const string NodeToken = "PTZNode_1";
@@ -41,7 +43,7 @@ public static class CameraPtz
         GeoMove = false, GeoMoveSpecified = true,
     };
 
-    public static PTZConfiguration Configuration() => new()
+    public static PTZConfiguration Configuration(PtzModel ptz) => new()
     {
         token = ConfigurationToken,
         Name = "PTZ",
@@ -61,6 +63,11 @@ public static class CameraPtz
         DefaultPTZTimeout = System.Xml.XmlConvert.ToString(DefaultTimeout),
         PanTiltLimits = new PanTiltLimits { Range = Range2D(PanTiltPositionSpace, -1, 1) },
         ZoomLimits = new ZoomLimits { Range = Range1D(ZoomPositionSpace, 0, 1) },
+        // ONVIF's Reverse is one switch for both axes, so only a camera with both reversed reports it. The
+        // capability stays off: the direction is the installer's (world.json), not SetConfiguration's.
+        Extension = ptz.PanReverse && ptz.TiltReverse
+            ? new PTZConfigurationExtension { PTControlDirection = new PTControlDirection { Reverse = new Reverse { Mode = ReverseMode.ON } } }
+            : null,
     };
 
     public static PTZSpaces SupportedSpaces() => new()
@@ -79,8 +86,8 @@ public static class CameraPtz
     {
         PanTilt = new Vector2D
         {
-            x = (position.Pan - ptz.PanMin) / PanSpan(ptz) * 2 - 1,
-            y = (position.Tilt - ptz.TiltMin) / (ptz.TiltMax - ptz.TiltMin) * 2 - 1,
+            x = Sign(ptz.PanReverse) * ((position.Pan - ptz.PanMin) / PanSpan(ptz) * 2 - 1),
+            y = Sign(ptz.TiltReverse) * ((position.Tilt - ptz.TiltMin) / (ptz.TiltMax - ptz.TiltMin) * 2 - 1),
             space = PanTiltPositionSpace,
         },
         Zoom = new Vector1D { x = position.Zoom, space = ZoomPositionSpace },
@@ -98,17 +105,24 @@ public static class CameraPtz
         UtcTime = utcTime,
     };
 
-    public static float PanFromGeneric(PtzModel ptz, float x) => ptz.PanMin + (x + 1) / 2 * PanSpan(ptz);
+    public static float PanFromGeneric(PtzModel ptz, float x) => ptz.PanMin + (Sign(ptz.PanReverse) * x + 1) / 2 * PanSpan(ptz);
 
-    public static float TiltFromGeneric(PtzModel ptz, float y) => ptz.TiltMin + (y + 1) / 2 * (ptz.TiltMax - ptz.TiltMin);
+    public static float TiltFromGeneric(PtzModel ptz, float y) => ptz.TiltMin + (Sign(ptz.TiltReverse) * y + 1) / 2 * (ptz.TiltMax - ptz.TiltMin);
 
     // A generic translation of 1 is the whole range of the axis (ONVIF PTZ: "the translation range of
     // the PTZ unit normalized to the range -1 to 1").
-    public static float PanStepFromGeneric(PtzModel ptz, float x) => x * PanSpan(ptz);
+    public static float PanStepFromGeneric(PtzModel ptz, float x) => Sign(ptz.PanReverse) * x * PanSpan(ptz);
 
-    public static float TiltStepFromGeneric(PtzModel ptz, float y) => y * (ptz.TiltMax - ptz.TiltMin);
+    public static float TiltStepFromGeneric(PtzModel ptz, float y) => Sign(ptz.TiltReverse) * y * (ptz.TiltMax - ptz.TiltMin);
+
+    // A generic velocity as a fraction of the top speed in the head's own direction.
+    public static float PanVelocityFromGeneric(PtzModel ptz, float x) => Sign(ptz.PanReverse) * x;
+
+    public static float TiltVelocityFromGeneric(PtzModel ptz, float y) => Sign(ptz.TiltReverse) * y;
 
     private static float PanSpan(PtzModel ptz) => ptz.EndlessPan ? 360 : ptz.PanMax - ptz.PanMin;
+
+    private static float Sign(bool reverse) => reverse ? -1 : 1;
 
     private static Space2DDescription Range2D(string uri, float min, float max) => new()
     {

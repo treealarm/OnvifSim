@@ -1,6 +1,6 @@
 import type { Environment, World } from '../model';
 import { select, updateEnvironment, updateTerrain } from '../store';
-import { ColorField, NumberField, Section } from './fields';
+import { CheckboxField, ColorField, NumberField, Section } from './fields';
 
 // What shows when nothing is selected: settings of the world as a whole.
 export function WorldInspector({ world }: { world: World }) {
@@ -33,6 +33,11 @@ export function WorldInspector({ world }: { world: World }) {
         <ColorField label="Sky at horizon" value={environment.skyHorizon} onChange={(skyHorizon) => change({ skyHorizon })} />
         <NumberField label="Fog from, m" value={environment.fogStart} min={0} step={10} onChange={(fogStart) => change({ fogStart })} />
         <NumberField label="Fog hides at, m" value={environment.fogEnd} min={1} step={10} onChange={(fogEnd) => change({ fogEnd })} />
+      </Section>
+      <Section title="In the camera pictures">
+        <CheckboxField label="Other cameras" checked={environment.showCameras} onChange={(showCameras) => change({ showCameras })} />
+        <CheckboxField label="Where they look (wire frame)" checked={environment.showFrustums} onChange={(showFrustums) => change({ showFrustums })} />
+        <NumberField label="View reaches, m (no ground)" value={environment.frustumLength} min={1} max={1000} step={5} onChange={(frustumLength) => change({ frustumLength })} />
       </Section>
       <Section title="Terrain">
         <NumberField label="Size, m" value={world.terrain.size} min={10} max={10000} step={10} onChange={(size) => updateTerrain({ ...world.terrain, size })} />

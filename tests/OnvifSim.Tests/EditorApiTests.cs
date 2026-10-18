@@ -143,7 +143,7 @@ public class EditorApiTests(SimFactory factory) : IClassFixture<SimFactory>
         Assert.Equal((0f, -8f, 75f), (cam1.GetProperty("heading").GetSingle(), cam1.GetProperty("pitch").GetSingle(), cam1.GetProperty("hfov").GetSingle()));
         Assert.Equal(JsonValueKind.Null, cam1.GetProperty("pan").ValueKind);
 
-        await client.PutAsync("/api/cameras/test-pose", Json(new { name = "pose", kind = "ptz", position = new { x = 10, y = 5, z = 10 }, heading = 100, pitch = -5, ptz = new { } }));
+        await client.PutAsync("/api/cameras/test-pose", Json(new { name = "pose", kind = "ptz", position = new { x = 10, y = 5, z = 10 }, heading = 100, pitch = 0, ptz = new { } }));
         try
         {
             Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsync("/api/cameras/test-pose/ptz/goto", Json(new { pan = 20, tilt = -10, zoom = 0 }))).StatusCode);
@@ -159,14 +159,69 @@ public class EditorApiTests(SimFactory factory) : IClassFixture<SimFactory>
             Assert.False(pose.GetProperty("moving").GetBoolean());
             Assert.Equal(20f, pose.GetProperty("pan").GetSingle(), 3);
             Assert.Equal(120f, pose.GetProperty("heading").GetSingle(), 3);
-            Assert.Equal(-15f, pose.GetProperty("pitch").GetSingle(), 3);
+            Assert.Equal(-10f, pose.GetProperty("pitch").GetSingle(), 3);
             Assert.Equal(60f, pose.GetProperty("hfov").GetSingle(), 3);
+            // The picture's own axes, for a client that projects without knowing the mount.
+            var forward = pose.GetProperty("forward");
+            float h = 120 * MathF.PI / 180, p = -10 * MathF.PI / 180;
+            Assert.Equal(MathF.Sin(h) * MathF.Cos(p), forward.GetProperty("x").GetSingle(), 4);
+            Assert.Equal(MathF.Sin(p), forward.GetProperty("y").GetSingle(), 4);
+            Assert.Equal(-MathF.Cos(h) * MathF.Cos(p), forward.GetProperty("z").GetSingle(), 4);
+            Assert.Equal(0f, pose.GetProperty("right").GetProperty("y").GetSingle(), 4);
         }
         finally
         {
             await client.DeleteAsync("/api/cameras/test-pose");
         }
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/api/cameras/test-pose/pose")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Aim_CentresThePointWhateverTheMount_AndRefusesWhatTheHeadCannotReach()
+    {
+        var client = factory.CreateClient();
+        // On its side ("on a fence"): pan sweeps up and down, tilt across.
+        await client.PutAsync("/api/cameras/test-aim", Json(new
+        {
+            name = "aim", kind = "ptz", position = new { x = -20, y = 4, z = 30 }, heading = 30, pitch = 0, roll = 90,
+            ptz = new { tiltMin = -90, tiltMax = 90 },
+        }));
+        try
+        {
+            var ground = new Terrain(Store.Current.Terrain);
+            var target = new System.Numerics.Vector3(-8, ground.HeightAt(-8, 12), 12);
+            var aimed = await client.PostAsync("/api/cameras/test-aim/ptz/aim", Json(new { x = target.X, y = target.Y, z = target.Z }));
+            Assert.Equal(HttpStatusCode.OK, aimed.StatusCode);
+            JsonElement pose;
+            var deadline = DateTime.UtcNow.AddSeconds(10);
+            do
+            {
+                await Task.Delay(50);
+                pose = await GetJson(client, "/api/cameras/test-aim/pose");
+            }
+            while (pose.GetProperty("moving").GetBoolean() && DateTime.UtcNow < deadline);
+
+            var eye = pose.GetProperty("position");
+            var toTarget = System.Numerics.Vector3.Normalize(target - new System.Numerics.Vector3(
+                eye.GetProperty("x").GetSingle(), eye.GetProperty("y").GetSingle(), eye.GetProperty("z").GetSingle()));
+            var forward = pose.GetProperty("forward");
+            var axis = new System.Numerics.Vector3(forward.GetProperty("x").GetSingle(), forward.GetProperty("y").GetSingle(), forward.GetProperty("z").GetSingle());
+            double miss = Math.Acos(Math.Clamp(System.Numerics.Vector3.Dot(System.Numerics.Vector3.Normalize(axis), toTarget), -1, 1)) * 180 / Math.PI;
+            Assert.True(miss < 0.05, $"the head looks {miss:0.###} degrees off the point");
+
+            // Straight up is beyond a head that tilts at most 20 degrees above its mount's horizon.
+            await client.PutAsync("/api/cameras/test-aim", Json(new
+            {
+                name = "aim", kind = "ptz", position = new { x = -20, y = 4, z = 30 }, heading = 30, ptz = new { },
+            }));
+            var refused = await client.PostAsync("/api/cameras/test-aim/ptz/aim", Json(new { x = -20, y = 500, z = 30 }));
+            Assert.Equal(HttpStatusCode.Conflict, refused.StatusCode);
+        }
+        finally
+        {
+            await client.DeleteAsync("/api/cameras/test-aim");
+        }
+        Assert.Equal(HttpStatusCode.Conflict, (await client.PostAsync("/api/cameras/cam1/ptz/aim", Json(new { x = 0, y = 0, z = 0 }))).StatusCode);
     }
 
     [Fact]

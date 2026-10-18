@@ -159,7 +159,8 @@ Ctrl+Y) step back and forth through the last 100 edits; turning a PTZ camera is 
   exactly as the metadata stream sends them; the panel turns people detection and the PTZ position in
   the metadata on and off, and a person's own panel can leave them out of every camera's analytics
   ("Seen by analytics"), so they only appear in the picture.
-- **World**: sun, sky colours, fog and terrain size.
+- **World**: sun, sky colours, fog, terrain size, and what the camera pictures show of the other
+  cameras: their bodies, and optionally the wire frame of where they look.
 
 ONVIF clients' changes (a new resolution, a preset, where a PTZ camera stopped) show up in the editor
 too. `npm run dev` in `src/OnvifSim.Web` serves the editor with hot reload against a simulator on
@@ -176,7 +177,8 @@ port 8080; `npm run e2e` runs the browser test.
 | `GET /api/cameras/{id}/snapshot.jpg` | one rendered frame |
 | `GET /api/cameras/{id}/mjpeg` | live Motion JPEG (open it in a browser) |
 | `GET /api/cameras/{id}/analytics` | server-sent events: the people the camera's analytics sees, five times a second, each with where they stand on the ground (`x`, `z`, `heading`) |
-| `GET /api/cameras/{id}/pose` | ground truth: where the camera stands (absolute, terrain included) and looks (heading and pitch with the PTZ head, field of view from the zoom) |
+| `GET /api/cameras/{id}/pose` | ground truth: where the camera stands (absolute, terrain included) and looks (heading and pitch with the PTZ head, the picture's own axes `forward`, `right`, `up`, field of view from the zoom) |
+| `POST /api/cameras/{id}/ptz/aim` | turn a PTZ head until a point of the world (`x`, `y`, `z`, absolute) is in the middle of its picture; answers the pan and tilt, or 409 beyond the head's limits |
 | `GET /api/walkers/{id}/pose` | ground truth: where a walker is at this moment |
 
 A change the simulator cannot run with (an unknown object type, a frame size that is not a
@@ -259,6 +261,13 @@ XAddrs and stream URIs use the address the client connected to. WS-Discovery adv
 of the route towards the client, or `--advertise-host` (`ONVIFSIM_ADVERTISE_HOST`) when that is not
 reachable from outside, e.g. in a container.
 
+**Mounts.** `heading`, `pitch` and `roll` place a camera any way up; a PTZ head turns with its mount
+(pan about the mount's up axis, tilt about its right axis), so a camera hung upside down or on its
+side behaves as one does. `video.rotate` turns the picture (reported as the video source's
+`Rotate`), and `ptz.panReverse` / `ptz.tiltReverse` make ONVIF count an axis the other way round
+(`PTControlDirection` `Reverse`), as installers set cameras that hang upside down. ONVIF cannot
+change either; they are the installer's, in `world.json`.
+
 The **degree grid** (`angleGrid` in `world.json`, a checkbox in the editor) draws pan/tilt lines over
 a camera's picture, relative to the mount (pan 0, tilt 0 is where the camera points at rest), with
 labels every 15° that get finer as the camera zooms in. The default world turns it on for the PTZ
@@ -274,7 +283,8 @@ camera.
 | 6970-6971/udp | RTP and RTCP of every UDP session (`--rtp-port`, `ONVIFSIM_RTP_PORT`) |
 | 3702/udp | WS-Discovery (`--discovery-port`, `ONVIFSIM_DISCOVERY_PORT`; 0 turns it off) |
 
-`--bench` prints render and JPEG timings per camera and resolution.
+`--bench` prints render and JPEG timings per camera and resolution, and what drawing the other
+cameras and their fields of view adds.
 
 ## How it works
 

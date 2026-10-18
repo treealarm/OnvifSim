@@ -184,7 +184,7 @@ public sealed class MediaHandlers(OnvifRequestContext context)
         Name = ProfileNameOf(codec),
         VideoSourceConfiguration = VideoSourceConfiguration(context),
         VideoEncoderConfiguration = VideoEncoderConfiguration(codec),
-        PTZConfiguration = context.HasPtz ? CameraPtz.Configuration() : null,
+        PTZConfiguration = context.HasPtz ? CameraPtz.Configuration(context.Camera.Ptz!) : null,
         VideoAnalyticsConfiguration = AnalyticsConfiguration(context),
         MetadataConfiguration = MetadataConfiguration(context),
     };

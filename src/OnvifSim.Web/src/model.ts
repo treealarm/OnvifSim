@@ -21,6 +21,11 @@ export interface Environment {
   skyHorizon: string;
   fogStart: number;
   fogEnd: number;
+  // Whether every camera's picture shows the other cameras, and also where they look (a wire frame).
+  showCameras: boolean;
+  showFrustums: boolean;
+  // How far a field of view reaches where it meets no ground, metres.
+  frustumLength: number;
 }
 
 export const objectTypes = ['tree.pine', 'tree.oak', 'house', 'rock', 'box'] as const;
@@ -83,6 +88,9 @@ export interface PtzSettings {
   panSpeed: number;
   tiltSpeed: number;
   zoomSpeed: number;
+  // ONVIF counts the axis the other way round; the head and its degrees do not change.
+  panReverse: boolean;
+  tiltReverse: boolean;
   pan: number;
   tilt: number;
   zoom: number;
@@ -100,7 +108,8 @@ export interface CameraModel {
   roll: number;
   hFov: number;
   angleGrid: boolean;
-  video: { width: number; height: number; fps: number; quality: number };
+  // rotate: the picture turned clockwise, 0, 90, 180 or 270 degrees.
+  video: { width: number; height: number; fps: number; quality: number; rotate: number };
   h264: { width: number; height: number; fps: number; bitrateKbps: number; govLength: number };
   imaging: { brightness: number; contrast: number; colorSaturation: number };
   // What the metadata track of the camera's RTSP streams carries: people as boxes, the PTZ position.

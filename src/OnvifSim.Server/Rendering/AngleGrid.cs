@@ -36,7 +36,9 @@ public static class AngleGrid
         float panHalf = nearestPole >= 89 ? 180 : Math.Min(180, radius / MathF.Cos(nearestPole * MathF.PI / 180));
         float panLow = centrePan - panHalf, panHigh = centrePan + panHalf;
 
-        Vector3 Direction(float pan, float tilt) => DirectionOf(camera.Heading + pan, camera.Pitch + tilt);
+        // In the mount's own frame, so the lines stay lines of equal pan and tilt on a mount that leans
+        // or hangs on its side.
+        Vector3 Direction(float pan, float tilt) => CameraPose.HeadOrientation(camera, pan, tilt).Forward;
 
         for (float pan = MathF.Ceiling(panLow / step) * step; pan <= panHigh; pan += step)
             DrawCurve(frame, view, i => Direction(pan, tiltLow + (tiltHigh - tiltLow) * i / SamplesPerLine));
@@ -53,13 +55,6 @@ public static class AngleGrid
         for (float tilt = MathF.Ceiling(tiltLow / step) * step; tilt <= tiltHigh; tilt += step)
             if (view.Project(Direction(labelPan, tilt)) is { } at)
                 DrawText(frame, string.Create(CultureInfo.InvariantCulture, $"{tilt:+0.#;-0.#;0}°"), (int)at.X + 2 * scale, (int)at.Y - 7 * scale, scale, TiltColor);
-    }
-
-    // The direction a camera looks at for a heading and pitch, as CameraPose computes its forward vector.
-    private static Vector3 DirectionOf(float heading, float pitch)
-    {
-        float h = heading * MathF.PI / 180, p = pitch * MathF.PI / 180;
-        return new Vector3(MathF.Sin(h) * MathF.Cos(p), MathF.Sin(p), -MathF.Cos(h) * MathF.Cos(p));
     }
 
     // Pan as -180..180, the way the default limits count it.

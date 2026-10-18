@@ -34,17 +34,17 @@ public sealed class PtzHandlers(OnvifRequestContext context)
     public GetNodeResponse GetNode(GetNodeRequest request) =>
         request.NodeToken == NodeToken ? new GetNodeResponse { PTZNode = Node() } : throw OnvifFault.NoEntity(request.NodeToken);
 
-    public GetConfigurationsResponse GetConfigurations(GetConfigurationsRequest request) => new() { PTZConfiguration = [Configuration()] };
+    public GetConfigurationsResponse GetConfigurations(GetConfigurationsRequest request) => new() { PTZConfiguration = [Configuration(Ptz)] };
 
     public GetConfigurationResponse GetConfiguration(GetConfigurationRequest request) =>
         request.PTZConfigurationToken == ConfigurationToken
-            ? new GetConfigurationResponse { PTZConfiguration = Configuration() }
+            ? new GetConfigurationResponse { PTZConfiguration = Configuration(Ptz) }
             : throw OnvifFault.NoConfig(request.PTZConfigurationToken);
 
     public GetCompatibleConfigurationsResponse GetCompatibleConfigurations(GetCompatibleConfigurationsRequest request)
     {
         RequireProfile(request.ProfileToken);
-        return new GetCompatibleConfigurationsResponse { PTZConfiguration = [Configuration()] };
+        return new GetCompatibleConfigurationsResponse { PTZConfiguration = [Configuration(Ptz)] };
     }
 
     public GetConfigurationOptionsResponse GetConfigurationOptions(GetConfigurationOptionsRequest request)
@@ -116,7 +116,7 @@ public sealed class PtzHandlers(OnvifRequestContext context)
             CheckSpace(panTilt.space, PanTiltVelocitySpace);
             if (!InRange(panTilt.x, -1, 1) || !InRange(panTilt.y, -1, 1))
                 throw OnvifFault.InvalidVelocity($"Pan/tilt velocity ({panTilt.x}, {panTilt.y}) is outside -1..1.");
-            (pan, tilt) = (panTilt.x, panTilt.y);
+            (pan, tilt) = (PanVelocityFromGeneric(Ptz, panTilt.x), TiltVelocityFromGeneric(Ptz, panTilt.y));
         }
         if (velocity.Zoom is { } zoomVelocity)
         {

@@ -108,6 +108,13 @@ public static class CameraMedia
         UseCount = Codecs(context).Count,
         SourceToken = VideoSourceToken,
         Bounds = new IntRectangle { x = 0, y = 0, width = context.Camera.Video.Width, height = context.Camera.Video.Height },
+        // A turned picture says so, as a camera whose installer set it does; ONVIF cannot change it here.
+        Extension = context.Camera.Video.Rotate == 0
+            ? null
+            : new VideoSourceConfigurationExtension
+            {
+                Rotate = new Rotate { Mode = RotateMode.ON, Degree = context.Camera.Video.Rotate, DegreeSpecified = true },
+            },
     };
 
     public static MetadataConfiguration MetadataConfiguration(OnvifRequestContext context)

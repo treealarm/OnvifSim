@@ -69,7 +69,7 @@ public sealed class Media2Handlers(OnvifRequestContext context)
                         VideoSource = videoSource ? VideoSourceConfiguration(context) : null,
                         VideoEncoder = videoEncoder ? VideoEncoderConfiguration(codec) : null,
                         Analytics = analytics ? AnalyticsConfiguration(context) : null,
-                        PTZ = ptz ? CameraPtz.Configuration() : null,
+                        PTZ = ptz ? CameraPtz.Configuration(context.Camera.Ptz!) : null,
                         Metadata = metadata ? MetadataConfiguration(context) : null,
                     }
                     : null,

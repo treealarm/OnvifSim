@@ -36,6 +36,13 @@ public sealed class EnvironmentModel
     // Distances (m) where fog starts and where it fully hides geometry.
     public float FogStart { get; set; } = 150;
     public float FogEnd { get; set; } = 600;
+    // Whether every camera's picture shows the other cameras: a mast, a body and a lens.
+    public bool ShowCameras { get; set; } = true;
+    // Whether the pictures also show where each camera looks: its field of view as see-through faces
+    // and edges, and the patch of ground it covers. Costs render time; for finding one's way.
+    public bool ShowFrustums { get; set; }
+    // How far a field of view reaches where it meets no ground (above the horizon), in metres.
+    public float FrustumLength { get; set; } = 40;
 }
 
 public sealed class WorldObject
@@ -91,8 +98,11 @@ public sealed class CameraModel
     public string Name { get; set; } = "";
     public CameraKind Kind { get; set; }
     public Vec3 Position { get; set; }
-    // Mount orientation: compass heading (deg clockwise from north), pitch (deg, up positive), roll.
-    // For a PTZ camera these are the orientation at pan = tilt = 0.
+    // Mount orientation: compass heading (deg clockwise from north), pitch (deg, up positive), roll
+    // (deg, clockwise as seen from behind). For a PTZ camera these are the orientation at
+    // pan = tilt = 0, and the head turns with the mount: it pans about the mount's own up axis and tilts
+    // about its own right axis, so roll 180 hangs it upside down, roll 90 on its side (pan sweeps up and
+    // down, tilt across) and a pitch leans the pan axis.
     public float Heading { get; set; }
     public float Pitch { get; set; }
     public float Roll { get; set; }
@@ -137,6 +147,10 @@ public sealed class VideoModel
     public int Fps { get; set; } = 10;
     // JPEG quality 1..100.
     public int Quality { get; set; } = 70;
+    // Digital rotation of the picture, degrees clockwise: 0, 90, 180 or 270 (ONVIF's VideoSource
+    // Rotate). Both streams and the analytics boxes are turned; Width and Height stay the size of the
+    // picture sent, so a camera turned on its side for a corridor gets a tall frame by setting them so.
+    public int Rotate { get; set; }
 }
 
 // A record: two settings are the same when all their values are, which is how a feed notices a change.
@@ -172,6 +186,12 @@ public sealed class PtzModel
     public float PanSpeed { get; set; } = 90;
     public float TiltSpeed { get; set; } = 60;
     public float ZoomSpeed { get; set; } = 0.5f;
+    // The direction ONVIF counts an axis in, reversed (ONVIF PTZ's PTControlDirection Reverse, per
+    // axis): the generic positions, steps and velocities of that axis change sign, the head itself and
+    // the degrees of the editor and the ground truth do not. A camera hung upside down by its installer
+    // has both reversed, so its controls feel the right way round.
+    public bool PanReverse { get; set; }
+    public bool TiltReverse { get; set; }
     // Current position, persisted when a move ends so a restart keeps where the camera looked.
     public float Pan { get; set; }
     public float Tilt { get; set; }

@@ -25,7 +25,7 @@ public sealed class FeedManager(SceneState scene, PtzSimulator ptz, H264Support 
     public H264Feed? GetH264(string cameraId) =>
         h264.FfmpegPath is not { } ffmpeg || scene.FindCamera(cameraId) == null
             ? null
-            : _h264Feeds.GetOrAdd(cameraId, id => new H264Feed(id, scene, ptz, new CachingFrameRenderer(time), ffmpeg, _logger));
+            : _h264Feeds.GetOrAdd(cameraId, id => new H264Feed(id, scene, ptz, new CachingFrameRenderer(time, ptz.StateOf), ffmpeg, _logger));
 
     public byte[]? Snapshot(string cameraId)
     {
@@ -34,5 +34,5 @@ public sealed class FeedManager(SceneState scene, PtzSimulator ptz, H264Support 
         return cam == null ? null : RendererOf(cam.Id).Render(snap, cam, ptz.PositionOf(cam));
     }
 
-    public CachingFrameRenderer RendererOf(string cameraId) => _renderers.GetOrAdd(cameraId, _ => new CachingFrameRenderer(time));
+    public CachingFrameRenderer RendererOf(string cameraId) => _renderers.GetOrAdd(cameraId, _ => new CachingFrameRenderer(time, ptz.StateOf));
 }

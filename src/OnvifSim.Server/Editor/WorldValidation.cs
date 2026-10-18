@@ -55,6 +55,7 @@ public static partial class WorldValidation
     {
         Require(env.SunElevation is >= -90 and <= 90, $"Sun elevation {env.SunElevation} is outside -90..90.");
         Require(env.FogStart >= 0 && env.FogEnd > env.FogStart, "Fog must start at 0 m or further and end beyond its start.");
+        Require(env.FrustumLength is >= 1 and <= 1000, $"The field of view's length {env.FrustumLength} m is outside 1..1000.");
     }
 
     private static void CheckObject(WorldObject obj)
@@ -96,6 +97,7 @@ public static partial class WorldValidation
         CheckVideoSize(id, "JPEG", video.Width, video.Height);
         CheckRange(id, "JPEG frame rate", video.Fps, CameraMedia.MinFrameRate, CameraMedia.MaxFrameRate);
         CheckRange(id, "JPEG quality", video.Quality, CameraMedia.MinQuality, CameraMedia.MaxQuality);
+        Require(video.Rotate is 0 or 90 or 180 or 270, $"Camera {id}: picture rotation {video.Rotate} is not 0, 90, 180 or 270.");
 
         var h264 = camera.H264;
         CheckVideoSize(id, "H.264", h264.Width, h264.Height);

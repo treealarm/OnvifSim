@@ -35,6 +35,7 @@ export function Viewport({ world }: { world: World }) {
           camera={camera}
           head={heads[camera.id]}
           terrain={world.terrain}
+          environment={world.environment}
           selected={selection?.kind === 'camera' && selection.id === camera.id}
         />
       ))}

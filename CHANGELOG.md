@@ -5,7 +5,27 @@
 - Ground truth for testing clients that calibrate cameras or aim one at a person:
   `GET /api/cameras/{id}/pose` (where a camera stands and looks, PTZ head included) and
   `GET /api/walkers/{id}/pose`; the boxes in `GET /api/cameras/{id}/analytics` say where on the
-  ground each walker stands.
+  ground each walker stands. The pose also gives the picture's own axes (`forward`, `right`, `up`),
+  and `POST /api/cameras/{id}/ptz/aim` turns a head until a point of the world is in the middle of
+  its picture.
+- Cameras mounted any way up. A mount is a rigid body: a PTZ head pans about the mount's own up axis
+  and tilts about its own right axis, so `roll: 180` hangs a camera upside down, `roll: 90` puts it
+  on its side (pan sweeps up and down, tilt across) and `pitch` leans its pan axis. **Changed:** a PTZ
+  camera's `pitch` used to be added to its tilt and its `roll` turned only the picture; a world with a
+  PTZ camera whose pitch or roll is not 0 now looks elsewhere. Level mounts are unchanged.
+- `video.rotate` (0, 90, 180, 270): the picture turned clockwise, as a camera rotates its image for
+  an upside-down or corridor mount; both streams and the analytics boxes turn with it, and Media
+  reports it as the video source's `Rotate`.
+- `ptz.panReverse`, `ptz.tiltReverse`: ONVIF counts that axis the other way round (positions, steps
+  and velocities), as cameras with a reversed control direction do; with both on, the PTZ
+  configuration reports `PTControlDirection` `Reverse` ON.
+- Cameras appear in each other's pictures: a pole, a bracket and the body turned the way the camera
+  (or its head) looks, orange for PTZ and blue for fixed (`environment.showCameras`, on by default).
+  `environment.showFrustums` (off by default: no real camera sees them) also draws where each looks,
+  as a wire frame from the eye down to the ground it covers, ending at `environment.frustumLength`
+  (40 m) where a ray meets no ground. Both cost about a millisecond of a 640×360 frame (`--bench`
+  now prints them). The editor draws the same wire frame down to the ground instead of a 20 m
+  pyramid, and the degree grid follows a mount that leans or lies on its side.
 
 ## 0.2.2 (2026-10-14)
 

@@ -201,7 +201,9 @@ public static class EditorApi
     // Ground truth for tests outside the simulator: where a camera stands and looks, and where a walker is,
     // at this moment. A client that calibrates a camera or aims one at a person can be checked against
     // these; the editor does not use them. A camera's position is absolute (the terrain under it plus its
-    // own height), its heading and pitch include the PTZ head, and hfov follows the zoom.
+    // own height), its heading and pitch include the PTZ head, and hfov follows the zoom. forward, right
+    // and up are the picture's own unit vectors in world space (rotation and all): with them a client
+    // projects a point into the picture without knowing how the camera is mounted.
     private static void MapGroundTruth(WebApplication app)
     {
         app.MapGet("/api/cameras/{id}/pose", (string id, SceneState scene, PtzSimulator ptz, TimeProvider time) =>
@@ -215,9 +217,38 @@ public static class EditorApi
                 utcTime = time.GetUtcNow(),
                 position = new { x = pose.Position.X, y = pose.Position.Y, z = pose.Position.Z },
                 heading = pose.Heading, pitch = pose.Pitch, roll = pose.Roll, hfov = pose.HFov,
+                forward = Xyz(pose.Forward), right = Xyz(pose.Right), up = Xyz(pose.Up),
                 pan = head?.Position.Pan, tilt = head?.Position.Tilt, zoom = head?.Position.Zoom,
                 moving = head is { } h ? h.PanTiltMoving || h.ZoomMoving : (bool?)null,
             }, CompactJson);
+        });
+
+        // Turns a PTZ head until its picture is centred on a point of the world (absolute coordinates, as
+        // pose reports them): an operator with a joystick putting a landmark in the crosshair. Answers
+        // the pan and tilt it goes to, in degrees relative to the mount; a point the head cannot reach
+        // within its limits is refused with 409.
+        app.MapPost("/api/cameras/{id}/ptz/aim", (string id, Vec3 target, SceneState scene, PtzSimulator ptz) =>
+        {
+            var camera = scene.FindCamera(id);
+            if (camera == null) return Results.NotFound();
+            if (camera.Kind != CameraKind.Ptz || camera.Ptz is not { } limits)
+                return Results.Problem($"Camera {camera.Id} has no PTZ head.", statusCode: StatusCodes.Status409Conflict);
+            var eye = CameraPose.From(camera, scene.Current.Scene.Terrain, default).Position;
+            var direction = new Vector3(target.X, target.Y, target.Z) - eye;
+            if (direction.LengthSquared() < 1e-6f)
+                return Results.Problem("The point is where the camera is.", statusCode: StatusCodes.Status409Conflict);
+            var (pan, tilt) = CameraPose.PanTiltTowards(camera, direction);
+            if (!limits.EndlessPan)
+            {
+                // The same direction one turn either way may be the one inside the limits.
+                pan = new[] { pan, pan - 360, pan + 360 }.FirstOrDefault(p => p >= limits.PanMin && p <= limits.PanMax, float.NaN);
+                if (float.IsNaN(pan))
+                    return Results.Problem($"Pan to that point is outside {limits.PanMin}..{limits.PanMax}.", statusCode: StatusCodes.Status409Conflict);
+            }
+            if (tilt < limits.TiltMin || tilt > limits.TiltMax)
+                return Results.Problem($"Tilt {tilt:0.##} to that point is outside {limits.TiltMin}..{limits.TiltMax}.", statusCode: StatusCodes.Status409Conflict);
+            ptz.MoveTo(camera, new PtzAxes(pan, tilt, null), default);
+            return Results.Json(new { pan, tilt }, CompactJson);
         });
 
         app.MapGet("/api/walkers/{id}/pose", (string id, SceneState scene, TimeProvider time) =>
@@ -254,6 +285,8 @@ public static class EditorApi
         app.MapPost("/api/cameras/{id}/ptz/stop", (string id, SceneState scene, PtzSimulator ptz) =>
             WithHead(scene, id, camera => ptz.Stop(camera, panTilt: true, zoom: true)));
     }
+
+    private static object Xyz(Vector3 v) => new { x = v.X, y = v.Y, z = v.Z };
 
     private static IResult WithHead(SceneState scene, string id, Action<CameraModel> command)
     {
