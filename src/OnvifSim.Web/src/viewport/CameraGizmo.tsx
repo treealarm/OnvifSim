@@ -2,7 +2,7 @@ import { Line, TransformControls } from '@react-three/drei';
 import type { ThreeEvent } from '@react-three/fiber';
 import { useState } from 'react';
 import { Matrix4, Quaternion, Vector3, type Object3D } from 'three';
-import { heightAt, zoomToHFov, type CameraModel, type Environment, type Head, type Terrain } from '../model';
+import { heightAt, kindColor, zoomToHFov, type CameraModel, type Environment, type Head, type Terrain } from '../model';
 import { select, updateCamera, useEditor } from '../store';
 import { castFootprint, footprintSegments } from './footprint';
 import { Label } from './Label';
@@ -33,7 +33,7 @@ export function CameraGizmo({ camera, head, terrain, environment, selected }: Ca
   const eye = new Vector3(camera.position.x, ground + camera.position.y, camera.position.z);
   const footprint = castFootprint(eye, lookOf(camera, pan, tilt).picture, hFov, camera.video.width / camera.video.height, terrain,
     environment.fogEnd, environment.frustumLength);
-  const color = camera.kind === 'ptz' ? '#ff9f1c' : '#3aa0ff';
+  const color = camera.color ?? kindColor(camera.kind);
 
   function onClick(e: ThreeEvent<MouseEvent>) {
     if (e.delta > 4 || useEditor.getState().tool.kind !== 'select') return;

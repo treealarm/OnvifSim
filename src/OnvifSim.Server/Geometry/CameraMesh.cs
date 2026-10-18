@@ -18,10 +18,12 @@ public static class CameraMesh
     private const float LensRadius = 0.15f, LensLength = 0.12f;
     private const float PoleRadius = 0.08f;
 
-    public static Vector3 ColorOf(CameraKind kind) => kind == CameraKind.Ptz ? PtzColor : FixedColor;
+    // Its own colour, or its kind's.
+    public static Vector3 ColorOf(CameraModel camera) =>
+        ColorUtil.Parse(camera.Color, camera.Kind == CameraKind.Ptz ? PtzColor : FixedColor);
 
-    // In world coordinates: the eye, the ground under it and where the camera looks.
-    public static Mesh Build(CameraKind kind, Vector3 eye, float ground, Orientation look)
+    // In world coordinates: the body's colour, the eye, the ground under it and where the camera looks.
+    public static Mesh Build(Vector3 color, Vector3 eye, float ground, Orientation look)
     {
         var m = new Mesh();
         float bracket = eye.Y - BodyHeight;
@@ -38,7 +40,7 @@ public static class CameraMesh
         // Local space: x right, y up, z backwards from the lens, so -z is where the camera looks.
         var body = new Mesh();
         var box = new Mesh();
-        Primitives.Box(box, BodyWidth, BodyHeight, BodyLength, ColorOf(kind), -BodyHeight / 2);
+        Primitives.Box(box, BodyWidth, BodyHeight, BodyLength, color, -BodyHeight / 2);
         body.Append(box, Matrix4x4.CreateTranslation(0, 0, LensLength + BodyLength / 2));
         var lens = new Mesh();
         Primitives.Frustum(lens, LensRadius, LensRadius, LensLength, 8, Glass);

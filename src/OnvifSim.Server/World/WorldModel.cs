@@ -111,6 +111,9 @@ public sealed class CameraModel
     // Draws a pan/tilt degree grid over the picture (relative to the mount), for checking where the
     // camera points.
     public bool AngleGrid { get; set; }
+    // The camera's colour, its body's and its field of view's, in the editor and in other cameras'
+    // pictures ("#rrggbb"); null takes its kind's, orange for PTZ and blue for fixed.
+    public string? Color { get; set; }
     public VideoModel Video { get; set; } = new();
     // The H.264 stream, served when ffmpeg is available; its settings are independent of the JPEG ones.
     public H264Model H264 { get; set; } = new();

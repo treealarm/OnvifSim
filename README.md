@@ -153,7 +153,8 @@ Ctrl+Y) step back and forth through the last 100 edits; turning a PTZ camera is 
   clock, so all streams and snapshots agree. Drag the points of a selected road or route to reshape it.
 - **Cameras** show what they see (the server's own picture, the same as RTSP), their ONVIF and RTSP
   addresses and every setting: mount, field of view, PTZ limits and speeds, both streams, image
-  adjustments, users and port. A PTZ camera gets a joystick (drag it, or focus it and hold the arrow
+  adjustments, users and port, and a colour of their own, which their body and the wire frame of
+  where they look take in the editor and in the other cameras' pictures. A PTZ camera gets a joystick (drag it, or focus it and hold the arrow
   keys), zoom buttons and pan/tilt/zoom boxes that drive the same PTZ head as ONVIF clients.
 - **Analytics**: the camera's picture boxes the people its analytics reports, with their object ids,
   exactly as the metadata stream sends them; the panel turns people detection and the PTZ position in

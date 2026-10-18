@@ -108,6 +108,8 @@ export interface CameraModel {
   roll: number;
   hFov: number;
   angleGrid: boolean;
+  // The camera's colour, its body's and its field of view's; null or absent takes its kind's (kindColor).
+  color?: string | null;
   // rotate: the picture turned clockwise, 0, 90, 180 or 270 degrees.
   video: { width: number; height: number; fps: number; quality: number; rotate: number };
   h264: { width: number; height: number; fps: number; bitrateKbps: number; govLength: number };
@@ -118,6 +120,9 @@ export interface CameraModel {
   onvifPort: number;
   users: { username: string; password: string }[];
 }
+
+// A camera's colour when it has none of its own (CameraMesh.ColorOf).
+export const kindColor = (kind: CameraKind) => (kind === 'ptz' ? '#ff9f1c' : '#3aa0ff');
 
 export interface World {
   version: number;

@@ -26,17 +26,18 @@ public static class CameraMarkers
             bool ptz = camera.Kind == CameraKind.Ptz && camera.Ptz != null;
             var head = ptz ? headOf(camera) : default;
             var pose = CameraPose.From(camera, scene.Terrain, head);
+            var color = CameraMesh.ColorOf(camera);
             if (scene.ShowCameras)
             {
                 var look = ptz ? CameraPose.HeadOrientation(camera, head.Pan, head.Tilt) : CameraPose.Mount(camera);
-                var mesh = CameraMesh.Build(camera.Kind, pose.Position, scene.Terrain.HeightAt(pose.Position.X, pose.Position.Z), look);
+                var mesh = CameraMesh.Build(color, pose.Position, scene.Terrain.HeightAt(pose.Position.X, pose.Position.Z), look);
                 var (center, radius) = mesh.BoundingSphere();
                 chunks.Add(scene.Light(new SceneChunk { Name = camera.Id, Mesh = mesh, Center = center, Radius = radius }));
             }
             if (scene.ShowFrustums)
             {
                 var grid = ViewFootprint.Cast(pose, (float)camera.Video.Width / camera.Video.Height, scene.Terrain, scene.FogEnd, scene.FrustumLength);
-                chunks.Add(Frustum(grid, CameraMesh.ColorOf(camera.Kind)));
+                chunks.Add(Frustum(grid, color));
             }
         }
         return chunks;

@@ -20,9 +20,10 @@
   and velocities), as cameras with a reversed control direction do; with both on, the PTZ
   configuration reports `PTControlDirection` `Reverse` ON.
 - Cameras appear in each other's pictures: a pole, a bracket and the body turned the way the camera
-  (or its head) looks, orange for PTZ and blue for fixed (`environment.showCameras`, on by default).
+  (or its head) looks, in the camera's own `color` or else orange for PTZ and blue for fixed
+  (`environment.showCameras`, on by default).
   `environment.showFrustums` (off by default: no real camera sees them) also draws where each looks,
-  as a wire frame from the eye down to the ground it covers, ending at `environment.frustumLength`
+  as a wire frame in the same colour from the eye down to the ground it covers, ending at `environment.frustumLength`
   (40 m) where a ray meets no ground. Both cost about a millisecond of a 640×360 frame (`--bench`
   now prints them). The editor draws the same wire frame down to the ground instead of a 20 m
   pyramid, and the degree grid follows a mount that leans or lies on its side.

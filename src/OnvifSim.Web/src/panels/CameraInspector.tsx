@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import type { CameraModel, PtzSettings, ServerStatus, Vec3 } from '../model';
+import { kindColor, type CameraModel, type PtzSettings, type ServerStatus, type Vec3 } from '../model';
 import { changeCameraKind, removeSelected, updateCamera, useEditor } from '../store';
 import { CameraPicture } from './CameraPicture';
-import { CheckboxField, NumberField, Section, SelectField, TextField } from './fields';
+import { CheckboxField, ColorField, NumberField, Section, SelectField, TextField } from './fields';
 import { PtzControl } from './PtzControl';
 
 // The sizes the Media service offers ONVIF clients (CameraMedia.StandardResolutions).
@@ -41,6 +41,11 @@ export function CameraInspector({ camera }: { camera: CameraModel }) {
         <TextField label="Name" value={camera.name} onChange={(name) => change({ name })} />
         <SelectField label="Kind" value={camera.kind} options={kindOptions} onChange={(kind) => void changeCameraKind(camera, kind)} />
         <CheckboxField label="Degree grid" checked={camera.angleGrid} onChange={(angleGrid) => change({ angleGrid })} />
+        <ColorField
+          label="Colour"
+          value={camera.color ?? kindColor(camera.kind)}
+          onChange={(color) => change({ color })}
+        />
       </Section>
 
       <Section title={camera.kind === 'ptz' ? 'Mount' : 'Placement'}>
