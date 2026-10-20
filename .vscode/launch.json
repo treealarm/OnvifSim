@@ -2,15 +2,14 @@
   "version": "0.2.0",
   "configurations": [
     {
-      // F5: build and debug the simulator with the world in ./data (git-ignored), on port 18080 to stay clear
-      // of whatever else lives on 8080 (Keycloak, Tomcat and friends). Opens the editor
+      // F5: build and debug the simulator with the world in ./data (git-ignored). Opens the editor
       // once the server is up; RTSP is at rtsp://admin:admin@localhost:8554/cam1.
       "name": "OnvifSim",
       "type": "coreclr",
       "request": "launch",
       "preLaunchTask": "build",
       "program": "${workspaceFolder}/src/OnvifSim.Server/bin/Debug/net10.0/OnvifSim.dll",
-      "args": ["--data", "${workspaceFolder}/data", "--port", "18080", "--no-browser"],
+      "args": ["--data", "${workspaceFolder}/data", "--no-browser"],
       "cwd": "${workspaceFolder}",
       "console": "internalConsole",
       "stopAtEntry": false,

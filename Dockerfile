@@ -40,6 +40,6 @@ ENV ASPNETCORE_HTTP_PORTS= \
     ONVIFSIM_DATA=/data
 VOLUME /data
 # Editor and API, ONVIF (one port per camera, from 8001), RTSP, RTP/RTCP, WS-Discovery.
-EXPOSE 8080 8001-8016 8554 6970-6971/udp 3702/udp
+EXPOSE 18180 8001-8016 8554 6970-6971/udp 3702/udp
 USER app
 ENTRYPOINT ["dotnet", "OnvifSim.dll"]

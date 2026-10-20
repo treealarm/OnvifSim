@@ -1,4 +1,4 @@
 #!/bin/sh
 # The menu entry. The simulator itself runs as the snap's service; this only opens its editor in the
 # browser (xdg-open in the base hands the address to snapd, which opens it on the desktop).
-exec xdg-open "http://localhost:8080/"
+exec xdg-open "http://localhost:18180/"

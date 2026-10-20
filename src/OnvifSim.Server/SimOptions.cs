@@ -10,7 +10,7 @@ namespace OnvifSim;
 public sealed class SimOptions
 {
     public string DataDirectory { get; init; } = "";
-    public int WebPort { get; init; } = 8080;
+    public int WebPort { get; init; } = 18180;
     public int RtspPort { get; init; } = 8554;
     // RTP over UDP leaves from this port and RTCP from the next one, for every session.
     public int RtpPort { get; init; } = 6970;
@@ -29,7 +29,7 @@ public sealed class SimOptions
     public static SimOptions Parse(string[] args)
     {
         string? data = Environment.GetEnvironmentVariable("ONVIFSIM_DATA");
-        int port = PortFromEnvironment("ONVIFSIM_PORT", 8080);
+        int port = PortFromEnvironment("ONVIFSIM_PORT", 18180);
         int rtspPort = PortFromEnvironment("ONVIFSIM_RTSP_PORT", 8554);
         int rtpPort = PortFromEnvironment("ONVIFSIM_RTP_PORT", 6970);
         int onvifBasePort = PortFromEnvironment("ONVIFSIM_ONVIF_BASE_PORT", 8001);

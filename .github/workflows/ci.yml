@@ -98,11 +98,11 @@ jobs:
             -ArgumentList '--no-browser', '--data', (Join-Path $env:RUNNER_TEMP data) -RedirectStandardOutput $log
           $up = $false
           foreach ($i in 1..30) {
-            try { Invoke-WebRequest http://localhost:8080/api/world -UseBasicParsing | Out-Null; $up = $true; break } catch { Start-Sleep 1 }
+            try { Invoke-WebRequest http://localhost:18180/api/world -UseBasicParsing | Out-Null; $up = $true; break } catch { Start-Sleep 1 }
           }
           Stop-Process $server
           Get-Content $log
-          if (-not $up) { throw "The installed OnvifSim did not answer on port 8080" }
+          if (-not $up) { throw "The installed OnvifSim did not answer on port 18180" }
 
           Invoke-Msiexec '/x'
           if (Test-Path $installed) { throw "Uninstalling left $installed" }
@@ -134,10 +134,10 @@ jobs:
 
       - name: Smoke test
         run: |
-          docker run -d --name onvifsim -p 8080:8080 -p 8001:8001 onvifsim:ci
-          for i in $(seq 30); do curl -fs http://localhost:8080/api/world > /dev/null && break; sleep 1; done
-          curl -fs http://localhost:8080/ | grep -q '<div id="root">'
-          curl -fs -o /dev/null http://localhost:8080/api/cameras/cam1/snapshot.jpg
+          docker run -d --name onvifsim -p 18180:18180 -p 8001:8001 onvifsim:ci
+          for i in $(seq 30); do curl -fs http://localhost:18180/api/world > /dev/null && break; sleep 1; done
+          curl -fs http://localhost:18180/ | grep -q '<div id="root">'
+          curl -fs -o /dev/null http://localhost:18180/api/cameras/cam1/snapshot.jpg
           curl -fs -X POST -H 'Content-Type: application/soap+xml' \
             --data '<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"><s:Body><GetSystemDateAndTime xmlns="http://www.onvif.org/ver10/device/wsdl"/></s:Body></s:Envelope>' \
             http://localhost:8001/onvif/device_service | grep -q SystemDateAndTime

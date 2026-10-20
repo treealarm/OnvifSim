@@ -106,12 +106,12 @@ what the cameras show depends on where they are and where they point.
 
 Every package carries ffmpeg for the H.264 streams. The world is kept in `%LOCALAPPDATA%\OnvifSim`
 or `~/.local/share/OnvifSim`; on first start a default world is written there. The editor is at
-http://localhost:8080/.
+http://localhost:18180/.
 
 | Option | |
 |---|---|
 | `--data <dir>` | where `world.json` is kept |
-| `--port <port>` | the editor and API (8080) |
+| `--port <port>` | the editor and API (18180) |
 | `--no-browser` | do not open the editor on start (it opens only where there is a desktop anyway) |
 | `--ffmpeg <path\|none>` | the ffmpeg for H.264; by default the bundled one, then the one on PATH |
 
@@ -165,7 +165,7 @@ Ctrl+Y) step back and forth through the last 100 edits; turning a PTZ camera is 
 
 ONVIF clients' changes (a new resolution, a preset, where a PTZ camera stopped) show up in the editor
 too. `npm run dev` in `src/OnvifSim.Web` serves the editor with hot reload against a simulator on
-port 8080; `npm run e2e` runs the browser test.
+port 18180; `npm run e2e` runs the browser test.
 
 | Endpoint | |
 |---|---|
@@ -278,7 +278,7 @@ camera.
 
 | Port | |
 |---|---|
-| 8080/tcp | editor and API (`--port`, `ONVIFSIM_PORT`) |
+| 18180/tcp | editor and API (`--port`, `ONVIFSIM_PORT`) |
 | 8001…/tcp | ONVIF, one port per camera (`--onvif-base-port`, `ONVIFSIM_ONVIF_BASE_PORT`) |
 | 8554/tcp | RTSP for all cameras (`--rtsp-port`, `ONVIFSIM_RTSP_PORT`) |
 | 6970-6971/udp | RTP and RTCP of every UDP session (`--rtp-port`, `ONVIFSIM_RTP_PORT`) |

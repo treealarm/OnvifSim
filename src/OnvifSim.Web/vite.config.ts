@@ -4,7 +4,7 @@ import { defineConfig } from 'vite';
 // `npm run dev` serves the editor with hot reload and passes /api to a simulator running on its default
 // port, or on ONVIFSIM_PORT when set (the same variable the simulator reads); `npm run build` writes dist/,
 // which the server's build copies next to its binary.
-const simulatorPort = process.env.ONVIFSIM_PORT ?? '8080';
+const simulatorPort = process.env.ONVIFSIM_PORT ?? '18180';
 
 export default defineConfig({
   plugins: [react()],

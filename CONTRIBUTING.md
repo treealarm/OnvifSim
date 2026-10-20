@@ -14,7 +14,7 @@ dotnet test tests/OnvifSim.Tests    # server: ONVIF, RTSP, PTZ, rendering, the e
 cd src/OnvifSim.Web
 npx playwright install chromium     # once
 npm run e2e                         # the editor in a real browser against a real simulator
-npm run dev                         # the editor with hot reload, against a simulator on port 8080 (or ONVIFSIM_PORT)
+npm run dev                         # the editor with hot reload, against a simulator on port 18180 (or ONVIFSIM_PORT)
 ```
 
 Check a change against real clients too when it touches what they see: ONVIF Device Manager or

@@ -8,7 +8,7 @@ snapcraft.
 
 ```bash
 sudo snap install onvifsim
-# The editor: OnvifSim in the applications menu, or http://localhost:8080/
+# The editor: OnvifSim in the applications menu, or http://localhost:18180/
 # Cameras: ONVIF on 8001 and up, RTSP on 8554
 sudo snap logs onvifsim -f        # the server's log
 sudo snap restart onvifsim
@@ -23,7 +23,7 @@ there with sudo, or (better) in the editor.
 |---|---|
 | `snapcraft.yaml` | The recipe: `plugin: dump` of `payload/app`, the service, its plugs (`network`, `network-bind`). |
 | `stage.sh` | Fills `payload/` (gitignored) from the release zip or the directory it unpacks to, and writes the version. |
-| `launcher/open-editor` | The menu entry's command (`onvifsim.editor`): `xdg-open http://localhost:8080/`, which the base hands to snapd to open on the desktop. |
+| `launcher/open-editor` | The menu entry's command (`onvifsim.editor`): `xdg-open http://localhost:18180/`, which the base hands to snapd to open on the desktop. |
 | `snap/gui/editor.desktop`, `icon.png` | The menu entry and its icon, which is also the Store's. |
 
 ## Release workflow

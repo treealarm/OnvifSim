@@ -5,7 +5,7 @@ Applies to **OnvifSim** (GitHub Releases, the MSI, the Docker image, the snap an
 ## Use on trusted networks
 
 OnvifSim is a test bench. **The editor and its API have no authentication**: anyone who can reach
-port 8080 can change the world, add cameras or turn them. The simulated cameras check the user
+port 18180 can change the world, add cameras or turn them. The simulated cameras check the user
 names and passwords set in the world, as real cameras do, but those are stored in plain text
 ([PRIVACY.md](PRIVACY.md)). Run it on a machine or network you control, and do not expose its ports
 to the internet.

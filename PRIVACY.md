@@ -25,7 +25,7 @@ Pictures are rendered on demand and streamed; nothing is recorded.
 
 ## Network communication
 
-OnvifSim listens on its ports (editor 8080, ONVIF 8001 and up, RTSP 8554, RTP 6970-6971, WS-Discovery
+OnvifSim listens on its ports (editor 18180, ONVIF 8001 and up, RTSP 8554, RTP 6970-6971, WS-Discovery
 3702; see the README) and answers what arrives there. The only messages it starts itself are
 WS-Discovery Hello and Bye announcements, sent to the local multicast group 239.255.255.250 when
 cameras appear and disappear. The browser editor is served by OnvifSim and loads nothing from

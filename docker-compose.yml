@@ -1,7 +1,7 @@
 # Linux: host networking, so WS-Discovery multicast reaches the cameras and every camera answers on
 # its own port as it would on the LAN. Docker Desktop (Windows, macOS) has no host networking to the
 # LAN: use docker-compose.ports.yml there.
-#   docker compose up -d     then open http://localhost:8080/
+#   docker compose up -d     then open http://localhost:18180/
 services:
   onvifsim:
     image: ghcr.io/treealarm/onvifsim:latest

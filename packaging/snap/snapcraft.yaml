@@ -19,7 +19,7 @@ description: |
   camera's view into the next.
 
   The snap runs as a service. Open the editor from the OnvifSim entry in the applications menu, or at
-  http://localhost:8080/, to build the world and place cameras; they appear on ports 8001 and up, RTSP on 8554. The world is kept in
+  http://localhost:18180/, to build the world and place cameras; they appear on ports 8001 and up, RTSP on 8554. The world is kept in
   /var/snap/onvifsim/common/world.json.
 
   OnvifSim is MIT. The bundled ffmpeg (for the H.264 streams) is a GPL build from BtbN/FFmpeg-Builds.

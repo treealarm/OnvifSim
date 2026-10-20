@@ -1,12 +1,12 @@
 # Any Docker, including Docker Desktop on Windows and macOS: the ports are mapped one by one, which
 # leaves WS-Discovery out (multicast does not cross the mapping); clients connect by address instead,
 # e.g. http://<host>:8001/onvif/device_service for the first camera.
-#   docker compose -f docker-compose.ports.yml up -d     then open http://localhost:8080/
+#   docker compose -f docker-compose.ports.yml up -d     then open http://localhost:18180/
 services:
   onvifsim:
     image: ghcr.io/treealarm/onvifsim:latest
     ports:
-      - "8080:8080"           # editor and API
+      - "18180:18180"           # editor and API
       - "8001-8016:8001-8016" # ONVIF, one port per camera
       - "8554:8554"           # RTSP
       - "6970-6971:6970-6971/udp" # RTP and RTCP over UDP; RTSP over TCP needs nothing more
