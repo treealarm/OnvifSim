@@ -6,7 +6,7 @@ services:
   onvifsim:
     image: ghcr.io/treealarm/onvifsim:latest
     ports:
-      - "18180:18180"           # editor and API
+      - "18180:18180"         # editor and API
       - "8001-8016:8001-8016" # ONVIF, one port per camera
       - "8554:8554"           # RTSP
       - "6970-6971:6970-6971/udp" # RTP and RTCP over UDP; RTSP over TCP needs nothing more
