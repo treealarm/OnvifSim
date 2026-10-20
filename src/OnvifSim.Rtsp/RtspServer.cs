@@ -39,7 +39,15 @@ public sealed class RtspServer(RtspServerOptions options, IRtspMediaSource media
     public override Task StartAsync(CancellationToken cancellationToken)
     {
         _listener = TcpListener.Create(options.Port);
-        _listener.Start();
+        try
+        {
+            _listener.Start();
+        }
+        catch (SocketException ex)
+        {
+            // Kestrel names its address when it cannot bind; say which port this one is too.
+            throw new IOException($"Failed to bind RTSP port {options.Port}: {ex.Message}", ex);
+        }
         Port = ((IPEndPoint)_listener.LocalEndpoint).Port;
         try
         {
