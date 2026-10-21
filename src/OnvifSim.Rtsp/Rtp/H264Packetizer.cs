@@ -10,18 +10,18 @@ public static class H264Packetizer
 
     private const int FuA = 28;
     private const int FuHeadersSize = 2;
-    private const int MaxPayload = RtpStream.MaxPacketSize - RtpStream.HeaderSize;
 
     // Appends the packets of one access unit (its NAL units without start codes, captured at a Stopwatch
     // timestamp); the last packet of the access unit carries the marker bit.
     public static void Packetize(RtpStream stream, IReadOnlyList<ReadOnlyMemory<byte>> nals, long captureTimestamp, RtpPacketBatch batch)
     {
         uint timestamp = stream.TimestampOf(captureTimestamp);
+        int maxPayload = stream.MaxPayloadSize;
         for (int n = 0; n < nals.Count; n++)
         {
             var nal = nals[n].Span;
             bool lastNal = n == nals.Count - 1;
-            if (nal.Length <= MaxPayload)
+            if (nal.Length <= maxPayload)
             {
                 nal.CopyTo(stream.AppendPacket(batch, nal.Length, lastNal, timestamp));
                 continue;
@@ -34,7 +34,7 @@ public static class H264Packetizer
             var body = nal[1..];
             for (int offset = 0; offset < body.Length;)
             {
-                int chunk = Math.Min(body.Length - offset, MaxPayload - FuHeadersSize);
+                int chunk = Math.Min(body.Length - offset, maxPayload - FuHeadersSize);
                 bool first = offset == 0, last = offset + chunk == body.Length;
                 var payload = stream.AppendPacket(batch, FuHeadersSize + chunk, lastNal && last, timestamp);
                 payload[0] = indicator;

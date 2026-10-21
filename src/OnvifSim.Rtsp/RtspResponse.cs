@@ -43,6 +43,7 @@ internal sealed class RtspResponse(int status)
         404 => "Not Found",
         451 => "Parameter Not Understood",
         454 => "Session Not Found",
+        457 => "Invalid Range",
         459 => "Aggregate Operation Not Allowed",
         461 => "Unsupported Transport",
         501 => "Not Implemented",

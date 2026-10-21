@@ -31,8 +31,8 @@ public sealed record RtspTrack(string Control, string MediaType, byte PayloadTyp
 }
 
 // Sends a track while its session plays: packetizes the media into sender.Stream and sends it until
-// cancelled. Returning or throwing before that ends the session: the media is gone or the client stopped
-// taking packets.
+// cancelled. Returning or throwing before that ends the session: the media is gone, a replay has sent
+// all it was asked for, or the client stopped taking packets. sender.Request says what the PLAY asked.
 public delegate Task TrackPlayback(RtpSender sender, CancellationToken cancellationToken);
 
 // A playing track's way out: its RTP stream and the transport its client set up. An RTCP sender report
@@ -47,14 +47,16 @@ public sealed class RtpSender
     private readonly RtpPacketBatch _report = new();
     private long _nextReport;
 
-    internal RtpSender(RtpStream stream, IRtpTransport transport, string canonicalName)
+    internal RtpSender(RtpStream stream, IRtpTransport transport, string canonicalName, RtspPlayRequest request)
     {
         Stream = stream;
+        Request = request;
         _transport = transport;
         _canonicalName = canonicalName;
     }
 
     public RtpStream Stream { get; }
+    public RtspPlayRequest Request { get; }
 
     public async ValueTask SendAsync(RtpPacketBatch batch, CancellationToken cancellationToken)
     {

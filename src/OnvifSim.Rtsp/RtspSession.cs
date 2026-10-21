@@ -70,8 +70,11 @@ internal sealed class RtspSession(IReadOnlyList<string> path, ILogger logger)
     public bool HasTimedOut(long now) =>
         now - Interlocked.Read(ref _lastActivity) > TimeoutSeconds * 1000L;
 
+    // What the last PLAY asked for; the tracks get it when they start.
+    public RtspPlayRequest PlayRequest { get; set; } = RtspPlayRequest.Live;
+
     // Starts sending every track; does nothing if already playing. onFailed runs when a track ends on its
-    // own: the media is gone or the client stopped accepting packets.
+    // own: the media is gone, a replay is done, or the client stopped accepting packets.
     public void Play(Action<RtspSession> onFailed)
     {
         lock (_gate)
@@ -79,7 +82,8 @@ internal sealed class RtspSession(IReadOnlyList<string> path, ILogger logger)
             if (_playback != null) return;
             _playback = new CancellationTokenSource();
             var token = _playback.Token;
-            _playbackTask = Task.WhenAll(_tracks.Select(track => Task.Run(() => SendAsync(track, onFailed, token), CancellationToken.None)));
+            var request = PlayRequest;
+            _playbackTask = Task.WhenAll(_tracks.Select(track => Task.Run(() => SendAsync(track, request, onFailed, token), CancellationToken.None)));
         }
     }
 
@@ -96,11 +100,11 @@ internal sealed class RtspSession(IReadOnlyList<string> path, ILogger logger)
         await task;
     }
 
-    private async Task SendAsync(Track track, Action<RtspSession> onFailed, CancellationToken cancellationToken)
+    private async Task SendAsync(Track track, RtspPlayRequest request, Action<RtspSession> onFailed, CancellationToken cancellationToken)
     {
         try
         {
-            await track.Definition.Play(new RtpSender(track.Stream, track.Transport, canonicalName: Id), cancellationToken);
+            await track.Definition.Play(new RtpSender(track.Stream, track.Transport, canonicalName: Id, request), cancellationToken);
             if (cancellationToken.IsCancellationRequested) return;
             logger.LogInformation("RTSP session {Session}: {Track} of {Path} ended", Id, track.Definition.Control, PathText);
         }

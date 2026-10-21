@@ -90,6 +90,12 @@ public sealed class RtspServer(RtspServerOptions options, IRtspMediaSource media
     }
 
     // A TCP session cannot outlive its connection: its packets have nowhere else to go.
+    // Ends the sessions of every stream whose path matches, as if their media had gone: for the
+    // application to cut off a source (a camera that lost its network). Over TCP the connection stays
+    // open and simply goes quiet, as it would with the network down.
+    public Task CloseSessionsAsync(Func<IReadOnlyList<string>, bool> pathMatches) =>
+        Task.WhenAll(_sessions.Values.Where(s => pathMatches(s.Path)).Select(CloseSessionAsync));
+
     internal Task CloseSessionsOfAsync(RtspConnection connection) =>
         Task.WhenAll(_sessions.Values
             .Where(s => s.BelongsTo(connection))

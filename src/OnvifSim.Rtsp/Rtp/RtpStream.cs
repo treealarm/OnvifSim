@@ -17,6 +17,9 @@ public sealed class RtpStream(byte payloadType)
     // Whole RTP packet, so that with IP and UDP headers it stays inside a 1500-byte Ethernet MTU.
     public const int MaxPacketSize = 1400;
     public const int HeaderSize = 12;
+    // The ONVIF replay extension: its own header (profile 0xABAC, length 3) and three 32-bit words.
+    public const int ReplayExtensionSize = 16;
+    private const ushort ReplayExtensionProfile = 0xABAC;
 
     private long _firstFrameClock = -1;
     private uint _packetCount;
@@ -28,6 +31,13 @@ public sealed class RtpStream(byte payloadType)
     public uint InitialTimestamp { get; } = RandomUInt32();
 
     public bool HasSentFrames => _firstFrameClock >= 0;
+
+    // Set by a replay before it packetizes each frame: every packet then carries the ONVIF replay
+    // header extension (ONVIF Streaming Specification, 6.3) describing that frame. Null for live media.
+    public ReplayHeader? Replay { get; set; }
+
+    // Room for the payload in a packet, after the header and any extension.
+    public int MaxPayloadSize => MaxPacketSize - HeaderSize - (Replay == null ? 0 : ReplayExtensionSize);
 
     // RTP time of a Stopwatch timestamp; the first frame sent defines the origin.
     public uint RtpTimeAt(long stopwatchTimestamp)
@@ -48,15 +58,33 @@ public sealed class RtpStream(byte payloadType)
     // The marker bit goes on the last packet of a frame.
     public Span<byte> AppendPacket(RtpPacketBatch batch, int payloadLength, bool marker, uint timestamp)
     {
-        var packet = batch.Append(HeaderSize + payloadLength);
-        packet[0] = 0x80; // version 2, no padding, no extension, no CSRC
+        int headerLength = HeaderSize + (Replay == null ? 0 : ReplayExtensionSize);
+        var packet = batch.Append(headerLength + payloadLength);
+        packet[0] = (byte)(Replay == null ? 0x80 : 0x90); // version 2, no padding, extension when replaying, no CSRC
         packet[1] = (byte)((marker ? 0x80 : 0) | payloadType);
         BinaryPrimitives.WriteUInt16BigEndian(packet[2..], NextSequenceNumber++);
         BinaryPrimitives.WriteUInt32BigEndian(packet[4..], timestamp);
         BinaryPrimitives.WriteUInt32BigEndian(packet[8..], Ssrc);
+        if (Replay is { } replay) WriteReplayExtension(packet[HeaderSize..], replay, marker);
         _packetCount++;
         _octetCount += (uint)payloadLength;
-        return packet[HeaderSize..];
+        return packet[headerLength..];
+    }
+
+    // C and D describe the whole frame and go on all its packets; E and T mark where its data ends,
+    // so only the frame's last packet carries them.
+    private static void WriteReplayExtension(Span<byte> extension, ReplayHeader replay, bool lastOfFrame)
+    {
+        BinaryPrimitives.WriteUInt16BigEndian(extension, ReplayExtensionProfile);
+        BinaryPrimitives.WriteUInt16BigEndian(extension[2..], ReplayExtensionSize / 4 - 1);
+        BinaryPrimitives.WriteUInt64BigEndian(extension[4..], ToNtpTime(replay.Time.UtcDateTime));
+        extension[12] = (byte)((replay.CleanPoint ? 0x80 : 0)
+            | (lastOfFrame && replay.EndOfSection ? 0x40 : 0)
+            | (replay.Discontinuity ? 0x20 : 0)
+            | (lastOfFrame && replay.Terminal ? 0x10 : 0));
+        extension[13] = replay.CSeq;
+        extension[14] = 0;
+        extension[15] = 0;
     }
 
     // Appends a compound RTCP packet: a sender report tying RTP time to wall-clock time, and the SDES

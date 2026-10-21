@@ -11,7 +11,7 @@ public static class MetadataPacketizer
     public static void Packetize(RtpStream stream, byte[] document, long captureTimestamp, RtpPacketBatch batch)
     {
         uint timestamp = stream.TimestampOf(captureTimestamp);
-        const int maxPayload = RtpStream.MaxPacketSize - RtpStream.HeaderSize;
+        int maxPayload = stream.MaxPayloadSize;
         int offset = 0;
         do
         {

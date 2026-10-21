@@ -17,6 +17,9 @@ namespace OnvifSim.Rtsp;
 internal sealed class RtspConnection : IAsyncDisposable
 {
     private const string PublicMethods = "OPTIONS, DESCRIBE, SETUP, PLAY, PAUSE, TEARDOWN, GET_PARAMETER, SET_PARAMETER";
+    // Option tags a client may Require (RFC 2326 12.32): ONVIF replay, whose Range: clock= and
+    // Rate-Control the media source honours for its recordings.
+    private static readonly string[] SupportedOptions = ["onvif-replay"];
     private static readonly TimeSpan WriteTimeout = TimeSpan.FromSeconds(10);
 
     private readonly Socket _socket;
@@ -107,7 +110,11 @@ internal sealed class RtspConnection : IAsyncDisposable
     private async Task<(RtspResponse Response, RtspSession? Session)> HandleAsync(RtspRequest request)
     {
         if (request.Header("Require") is { } required)
-            return (new RtspResponse(551).With("Unsupported", required), null);
+        {
+            var unsupported = required.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                .Where(option => !SupportedOptions.Contains(option, StringComparer.OrdinalIgnoreCase)).ToList();
+            if (unsupported.Count > 0) return (new RtspResponse(551).With("Unsupported", string.Join(", ", unsupported)), null);
+        }
 
         RtspSession? session = null;
         if (request.SessionId is { } sessionId)
@@ -124,7 +131,7 @@ internal sealed class RtspConnection : IAsyncDisposable
         {
             "OPTIONS" => new RtspResponse(200).With("Public", PublicMethods),
             "DESCRIBE" => Describe(request),
-            "PLAY" => Play(session),
+            "PLAY" => Play(request, session),
             "PAUSE" => await PauseAsync(session),
             "TEARDOWN" => await TeardownAsync(session),
             "GET_PARAMETER" => new RtspResponse(200),
@@ -171,10 +178,13 @@ internal sealed class RtspConnection : IAsyncDisposable
         return (new RtspResponse(200).With("Transport", track.TransportHeader), session);
     }
 
-    private RtspResponse Play(RtspSession? session)
+    private RtspResponse Play(RtspRequest request, RtspSession? session)
     {
         if (session == null) return new RtspResponse(454);
         if (_server.Media.Find(session.Path) == null) return new RtspResponse(404);
+        if (RtspPlayRequest.Parse(request) is not { } play) return new RtspResponse(457);
+        // A PLAY of a session already playing changes nothing (RFC 2326 10.5 would queue it).
+        if (!session.IsPlaying) session.PlayRequest = play;
 
         long now = Stopwatch.GetTimestamp();
         var rtpInfo = session.Tracks.Select(track =>
@@ -184,7 +194,7 @@ internal sealed class RtspConnection : IAsyncDisposable
             return $"url={track.Url};seq={stream.NextSequenceNumber};rtptime={rtpTime}";
         });
         return new RtspResponse(200)
-            .With("Range", "npt=0.000-")
+            .With("Range", session.PlayRequest.RangeHeader)
             .With("RTP-Info", string.Join(",", rtpInfo));
     }
 

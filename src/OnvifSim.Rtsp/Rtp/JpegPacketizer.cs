@@ -25,7 +25,7 @@ public static class JpegPacketizer
         {
             bool first = fragmentOffset == 0;
             int headers = JpegHeaderSize + (first ? QuantizationHeaderSize + scan.QuantizationTables.Length : 0);
-            int chunk = Math.Min(data.Length - fragmentOffset, RtpStream.MaxPacketSize - RtpStream.HeaderSize - headers);
+            int chunk = Math.Min(data.Length - fragmentOffset, stream.MaxPayloadSize - headers);
             bool last = fragmentOffset + chunk == data.Length;
 
             var jpegHeader = stream.AppendPacket(batch, headers + chunk, last, timestamp);
