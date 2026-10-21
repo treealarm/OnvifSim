@@ -93,13 +93,17 @@ public sealed class FfmpegH264Encoder : IAsyncDisposable
         while ((read = await output.ReadAsync(buffer)) > 0)
         {
             reader.Append(buffer.AsSpan(0, read));
-            while (reader.TryTake(out var unit))
-            {
-                if (!_captureTimestamps.TryDequeue(out long captureTimestamp)) captureTimestamp = Stopwatch.GetTimestamp();
-                var nals = AnnexB.SplitNals(unit).Where(n => n.Length > 0 && AnnexB.NalType(n.Span) != AnnexB.AccessUnitDelimiter).ToList();
-                onAccessUnit(new H264AccessUnit(nals, captureTimestamp));
-            }
+            while (reader.TryTake(out var unit)) Emit(unit, onAccessUnit);
         }
+        // The last picture has no delimiter after it; once ffmpeg has finished, it is complete.
+        if (reader.TryTakeRest(out var last)) Emit(last, onAccessUnit);
+    }
+
+    private void Emit(byte[] unit, Action<H264AccessUnit> onAccessUnit)
+    {
+        if (!_captureTimestamps.TryDequeue(out long captureTimestamp)) captureTimestamp = Stopwatch.GetTimestamp();
+        var nals = AnnexB.SplitNals(unit).Where(n => n.Length > 0 && AnnexB.NalType(n.Span) != AnnexB.AccessUnitDelimiter).ToList();
+        onAccessUnit(new H264AccessUnit(nals, captureTimestamp));
     }
 
     private async Task LogErrorsAsync(ILogger logger)

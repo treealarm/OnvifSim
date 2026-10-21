@@ -93,6 +93,16 @@ public sealed class AccessUnitReader
         return false;
     }
 
+    // The access unit still being collected when the stream has ended: nothing follows to close it.
+    public bool TryTakeRest(out byte[] accessUnit)
+    {
+        accessUnit = _unitStart >= 0 && _length > _unitStart ? _buffer.AsSpan(_unitStart, _length - _unitStart).ToArray() : [];
+        _length = 0;
+        _searchFrom = 0;
+        _unitStart = -1;
+        return accessUnit.Length > 0;
+    }
+
     // Drops everything before offset, which becomes the start of the access unit being collected.
     private void Discard(int offset)
     {

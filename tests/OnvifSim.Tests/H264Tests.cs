@@ -102,10 +102,9 @@ public class FfmpegH264EncoderTests
             for (int i = 0; i < 50 && units.Count < 19; i++) await Task.Delay(100);
         }
 
-        // The last picture stays in the reader until a next delimiter that never comes.
+        // The last picture too, though no delimiter follows it: it is complete once ffmpeg has finished.
         var received = units.ToList();
-        Assert.Equal(Enumerable.Range(0, received.Count).Select(i => 1000L + i), received.Select(u => u.CaptureTimestamp));
-        Assert.InRange(received.Count, 19, 20);
+        Assert.Equal(Enumerable.Range(0, 20).Select(i => 1000L + i), received.Select(u => u.CaptureTimestamp));
         Assert.Equal([true, false, false, false, false, true], received.Take(6).Select(u => u.IsKeyFrame));
     }
 }
