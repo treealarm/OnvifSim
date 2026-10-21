@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Profile G: every camera records on its own "SD card" and offers it through the Recording, Search
+  and Replay services, with ONVIF replay over RTSP (`rtsp://<host>:8554/<camera id>/replay`: clock
+  ranges, `Rate-Control: no`, the replay RTP header extension). The past is drawn again rather than
+  stored, PTZ heads where they pointed then; a recording reaches back `recordingRetentionHours` (30
+  days by default). `PUT /api/cameras/{id}/network` cuts a camera off the network while it goes on
+  recording, and `PUT /api/cameras/{id}/recording` stops and starts its recording, for testing how a
+  VMS recovers what it missed.
+- **Fixed:** the last frame an H.264 encoder produced was lost when it stopped.
+
 - Ground truth for testing clients that calibrate cameras or aim one at a person:
   `GET /api/cameras/{id}/pose` (where a camera stands and looks, PTZ head included) and
   `GET /api/walkers/{id}/pose`; the boxes in `GET /api/cameras/{id}/analytics` say where on the

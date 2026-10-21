@@ -2,6 +2,7 @@ using System.Net;
 using System.Xml;
 using OnvifSim.Onvif.Events;
 using OnvifSim.Ptz;
+using OnvifSim.Recording;
 using OnvifSim.World;
 
 namespace OnvifSim.Onvif;
@@ -10,8 +11,8 @@ namespace OnvifSim.Onvif;
 // stream and snapshot URIs) use the host and port the client itself addressed, so they stay valid
 // behind NAT or Docker port mapping.
 public sealed class OnvifRequestContext(
-    CameraModel camera, WorldStore store, PtzSimulator ptz, PullPoints pullPoints, OnvifDispatcher dispatcher, HttpRequest request,
-    int rtspPort, bool hasH264)
+    CameraModel camera, WorldStore store, PtzSimulator ptz, PullPoints pullPoints, RecordingLog recordings, OnvifDispatcher dispatcher,
+    HttpRequest request, int rtspPort, bool hasH264)
 {
     // The camera as it was when the request arrived.
     public CameraModel Camera => camera;
@@ -21,6 +22,7 @@ public sealed class OnvifRequestContext(
     public WorldStore Store => store;
     public PtzSimulator Ptz => ptz;
     public PullPoints PullPoints => pullPoints;
+    public RecordingLog Recordings => recordings;
     // The path the request was posted to: a pull point's address names the subscription.
     public string Path => request.Path.Value ?? "";
     // Ends when the client gives up on the request, for an operation that waits.
@@ -44,6 +46,8 @@ public sealed class OnvifRequestContext(
     // The camera's JPEG stream; its H.264 stream is below it (CameraMedia.StreamUriOf).
     public string StreamUri => $"rtsp://{HostName}:{rtspPort}/{Uri.EscapeDataString(camera.Id)}";
     public string SnapshotUri => $"http://{Authority}/onvif/snapshot.jpg";
+    // The camera's recording, as Replay.GetReplayUri hands it out (Streaming.ReplayStreams).
+    public string ReplayUri => $"{StreamUri}/replay";
 
     private static string FormatHost(IPAddress address) =>
         address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6 ? $"[{address}]" : address.ToString();

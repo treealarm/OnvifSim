@@ -95,6 +95,25 @@ public sealed class RtspTestClient : IAsyncDisposable
         }
     }
 
+    // Every interleaved packet on the channel until the server closes the connection, as a replay ends.
+    public async Task<List<byte[]>> ReadUntilClosedAsync(int channel = 0)
+    {
+        var packets = new List<byte[]>();
+        while (true)
+        {
+            (int Channel, byte[] Data) packet;
+            try
+            {
+                packet = _interleaved.Count > 0 ? _interleaved.Dequeue() : await ReadInterleavedPacketAsync();
+            }
+            catch (EndOfStreamException)
+            {
+                return packets;
+            }
+            if (packet.Channel == channel) packets.Add(packet.Data);
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
         await _stream.DisposeAsync();

@@ -103,6 +103,9 @@ internal static class OnvifNamespaces
     public const string Imaging = "http://www.onvif.org/ver20/imaging/wsdl";
     public const string Errors = "http://www.onvif.org/ver10/error";
     public const string Events = "http://www.onvif.org/ver10/events/wsdl";
+    public const string Recording = "http://www.onvif.org/ver10/recording/wsdl";
+    public const string Search = "http://www.onvif.org/ver10/search/wsdl";
+    public const string Replay = "http://www.onvif.org/ver10/replay/wsdl";
     public const string Notification = "http://docs.oasis-open.org/wsn/b-2";
     public const string Addressing = "http://www.w3.org/2005/08/addressing";
     public const string Topics = "http://www.onvif.org/ver10/topics";
@@ -116,6 +119,9 @@ internal static class OnvifNamespaces
         new XmlQualifiedName("tptz", Ptz),
         new XmlQualifiedName("timg", Imaging),
         new XmlQualifiedName("tev", Events),
+        new XmlQualifiedName("trc", Recording),
+        new XmlQualifiedName("tse", Search),
+        new XmlQualifiedName("trp", Replay),
         new XmlQualifiedName("wsnt", Notification),
         new XmlQualifiedName("wsa", Addressing),
         // Topic expressions are text: the tns1 they use must be declared around them.

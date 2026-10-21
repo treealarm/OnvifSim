@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using OnvifSim.Onvif.Events;
 using OnvifSim.Ptz;
+using OnvifSim.Recording;
 using OnvifSim.Security;
 using OnvifSim.Streaming;
 using OnvifSim.Rtsp;
@@ -13,8 +14,8 @@ namespace OnvifSim.Onvif;
 // /onvif/{service} and the snapshot at /onvif/snapshot.jpg. Listeners follow the world: cameras that
 // are added, removed or moved to another port are picked up whenever the world changes.
 public sealed class OnvifHost(
-    SimOptions options, WorldStore store, SceneState scene, PtzSimulator ptz, PullPoints pullPoints, OnvifDispatcher dispatcher, FeedManager feeds,
-    HttpAuthenticator authenticator, RtspServer rtsp, ILoggerFactory loggers) : IHostedService
+    SimOptions options, WorldStore store, SceneState scene, PtzSimulator ptz, PullPoints pullPoints, RecordingLog recordings, CameraNetwork network,
+    OnvifDispatcher dispatcher, FeedManager feeds, HttpAuthenticator authenticator, RtspServer rtsp, ILoggerFactory loggers) : IHostedService
 {
     private sealed record Listener(int RequestedPort, int Port, WebApplication App);
 
@@ -148,6 +149,12 @@ public sealed class OnvifHost(
 
     private async Task HandleAsync(HttpContext http, string cameraId)
     {
+        // A camera without its network answers nothing; the client sees the connection drop.
+        if (!network.IsOnline(cameraId))
+        {
+            http.Abort();
+            return;
+        }
         var camera = scene.FindCamera(cameraId);
         var path = http.Request.Path.Value ?? "";
         if (camera == null || !path.StartsWith("/onvif/", StringComparison.OrdinalIgnoreCase))
@@ -165,7 +172,7 @@ public sealed class OnvifHost(
             http.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
             return;
         }
-        await dispatcher.HandleAsync(http, new OnvifRequestContext(camera, store, ptz, pullPoints, dispatcher, http.Request, rtsp.Port, feeds.H264Available));
+        await dispatcher.HandleAsync(http, new OnvifRequestContext(camera, store, ptz, pullPoints, recordings, dispatcher, http.Request, rtsp.Port, feeds.H264Available));
     }
 
     // The URL GetSnapshotUri hands out, protected by the camera's users like everything else.

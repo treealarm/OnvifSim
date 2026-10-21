@@ -9,6 +9,7 @@ using OnvifSim.Analytics;
 using OnvifSim.Geometry;
 using OnvifSim.Onvif;
 using OnvifSim.Ptz;
+using OnvifSim.Recording;
 using OnvifSim.Rendering;
 using OnvifSim.Streaming;
 using OnvifSim.Rtsp;
@@ -36,6 +37,7 @@ public static class EditorApi
         MapPtz(app);
         MapAnalytics(app);
         MapGroundTruth(app);
+        MapRecording(app);
 
         app.MapPost("/api/meshes", (List<WorldObject> objects) =>
             objects.DistinctBy(o => o.Id).ToDictionary(o => o.Id, o => MeshData.From(SceneBuilder.ObjectMesh(o))));
@@ -284,6 +286,45 @@ public static class EditorApi
 
         app.MapPost("/api/cameras/{id}/ptz/stop", (string id, SceneState scene, PtzSimulator ptz) =>
             WithHead(scene, id, camera => ptz.Stop(camera, panTilt: true, zoom: true)));
+    }
+
+    public sealed record RecordingSwitch(bool Recording);
+    public sealed record NetworkSwitch(bool Online);
+
+    // A camera's own recording (its SD card) and its network, for tests of what a client does when a
+    // camera drops off the network and comes back: the footage recorded meanwhile is what Profile G
+    // replay then has to recover. Neither is part of the world: the recording is the simulator's
+    // runtime state (recordings.json), and a restart brings every camera back online.
+    private static void MapRecording(WebApplication app)
+    {
+        app.MapGet("/api/cameras/{id}/recording", (string id, SceneState scene, RecordingLog recordings, CameraNetwork network) =>
+        {
+            var camera = scene.FindCamera(id);
+            if (camera == null) return Results.NotFound();
+            return Results.Json(new
+            {
+                recording = recordings.IsRecording(camera.Id),
+                online = network.IsOnline(camera.Id),
+                retentionHours = camera.RecordingRetentionHours,
+                spans = recordings.SpansOf(camera).Select(s => new { from = s.From, to = s.To }),
+            }, CompactJson);
+        });
+
+        app.MapPut("/api/cameras/{id}/recording", (string id, RecordingSwitch body, SceneState scene, RecordingLog recordings) =>
+        {
+            var camera = scene.FindCamera(id);
+            if (camera == null) return Results.NotFound();
+            recordings.SetRecording(camera.Id, body.Recording);
+            return Results.NoContent();
+        });
+
+        app.MapPut("/api/cameras/{id}/network", (string id, NetworkSwitch body, SceneState scene, CameraNetwork network) =>
+        {
+            var camera = scene.FindCamera(id);
+            if (camera == null) return Results.NotFound();
+            network.SetOnline(camera.Id, body.Online);
+            return Results.NoContent();
+        });
     }
 
     private static object Xyz(Vector3 v) => new { x = v.X, y = v.Y, z = v.Z };

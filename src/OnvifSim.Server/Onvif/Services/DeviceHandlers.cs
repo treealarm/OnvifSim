@@ -114,6 +114,15 @@ public sealed class DeviceHandlers(OnvifRequestContext context)
                 Media = Wants(CapabilityCategory.Media) ? MediaCapabilities() : null,
                 Imaging = Wants(CapabilityCategory.Imaging) ? new ImagingCapabilities { XAddr = context.XAddr("imaging_service") } : null,
                 PTZ = context.HasPtz && Wants(CapabilityCategory.PTZ) ? new PTZCapabilities { XAddr = context.XAddr("ptz_service") } : null,
+                // Profile G's services have no category of their own; All brings them along.
+                Extension = Wants(CapabilityCategory.All)
+                    ? new CapabilitiesExtension
+                    {
+                        Recording = new RecordingCapabilities { XAddr = context.XAddr("recording_service"), MediaProfileSource = true },
+                        Search = new SearchCapabilities { XAddr = context.XAddr("search_service"), MetadataSearch = false },
+                        Replay = new ReplayCapabilities { XAddr = context.XAddr("replay_service") },
+                    }
+                    : null,
             },
         };
     }

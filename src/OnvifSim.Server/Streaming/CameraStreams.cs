@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using OnvifSim.Analytics;
 using OnvifSim.Onvif;
+using OnvifSim.Recording;
 using OnvifSim.Rtsp;
 using OnvifSim.Rtsp.Rtp;
 using OnvifSim.Security;
@@ -11,9 +12,11 @@ namespace OnvifSim.Streaming;
 
 // The cameras as the RTSP server streams them. rtsp://host:port/{cameraId} is the JPEG stream and
 // {cameraId}/h264 the H.264 one (when ffmpeg is available); {stream}/track1 is a stream's video and
-// {stream}/track2 the camera's ONVIF metadata (analytics boxes, PTZ status). Only the camera's users
-// may play them.
-public sealed class CameraStreams(SceneState scene, FeedManager feeds, AnalyticsManager analytics, HttpAuthenticator authenticator)
+// {stream}/track2 the camera's ONVIF metadata (analytics boxes, PTZ status). {cameraId}/replay is the
+// camera's own recording (ReplayStreams). Only the camera's users may play them, and nobody while the
+// camera's network is down.
+public sealed class CameraStreams(
+    SceneState scene, FeedManager feeds, AnalyticsManager analytics, ReplayStreams replay, CameraNetwork network, HttpAuthenticator authenticator)
     : IRtspMediaSource
 {
     private const string VideoTrackName = "track1";
@@ -28,7 +31,11 @@ public sealed class CameraStreams(SceneState scene, FeedManager feeds, Analytics
 
     public RtspMedia? Find(IReadOnlyList<string> path)
     {
-        if (path is not ([_] or [_, H264Path]) || scene.FindCamera(path[0]) is not { } camera) return null;
+        if (path is not ([_] or [_, H264Path] or [_, ReplayStreams.PathSegment]) || scene.FindCamera(path[0]) is not { } camera
+            || !network.IsOnline(camera.Id))
+            return null;
+        if (path is [_, ReplayStreams.PathSegment])
+            return new RtspMedia($"{(camera.Name.Length > 0 ? camera.Name : camera.Id)} recording", [replay.VideoTrack(camera)]);
         var codec = path.Count == 2 ? VideoCodec.H264 : VideoCodec.Jpeg;
         if (codec == VideoCodec.H264 && !feeds.H264Available) return null;
         return new RtspMedia(camera.Name.Length > 0 ? camera.Name : camera.Id, [VideoTrack(camera, codec), MetadataTrack(camera.Id)]);

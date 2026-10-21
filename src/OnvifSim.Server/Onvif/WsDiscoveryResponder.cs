@@ -4,6 +4,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
+using OnvifSim.Recording;
 using OnvifSim.World;
 
 namespace OnvifSim.Onvif;
@@ -14,7 +15,7 @@ namespace OnvifSim.Onvif;
 //
 // XAddrs carry the address the client can reach the simulator on: the configured advertise host, or
 // the local address of the route back to the sender.
-public sealed class WsDiscoveryResponder(SimOptions options, SceneState scene, OnvifHost host, ILogger<WsDiscoveryResponder> logger)
+public sealed class WsDiscoveryResponder(SimOptions options, SceneState scene, OnvifHost host, CameraNetwork network, ILogger<WsDiscoveryResponder> logger)
     : BackgroundService
 {
     private const int MaxMessageBytes = 64 * 1024;
@@ -122,7 +123,7 @@ public sealed class WsDiscoveryResponder(SimOptions options, SceneState scene, O
         int answered = 0;
         foreach (var camera in scene.Current.World.Cameras)
         {
-            if (host.PortOf(camera.Id) is not { } port) continue;
+            if (host.PortOf(camera.Id) is not { } port || !network.IsOnline(camera.Id)) continue;
             var scopes = CameraIdentity.Scopes(camera);
             if (!requestedScopes.All(r => scopes.Any(s => s.StartsWith(r, StringComparison.OrdinalIgnoreCase)))) continue;
             var match = Envelope(

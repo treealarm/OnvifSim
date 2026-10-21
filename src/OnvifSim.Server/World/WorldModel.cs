@@ -125,6 +125,9 @@ public sealed class CameraModel
     public int OnvifPort { get; set; }
     // Accounts the camera accepts on RTSP (and on ONVIF). No users: the camera asks for no credentials.
     public List<UserModel> Users { get; set; } = [];
+    // How far back the camera's own recording (its "SD card", see RecordingLog) reaches: a card is
+    // finite and records round, overwriting the oldest footage. 720 hours is 30 days.
+    public int RecordingRetentionHours { get; set; } = 720;
 }
 
 public sealed class UserModel

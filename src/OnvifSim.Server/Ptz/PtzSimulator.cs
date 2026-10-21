@@ -25,6 +25,10 @@ public sealed class PtzSimulator : IDisposable
     // its move ends, so a request that still holds an older world sees the live position, not the one
     // stored before the move.
     private readonly Dictionary<string, Head> _heads = new(StringComparer.OrdinalIgnoreCase);
+    // Where each head has been, for a replay of the past (StateAt): a copy of its motion after every
+    // command and every move by the editor, with the wall-clock time it began. In memory only, so the
+    // past before a restart shows the head where it was at the first command after it.
+    private readonly Dictionary<string, List<Waypoint>> _history = new(StringComparer.OrdinalIgnoreCase);
 
     public PtzSimulator(WorldStore store, TimeProvider time, ILogger<PtzSimulator> logger)
     {
@@ -37,6 +41,21 @@ public sealed class PtzSimulator : IDisposable
     // Where the camera's head points now; a fixed camera has no head and gets the zero position.
     public PtzPosition PositionOf(CameraModel camera) =>
         camera.Kind == CameraKind.Ptz && camera.Ptz != null ? StateOf(camera).Position : default;
+
+    // Where the camera's head pointed at a moment in the past, as its recording shows it.
+    public PtzState StateAt(CameraModel camera, DateTimeOffset at)
+    {
+        var limits = LimitsOf(camera);
+        lock (_gate)
+        {
+            if (!_history.TryGetValue(camera.Id, out var waypoints) || waypoints.Count == 0) return StateOf(camera);
+            // The last motion begun by then; before the first one, the head held where that one began.
+            int index = waypoints.FindLastIndex(w => w.Wall <= at);
+            var waypoint = waypoints[Math.Max(index, 0)];
+            long stamp = waypoint.Stamp + (long)((at - waypoint.Wall).TotalSeconds * _time.TimestampFrequency);
+            return waypoint.Motion.StateAt(stamp, limits, _time.TimestampFrequency);
+        }
+    }
 
     public PtzState StateOf(CameraModel camera)
     {
@@ -144,6 +163,7 @@ public sealed class PtzSimulator : IDisposable
                 _heads.Add(camera.Id, head);
             }
             change(head, limits, head.PositionAt(now, limits, _time.TimestampFrequency), now);
+            Remember(camera, head, now);
             generation = ++head.Generation;
             head.Timer?.Dispose();
             long end = head.EndOfMove;
@@ -205,14 +225,28 @@ public sealed class PtzSimulator : IDisposable
                 {
                     head.Timer?.Dispose();
                     _heads.Remove(id);
+                    _history.Remove(id);
                 }
                 else if (head.EndOfMove <= now && head.PositionAt(now, ptz, _time.TimestampFrequency) != ptz.Position)
                 {
                     head.Timer?.Dispose();
                     _heads[id] = new Head(ptz.Position, now);
+                    Remember(world.Cameras.First(c => string.Equals(c.Id, id, StringComparison.OrdinalIgnoreCase)), _heads[id], now);
                 }
             }
         }
+    }
+
+    // Called under the lock. What lies wholly beyond the camera's recording retention is forgotten:
+    // nothing can be replayed from there.
+    private void Remember(CameraModel camera, Head head, long now)
+    {
+        var wall = _time.GetUtcNow();
+        if (!_history.TryGetValue(camera.Id, out var waypoints)) _history[camera.Id] = waypoints = [];
+        waypoints.Add(new Waypoint(wall, now, head.Motion));
+        var earliest = wall - TimeSpan.FromHours(camera.RecordingRetentionHours);
+        int stale = waypoints.FindLastIndex(w => w.Wall <= earliest);
+        if (stale > 0) waypoints.RemoveRange(0, stale);
     }
 
     private static PtzModel LimitsOf(CameraModel camera) =>
@@ -261,6 +295,30 @@ public sealed class PtzSimulator : IDisposable
         public bool IsMovingAt(long now) => now < End;
     }
 
+    // A head's three axes as one value: what it was doing from some moment on.
+    private readonly record struct HeadMotion(AxisMotion Pan, AxisMotion Tilt, AxisMotion Zoom)
+    {
+        public PtzState StateAt(long now, PtzModel limits, long frequency) =>
+            new(PositionAt(now, limits, frequency), Pan.IsMovingAt(now) || Tilt.IsMovingAt(now), Zoom.IsMovingAt(now));
+
+        public PtzPosition PositionAt(long now, PtzModel limits, long frequency)
+        {
+            float pan = Pan.ValueAt(now, frequency);
+            pan = limits.EndlessPan
+                ? limits.PanMin + Modulo(pan - limits.PanMin, 360)
+                : Math.Clamp(pan, limits.PanMin, limits.PanMax);
+            return new PtzPosition(
+                pan,
+                Math.Clamp(Tilt.ValueAt(now, frequency), limits.TiltMin, limits.TiltMax),
+                Math.Clamp(Zoom.ValueAt(now, frequency), 0, 1));
+        }
+
+        private static float Modulo(float value, float divisor) => ((value % divisor) + divisor) % divisor;
+    }
+
+    // A head's motion from Wall (the wall clock) or Stamp (the timestamp clock moves are timed by) on.
+    private readonly record struct Waypoint(DateTimeOffset Wall, long Stamp, HeadMotion Motion);
+
     private sealed class Head(PtzPosition position, long now)
     {
         public AxisMotion Pan = AxisMotion.Holding(position.Pan, now);
@@ -276,18 +334,8 @@ public sealed class PtzSimulator : IDisposable
 
         public bool ZoomMovingAt(long now) => Zoom.IsMovingAt(now);
 
-        public PtzPosition PositionAt(long now, PtzModel limits, long frequency)
-        {
-            float pan = Pan.ValueAt(now, frequency);
-            pan = limits.EndlessPan
-                ? limits.PanMin + Modulo(pan - limits.PanMin, 360)
-                : Math.Clamp(pan, limits.PanMin, limits.PanMax);
-            return new PtzPosition(
-                pan,
-                Math.Clamp(Tilt.ValueAt(now, frequency), limits.TiltMin, limits.TiltMax),
-                Math.Clamp(Zoom.ValueAt(now, frequency), 0, 1));
-        }
+        public HeadMotion Motion => new(Pan, Tilt, Zoom);
 
-        private static float Modulo(float value, float divisor) => ((value % divisor) + divisor) % divisor;
+        public PtzPosition PositionAt(long now, PtzModel limits, long frequency) => Motion.PositionAt(now, limits, frequency);
     }
 }

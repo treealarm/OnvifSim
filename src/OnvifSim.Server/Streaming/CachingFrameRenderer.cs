@@ -40,7 +40,7 @@ public sealed class CachingFrameRenderer(TimeProvider time, Func<CameraModel, Pt
         var video = camera.Video;
         lock (_gate)
         {
-            var key = Draw(snapshot, camera, ptz, video.Width, video.Height);
+            var key = Draw(snapshot, camera, ptz, video.Width, video.Height, time.GetUtcNow());
             if (_jpegKey != (key, video.Quality))
             {
                 _jpeg = JpegEncoder.Encode(_frame!, video.Quality);
@@ -52,21 +52,25 @@ public sealed class CachingFrameRenderer(TimeProvider time, Func<CameraModel, Pt
 
     // The camera's picture as RGBA. The frame is this renderer's own buffer and changes on the next call,
     // so only a renderer with a single user may hand it out.
-    public Frame RenderFrame(SceneState.Snapshot snapshot, CameraModel camera, PtzPosition ptz, int width, int height)
+    public Frame RenderFrame(SceneState.Snapshot snapshot, CameraModel camera, PtzPosition ptz, int width, int height) =>
+        RenderFrameAt(snapshot, camera, ptz, width, height, time.GetUtcNow());
+
+    // The picture as it was at a moment, for a replay of the camera's recording: walkers stand where
+    // they stood then. ptz is where the head pointed then, and so should the heads delegate say.
+    public Frame RenderFrameAt(SceneState.Snapshot snapshot, CameraModel camera, PtzPosition ptz, int width, int height, DateTimeOffset at)
     {
         lock (_gate)
         {
-            Draw(snapshot, camera, ptz, width, height);
+            Draw(snapshot, camera, ptz, width, height, at);
             return _frame!;
         }
     }
 
-    private FrameKey Draw(SceneState.Snapshot snapshot, CameraModel camera, PtzPosition ptz, int width, int height)
+    private FrameKey Draw(SceneState.Snapshot snapshot, CameraModel camera, PtzPosition ptz, int width, int height, DateTimeOffset now)
     {
         var imaging = camera.Imaging;
         var scene = snapshot.Scene;
         var pose = CameraPose.From(camera, scene.Terrain, ptz);
-        var now = time.GetUtcNow();
         var walkers = WalkersInView(snapshot.World.Walkers, scene, new ViewFrustum(pose, (float)width / height, scene.FogEnd), now);
         bool headsMoving = CameraMarkers.Any(scene) && snapshot.World.Cameras.Any(c =>
             c.Kind == CameraKind.Ptz && c.Ptz != null && !string.Equals(c.Id, camera.Id, StringComparison.OrdinalIgnoreCase) && IsMoving(HeadOf(c)));

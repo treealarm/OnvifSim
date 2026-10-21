@@ -95,6 +95,11 @@ export function CameraInspector({ camera }: { camera: CameraModel }) {
         <CheckboxField label="Boxes on the picture" checked={showBoxes} onChange={setShowBoxes} />
       </Section>
 
+      <Section title="Recording">
+        <NumberField label="Kept, hours" value={camera.recordingRetentionHours} min={1} max={8760}
+          onChange={(recordingRetentionHours) => change({ recordingRetentionHours })} />
+      </Section>
+
       <Section title="Access">
         <NumberField label="ONVIF port (0: auto)" value={camera.onvifPort} min={0} max={65535} onChange={(onvifPort) => change({ onvifPort })} />
         <Users users={camera.users} onChange={(users) => change({ users })} />

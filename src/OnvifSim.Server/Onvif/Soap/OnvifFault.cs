@@ -70,4 +70,16 @@ public sealed class OnvifFault(bool isSender, string[] subcodes, string reason) 
 
     public static OnvifFault SettingsInvalid(string reason) =>
         new(true, ["InvalidArgVal", "SettingsInvalid"], reason);
+
+    public static OnvifFault NoRecording(string token) =>
+        new(true, ["InvalidArgVal", "NoRecording"], $"No recording with token '{token}'.");
+
+    public static OnvifFault NoRecordingJob(string token) =>
+        new(true, ["InvalidArgVal", "NoRecordingJob"], $"No recording job with token '{token}'.");
+
+    public static OnvifFault BadMode(string mode) =>
+        new(true, ["InvalidArgVal", "BadMode"], $"Recording job mode '{mode}' is neither Active nor Idle.");
+
+    public static OnvifFault InvalidToken(string token) =>
+        new(true, ["InvalidArgVal", "InvalidToken"], $"No search with token '{token}'.");
 }

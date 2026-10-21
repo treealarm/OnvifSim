@@ -92,6 +92,8 @@ public static partial class WorldValidation
             $"Camera {id}: position and orientation must be finite.");
         Require(camera.HFov is >= 1 and <= 170, $"Camera {id}: field of view {camera.HFov} is outside 1..170.");
         Require(camera.OnvifPort is >= 0 and <= 65535, $"Camera {id}: ONVIF port {camera.OnvifPort} is outside 0..65535.");
+        Require(camera.RecordingRetentionHours is >= 1 and <= 8760,
+            $"Camera {id}: recording retention {camera.RecordingRetentionHours} h is outside 1..8760 (a year).");
 
         var video = camera.Video;
         CheckVideoSize(id, "JPEG", video.Width, video.Height);

@@ -54,6 +54,24 @@ public sealed class PtzSimulatorTests : IDisposable
     }
 
     [Fact]
+    public void StateAt_ReplaysWhereTheHeadPointedThen()
+    {
+        var start = _time.GetUtcNow();
+        _ptz.MoveTo(Cam2, new PtzAxes(45, null, null), default);
+        Wait(1);
+        _ptz.MoveTo(Cam2, new PtzAxes(0, null, null), default);
+        Wait(1);
+
+        Assert.Equal(0, _ptz.StateAt(Cam2, start - TimeSpan.FromSeconds(1)).Position.Pan, 0.01f);
+        var halfway = _ptz.StateAt(Cam2, start + TimeSpan.FromSeconds(0.25));
+        Assert.Equal(22.5f, halfway.Position.Pan, 0.01f);
+        Assert.True(halfway.PanTiltMoving);
+        Assert.Equal(45, _ptz.StateAt(Cam2, start + TimeSpan.FromSeconds(0.75)).Position.Pan, 0.01f);
+        Assert.Equal(22.5f, _ptz.StateAt(Cam2, start + TimeSpan.FromSeconds(1.25)).Position.Pan, 0.01f);
+        Assert.Equal(0, _ptz.StateOf(Cam2).Position.Pan, 0.01f);
+    }
+
+    [Fact]
     public void ATimerFiringEarly_DoesNotSaveTheHeadShortOfItsTarget()
     {
         using var dir = new TempDir();

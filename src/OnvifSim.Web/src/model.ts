@@ -119,6 +119,8 @@ export interface CameraModel {
   ptz: PtzSettings | null;
   onvifPort: number;
   users: { username: string; password: string }[];
+  // How far back the camera's own recording (Profile G replay) reaches, in hours.
+  recordingRetentionHours: number;
 }
 
 // A camera's colour when it has none of its own (CameraMesh.ColorOf).

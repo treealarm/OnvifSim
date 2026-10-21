@@ -181,6 +181,9 @@ port 18180; `npm run e2e` runs the browser test.
 | `GET /api/cameras/{id}/pose` | ground truth: where the camera stands (absolute, terrain included) and looks (heading and pitch with the PTZ head, the picture's own axes `forward`, `right`, `up`, field of view from the zoom) |
 | `POST /api/cameras/{id}/ptz/aim` | turn a PTZ head until a point of the world (`x`, `y`, `z`, absolute) is in the middle of its picture; answers the pan and tilt, or 409 beyond the head's limits |
 | `GET /api/walkers/{id}/pose` | ground truth: where a walker is at this moment |
+| `GET /api/cameras/{id}/recording` | the camera's own recording: whether it records, whether it is online, its retention and the spans it holds |
+| `PUT /api/cameras/{id}/recording` | `{"recording": false}` stops the camera's own recording, `true` starts it again |
+| `PUT /api/cameras/{id}/network` | `{"online": false}` cuts the camera off the network (it goes on recording), `true` brings it back |
 
 A change the simulator cannot run with (an unknown object type, a frame size that is not a
 multiple of 8, two cameras on one port…) is refused with 400 and the reason.
@@ -228,6 +231,16 @@ key frame. Without ffmpeg (or with `--ffmpeg none`) cameras stream JPEG only.
 ffplay -rtsp_transport tcp rtsp://admin:admin@localhost:8554/cam1/h264
 ```
 
+### Replay
+
+`rtsp://<host>:8554/<camera id>/replay` is the camera's own recording (Profile G, see below), as
+`GetReplayUri` hands it out: ONVIF replay (ONVIF Streaming Specification, 6), `Require: onvif-replay`,
+`Range: clock=<start>-<end>` and `Rate-Control: no` for as fast as the client takes it. The first frame
+is a key frame at exactly the start asked for; RTP time runs with recording time and jumps across a
+hole in the recording, with a new key frame after it; every packet carries the replay header extension
+(0xABAC: the frame's NTP time and the C, E, D and T flags). When the range or the recording ends, the
+server closes the connection. H.264 when ffmpeg is there, JPEG otherwise.
+
 ## ONVIF
 
 Every camera is a device of its own, on its own port: `http://<host>:8001/onvif/device_service` for
@@ -253,6 +266,20 @@ WS-Discovery, so ONVIF Device Manager, an NVR or `OnvifLib.Probe --discovery` li
   as soon as its analytics sees someone, and clears it a second after the last person is gone; a new
   subscription first gets the current state. A subscription lives for the time it asked for (a minute
   by default), renewed by `Renew` and by every pull; a camera keeps at most 10.
+
+- **Recording, Search, Replay** (Profile G): the camera's own recording, as on a camera with an SD
+  card. Every camera records from the moment it is in the world, with one recording (`Recording_1`,
+  one video track) and one job (`RecordingJob_1`); `SetRecordingJobMode` Idle and Active stop and
+  start it, and its `MaximumRetentionTime` (`recordingRetentionHours` in `world.json`, 30 days by
+  default) is how far back the card reaches before it records over the oldest footage.
+  `FindRecordings` (with the usual `TrackType`/`DataFrom`/`DataTo` filter) returns everything at
+  once, `GetRecordingInformation`, `GetRecordingSummary` and `GetReplayUri` the rest; recordings and
+  tracks cannot be created or deleted. No frame is stored: the world is a function of time, so replay
+  draws the past again, PTZ heads where they pointed then. When the camera recorded is kept in
+  `recordings.json` beside `world.json`; while the simulator is not running the cameras do not
+  record. Edits to the world are not historised: a replay shows the past in today's world.
+  `PUT /api/cameras/{id}/network` cuts a camera off (its ONVIF port drops requests, its streams stop,
+  discovery leaves it out) while it goes on recording: the case a VMS recovers footage for.
 
 - **Authentication** as on real cameras: WS-Security UsernameToken or HTTP Digest/Basic with the
   camera's `users`; `GetSystemDateAndTime`, `GetCapabilities`, `GetServices` and `GetHostname` answer

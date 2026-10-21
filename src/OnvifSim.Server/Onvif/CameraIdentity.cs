@@ -43,6 +43,7 @@ public static class CameraIdentity
         .. camera.Kind == CameraKind.Ptz ? ["onvif://www.onvif.org/type/ptz"] : Array.Empty<string>(),
         "onvif://www.onvif.org/type/Network_Video_Transmitter",
         "onvif://www.onvif.org/Profile/Streaming",
+        "onvif://www.onvif.org/Profile/G",
         $"onvif://www.onvif.org/hardware/{HardwareId(camera)}",
         $"onvif://www.onvif.org/name/{Uri.EscapeDataString(camera.Name.Length > 0 ? camera.Name : camera.Id)}",
         "onvif://www.onvif.org/location/OnvifSim",

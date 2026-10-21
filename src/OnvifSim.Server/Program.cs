@@ -5,6 +5,7 @@ using OnvifSim.Onvif;
 using OnvifSim.Onvif.Events;
 using OnvifSim.Onvif.Services;
 using OnvifSim.Ptz;
+using OnvifSim.Recording;
 using OnvifSim.Rtsp;
 using OnvifSim.Security;
 using OnvifSim.Streaming;
@@ -35,6 +36,9 @@ builder.Services.AddSingleton(sp => H264Support.Detect(options, sp.GetRequiredSe
 builder.Services.AddSingleton<FeedManager>();
 builder.Services.AddSingleton<AnalyticsManager>();
 builder.Services.AddSingleton<PullPoints>();
+builder.Services.AddSingleton<RecordingLog>();
+builder.Services.AddSingleton<CameraNetwork>();
+builder.Services.AddSingleton<ReplayStreams>();
 builder.Services.AddSingleton<HttpAuthenticator>();
 builder.Services.AddSingleton<IRtspMediaSource, CameraStreams>();
 builder.Services.AddSingleton(new RtspServerOptions
@@ -45,7 +49,8 @@ builder.Services.AddSingleton<RtspServer>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<RtspServer>());
 builder.Services.AddSingleton(sp => new OnvifDispatcher(
     [typeof(DeviceHandlers), typeof(MediaHandlers), typeof(Media2Handlers), typeof(PtzHandlers), typeof(ImagingHandlers),
-     typeof(EventHandlers), typeof(PullPointHandlers), typeof(SubscriptionManagerHandlers)],
+     typeof(EventHandlers), typeof(PullPointHandlers), typeof(SubscriptionManagerHandlers),
+     typeof(RecordingHandlers), typeof(SearchHandlers), typeof(ReplayHandlers)],
     sp.GetRequiredService<HttpAuthenticator>(), sp.GetRequiredService<ILogger<OnvifDispatcher>>()));
 builder.Services.AddSingleton<OnvifHost>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<OnvifHost>());
@@ -56,6 +61,13 @@ builder.Services.ConfigureHttpJsonOptions(o =>
 });
 
 var app = builder.Build();
+
+// A camera that loses its network loses its streams too: they stop, as packets would. The recording
+// log is created here rather than on first use, so that cameras record from the start.
+var rtspServer = app.Services.GetRequiredService<RtspServer>();
+app.Services.GetRequiredService<CameraNetwork>().WentOffline += cameraId =>
+    _ = rtspServer.CloseSessionsAsync(path => string.Equals(path[0], cameraId, StringComparison.OrdinalIgnoreCase));
+app.Services.GetRequiredService<RecordingLog>();
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
