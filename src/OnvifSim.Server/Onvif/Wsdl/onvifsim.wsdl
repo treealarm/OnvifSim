@@ -9,4 +9,7 @@
   <wsdl:import namespace="http://www.onvif.org/ver20/ptz/wsdl" location="ver20/ptz/wsdl/ptz.wsdl"/>
   <wsdl:import namespace="http://www.onvif.org/ver20/imaging/wsdl" location="ver20/imaging/wsdl/imaging.wsdl"/>
   <wsdl:import namespace="http://www.onvif.org/ver10/events/wsdl" location="ver10/events/wsdl/event.wsdl"/>
+  <wsdl:import namespace="http://www.onvif.org/ver10/recording/wsdl" location="ver10/recording.wsdl"/>
+  <wsdl:import namespace="http://www.onvif.org/ver10/search/wsdl" location="ver10/search.wsdl"/>
+  <wsdl:import namespace="http://www.onvif.org/ver10/replay/wsdl" location="ver10/replay.wsdl"/>
 </wsdl:definitions>
