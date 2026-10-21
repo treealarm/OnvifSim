@@ -9,7 +9,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
 using OnvifLib;
 using OnvifSim.Onvif;
+using OnvifSim.Recording;
 using OnvifSim.Rtsp;
+using OnvifSim.Streaming;
 using OnvifSim.World;
 
 namespace OnvifSim.Tests;
@@ -129,6 +131,18 @@ public class RecordingTests(RecordingSimFactory factory) : IClassFixture<Recordi
         Assert.True(frames[^1].Terminal);
         Assert.False(frames[^2].Terminal);
         Assert.DoesNotContain(frames, f => f.Discontinuity);
+    }
+
+    [Fact]
+    public async Task Replay_FromBetweenTwoFrames_StartsAtTheFrameBefore()
+    {
+        Wait(TimeSpan.FromSeconds(30));
+        var from = factory.Start + TimeSpan.FromSeconds(10.05);
+
+        var (_, packets) = await ReplayAsync("cam3", from, from + TimeSpan.FromSeconds(1));
+        var frames = Frames(packets);
+        Assert.Equal(factory.Start + TimeSpan.FromSeconds(10), frames[0].Time);
+        Assert.True(frames[0].CleanPoint);
     }
 
     [Fact]
@@ -311,5 +325,40 @@ public class H264ReplayTests(H264RecordingSimFactory factory) : IClassFixture<H2
             .ToHashSet();
         Assert.Superset(new HashSet<int> { 7, 8, 5 }, firstFrame);
     }
+
+    // A real card can only be decoded from a key frame, so a start between two of them comes from the one
+    // before: here the default world's GOV length of 10 frames, a key frame every second.
+    [FfmpegFact]
+    public async Task Replay_FromMidGop_StartsAtTheKeyFrameBefore()
+    {
+        factory.Time.Advance(TimeSpan.FromSeconds(30));
+        var from = factory.Start + TimeSpan.FromSeconds(7.45);
+        int port = factory.Services.GetRequiredService<RtspServer>().Port;
+        var (_, packets) = await ReplayClient.PlayAsync(port, "cam3", from, from + TimeSpan.FromSeconds(2));
+
+        var frames = ReplayClient.Frames(packets);
+        Assert.Equal(factory.Start + TimeSpan.FromSeconds(7), frames[0].Time);
+        Assert.True(frames[0].CleanPoint);
+        Assert.Equal(25, frames.Count); // 7.0 .. 9.4
+        Assert.Equal(new[] { 0, 10, 20 }, frames.Select((f, i) => (f, i)).Where(x => x.f.CleanPoint).Select(x => x.i));
+    }
 }
 
+public class ReplaySectionTests
+{
+    private static readonly DateTimeOffset T0 = new(2026, 10, 21, 12, 0, 0, TimeSpan.Zero);
+    private static readonly TimeSpan Gop = TimeSpan.FromSeconds(2);
+    private static readonly RecordedSpan[] Spans = [new(T0, T0.AddSeconds(60)), new(T0.AddSeconds(70.3), T0.AddSeconds(100))];
+
+    [Theory]
+    [InlineData(12.3, 12)] // between key frames: the one before
+    [InlineData(14, 14)] // on a key frame: that one
+    [InlineData(-5, 0)] // before the recording: where it begins
+    [InlineData(65, 70.3)] // in a hole: where the recording resumes, which keys there
+    [InlineData(73.9, 72.3)] // a span keys from its own start
+    public void Sections_StartAtTheKeyFrameAtOrBeforeTheRangesStart(double from, double expected)
+    {
+        var sections = ReplayStreams.Sections(Spans, T0.AddSeconds(from), T0.AddSeconds(90), Gop);
+        Assert.Equal(T0.AddSeconds(expected), sections[0].Start, TimeSpan.FromMilliseconds(1));
+    }
+}

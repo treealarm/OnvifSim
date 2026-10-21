@@ -236,7 +236,9 @@ ffplay -rtsp_transport tcp rtsp://admin:admin@localhost:8554/cam1/h264
 `rtsp://<host>:8554/<camera id>/replay` is the camera's own recording (Profile G, see below), as
 `GetReplayUri` hands it out: ONVIF replay (ONVIF Streaming Specification, 6), `Require: onvif-replay`,
 `Range: clock=<start>-<end>` and `Rate-Control: no` for as fast as the client takes it. The first frame
-is a key frame at exactly the start asked for; RTP time runs with recording time and jumps across a
+is the key frame at or before the start asked for, as on a real card: the recording keys every GOV
+length frames from where it began, so a start between two key frames gets up to a GOP of footage from
+before it, and only the replay header says how much. RTP time runs with recording time and jumps across a
 hole in the recording, with a new key frame after it; every packet carries the replay header extension
 (0xABAC: the frame's NTP time and the C, E, D and T flags). When the range or the recording ends, the
 server closes the connection. H.264 when ffmpeg is there, JPEG otherwise.

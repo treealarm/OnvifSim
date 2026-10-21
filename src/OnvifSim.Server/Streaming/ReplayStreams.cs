@@ -16,10 +16,12 @@ namespace OnvifSim.Streaming;
 // every session draws the past again at the camera's frame rate from the start of the PLAY's clock
 // range, and encodes it with an encoder of its own: H.264 when ffmpeg is there, JPEG otherwise.
 //
-// What a replay client relies on (ONVIF Streaming Specification, 6): the first frame is a key frame at
-// exactly the start asked for; RTP time runs with recording time, so across a hole in the recording it
-// jumps by the hole, and a new key frame follows; every packet carries the replay header extension with
-// the frame's time. When the range or the recording ends the playback returns, which ends the session
+// What a replay client relies on (ONVIF Streaming Specification, 6): the first frame is the key frame at
+// or before the start asked for, as on a real card, where footage can only be decoded from a key frame:
+// the recording keys every GOV length frames from where it began, so a start between two key frames
+// gets up to a GOP of footage from before it, and only the replay header says how much. RTP time runs
+// with recording time, so across a hole in the recording it jumps by the hole, and a new key frame
+// follows; every packet carries the replay header extension with the frame's time. When the range or the recording ends the playback returns, which ends the session
 // and, over TCP, closes the connection: how the client learns it has everything.
 public sealed class ReplayStreams(
     SceneState scene, RecordingLog recordings, PtzSimulator ptz, H264Support h264, TimeProvider time, ILoggerFactory loggers)
@@ -56,7 +58,7 @@ public sealed class ReplayStreams(
 
     // A stretch of the requested range the camera recorded without a break. Its frames are made as they
     // are sent (FramesOf): a range may reach back weeks.
-    private sealed record Section(DateTimeOffset Start, DateTimeOffset End, bool AfterGap, bool Last);
+    internal sealed record Section(DateTimeOffset Start, DateTimeOffset End, bool AfterGap, bool Last);
 
     // What one playback renders with: the world as it was when PLAY came, the camera in it, and the
     // clock its frames are paced and stamped by.
@@ -96,26 +98,34 @@ public sealed class ReplayStreams(
         var spans = recordings.SpansOf(camera);
         var from = request.From ?? spans.FirstOrDefault().From;
         var to = request.To ?? DateTimeOffset.MaxValue;
-        var sections = Sections(spans, from, to);
+        var sections = Sections(spans, from, to, KeyFrameInterval(camera));
         if (sections.Count == 0)
         {
             _logger.LogInformation("Camera {Camera}: nothing recorded in {Range}", cameraId, request.RangeHeader);
             return;
         }
-        // From the first frame actually there: a range that starts in a hole starts where the recording resumes.
+        // From the first frame sent: a range that starts in a hole starts where the recording resumes, one
+        // that starts between key frames at the key frame before it.
         var first = sections[0].Start;
         _logger.LogInformation("Camera {Camera}: replaying {From:O} to {To:O}", cameraId, first, sections[^1].End);
         await send(sections, new Context(snapshot, camera, sender, first, time), cancellationToken);
         _logger.LogInformation("Camera {Camera}: replay of {Range} done", cameraId, request.RangeHeader);
     }
 
-    // The parts of the range the camera recorded, the first starting at the range's start.
-    private static List<Section> Sections(IReadOnlyList<RecordedSpan> spans, DateTimeOffset from, DateTimeOffset to)
+    // How far apart the recording's key frames are: a GOV length of H.264 frames, or every JPEG frame.
+    private TimeSpan KeyFrameInterval(CameraModel camera) => h264.FfmpegPath != null
+        ? TimeSpan.FromSeconds((double)Math.Max(1, camera.H264.GovLength) / Math.Clamp(camera.H264.Fps, 1, 60))
+        : TimeSpan.FromSeconds(1.0 / Math.Clamp(camera.Video.Fps, 1, 60));
+
+    // The parts of the range the camera recorded, the first starting at the last key frame at or before the
+    // range's start. A span keys from where it begins, as an encoder started with the recording would; of a
+    // span the card has partly recorded over, from where what is left of it begins.
+    internal static List<Section> Sections(IReadOnlyList<RecordedSpan> spans, DateTimeOffset from, DateTimeOffset to, TimeSpan keyFrameInterval)
     {
         var sections = new List<Section>();
         foreach (var span in spans)
         {
-            var start = span.From > from ? span.From : from;
+            var start = span.From >= from ? span.From : span.From + keyFrameInterval * Math.Floor((from - span.From) / keyFrameInterval);
             var end = span.To < to ? span.To : to;
             if (end > start) sections.Add(new Section(start, end, AfterGap: sections.Count > 0, Last: false));
         }

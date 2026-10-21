@@ -10,6 +10,9 @@
   recording, and `PUT /api/cameras/{id}/recording` stops and starts its recording, for testing how a
   VMS recovers what it missed.
 - **Fixed:** the last frame an H.264 encoder produced was lost when it stopped.
+- Replay starts at the key frame at or before the start asked for, as a real card does, not at a key
+  frame made for exactly that moment: a client that stamps footage from where it asked for it rather
+  than from the replay header's time is now off by up to a GOP, as it would be on a real camera.
 
 - Ground truth for testing clients that calibrate cameras or aim one at a person:
   `GET /api/cameras/{id}/pose` (where a camera stands and looks, PTZ head included) and
