@@ -1,11 +1,6 @@
-import { plateText, type GroundPoint, type Road, type RouteReturn, type Vehicle, type Walker } from '../model';
+import { plateText, type GroundPoint, type Road, type Vehicle, type Walker } from '../model';
 import { removeSelected, startDrawing, updateRoad, updateVehicle, updateWalker } from '../store';
-import { CheckboxField, ColorField, NumberField, Section, SelectField, TextField } from './fields';
-
-const returnOptions = [
-  { value: 'loop', label: 'Round in a loop' },
-  { value: 'reverse', label: 'There and back' },
-] as const satisfies readonly { value: RouteReturn; label: string }[];
+import { CheckboxField, ColorField, NumberField, Section, TextField } from './fields';
 
 export function RoadInspector({ road }: { road: Road }) {
   const change = (patch: Partial<Road>) => updateRoad({ ...road, ...patch });
@@ -17,6 +12,8 @@ export function RoadInspector({ road }: { road: Road }) {
       <Section title="Road">
         <NumberField label="Width, m" value={road.width} min={0.5} max={50} step={0.5} onChange={(width) => change({ width })} />
         <ColorField label="Surface" value={road.color ?? '#55575a'} onChange={(color) => change({ color })} />
+        <CheckboxField label="Closed loop" checked={road.closed} onChange={(closed) => change({ closed })} />
+        <p className="muted">Joins the last point to the first, so the road goes round as a ring.</p>
       </Section>
       <Points
         points={road.points}
@@ -40,7 +37,8 @@ export function WalkerInspector({ walker }: { walker: Walker }) {
       </h2>
       <Section title="Walk">
         <NumberField label="Speed, m/s" value={walker.speed} min={0} max={10} step={0.1} onChange={(speed) => change({ speed })} />
-        <SelectField label="At the end" value={walker.return} options={returnOptions} onChange={(value) => change({ return: value })} />
+        <CheckboxField label="Closed loop" checked={walker.return === 'loop'} onChange={(closed) => change({ return: closed ? 'loop' : 'reverse' })} />
+        <p className="muted">Closed, they go round the route; open, they turn round at the last point and come back.</p>
         <NumberField label="Height, m" value={walker.height} min={0.5} max={3} step={0.05} onChange={(height) => change({ height })} />
         <ColorField label="Top" value={walker.color ?? '#3b6ea8'} onChange={(color) => change({ color })} />
         <ColorField label="Trousers" value={walker.color2 ?? '#3a3a44'} onChange={(color2) => change({ color2 })} />
@@ -68,7 +66,8 @@ export function VehicleInspector({ vehicle }: { vehicle: Vehicle }) {
       </h2>
       <Section title="Drive">
         <NumberField label="Speed, m/s" value={vehicle.speed} min={0} max={50} step={0.5} onChange={(speed) => change({ speed })} />
-        <SelectField label="At the end" value={vehicle.return} options={returnOptions} onChange={(value) => change({ return: value })} />
+        <CheckboxField label="Closed loop" checked={vehicle.return === 'loop'} onChange={(closed) => change({ return: closed ? 'loop' : 'reverse' })} />
+        <p className="muted">Closed, it drives round the route; open, it turns round at the last point and comes back.</p>
         <CheckboxField label="Seen by analytics" checked={vehicle.detectable} onChange={(detectable) => change({ detectable })} />
       </Section>
       <Section title="Body">

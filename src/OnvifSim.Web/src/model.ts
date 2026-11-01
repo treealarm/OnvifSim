@@ -64,6 +64,8 @@ export interface Road {
   points: GroundPoint[];
   width: number;
   color: string | null;
+  // Whether the last point joins the first, making a ring.
+  closed: boolean;
 }
 
 // Loop: from the last point back to the first; reverse: back the same way.

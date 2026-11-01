@@ -82,19 +82,26 @@ public static class SceneBuilder
         var color = ColorUtil.Parse(road.Color, ColorUtil.Rgb(85, 87, 90));
         float half = road.Width / 2;
         int across = Math.Max(2, (int)MathF.Ceiling(road.Width / RoadSampleSpacing));
+        int segments = road.Closed ? points.Count : points.Count - 1;
         int previousRow = -1;
-        for (int i = 0; i < points.Count - 1; i++)
+        for (int i = 0; i < segments; i++)
         {
-            var (a, b) = (points[i], points[i + 1]);
+            var a = points[i];
+            var b = points[(i + 1) % points.Count];
             float length = Vector2.Distance(a, b);
             if (length == 0) continue;
             int steps = Math.Max(1, (int)MathF.Ceiling(length / RoadSampleSpacing));
-            // The last row of a segment is the first of the next one, turned halfway between the two.
+            // The last row of a segment is the first of the next one, turned halfway between the two;
+            // a closed road's last row meets the first one at the starting point.
             for (int s = previousRow < 0 ? 0 : 1; s <= steps; s++)
             {
                 float t = (float)s / steps;
                 var centre = Vector2.Lerp(a, b, t);
-                var side = Side(points, i, s == steps ? i + 1 : -1);
+                var side = s == 0 && i == 0
+                    ? JointSide(points, 0, road.Closed)
+                    : s == steps
+                        ? JointSide(points, (i + 1) % points.Count, road.Closed)
+                        : Across(a, b);
                 int row = mesh.VertexCount;
                 for (int k = 0; k <= across; k++)
                 {
@@ -115,22 +122,30 @@ public static class SceneBuilder
         return mesh;
     }
 
-    // The unit vector pointing across the road (to the right of travel) on segment i, or at a joint the
-    // average of the segments meeting there.
-    private static Vector2 Side(List<Vector2> points, int segment, int joint)
+    private static Vector2 Across(Vector2 from, Vector2 to)
     {
-        static Vector2 Across(Vector2 from, Vector2 to)
-        {
-            var d = Vector2.Normalize(to - from);
-            return new Vector2(-d.Y, d.X);
-        }
-        var side = Across(points[segment], points[segment + 1]);
-        if (joint > 0 && joint < points.Count - 1 && points[joint + 1] != points[joint])
-        {
-            var averaged = side + Across(points[joint], points[joint + 1]);
-            if (averaged.LengthSquared() > 1e-6f) side = Vector2.Normalize(averaged);
-        }
-        return side;
+        var d = Vector2.Normalize(to - from);
+        return new Vector2(-d.Y, d.X);
+    }
+
+    // The direction across the road at a joint: the average of the segments arriving at it and leaving
+    // it, so the two rows that meet there share one edge. On a closed road the first and last segments
+    // meet at joint 0 too.
+    private static Vector2 JointSide(List<Vector2> points, int joint, bool closed)
+    {
+        int n = points.Count;
+        int incoming = (joint - 1 + n) % n;
+        int outgoing = (joint + 1) % n;
+        var side = Vector2.Zero;
+        if ((closed || joint > 0) && points[joint] != points[incoming])
+            side += Across(points[incoming], points[joint]);
+        if ((closed || joint < n - 1) && points[outgoing] != points[joint])
+            side += Across(points[joint], points[outgoing]);
+        if (side.LengthSquared() > 1e-6f) return Vector2.Normalize(side);
+        // A joint surrounded by zero-length segments has no direction; take any segment that has one.
+        for (int i = 0; i < (closed ? n : n - 1); i++)
+            if (points[i] != points[(i + 1) % n]) return Across(points[i], points[(i + 1) % n]);
+        return new Vector2(1, 0);
     }
 
     private static void AddUpward(Mesh mesh, int a, int b, int c)

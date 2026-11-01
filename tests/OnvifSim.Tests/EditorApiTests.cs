@@ -42,6 +42,8 @@ public class EditorApiTests(SimFactory factory) : IClassFixture<SimFactory>
         var client = factory.CreateClient();
         Assert.Equal(HttpStatusCode.NoContent, (await client.PutAsync("/api/roads/test-road", Json(new { points = new[] { new { x = 0, z = 0 }, new { x = 20, z = 5 } }, width = 3 }))).StatusCode);
         Assert.Equal(3, Store.Current.Roads.Single(r => r.Id == "test-road").Width);
+        Assert.Equal(HttpStatusCode.NoContent, (await client.PutAsync("/api/roads/test-road", Json(new { points = new[] { new { x = 0, z = 0 }, new { x = 20, z = 5 } }, closed = true }))).StatusCode);
+        Assert.True(Store.Current.Roads.Single(r => r.Id == "test-road").Closed);
         Assert.Equal(HttpStatusCode.NoContent, (await client.PutAsync("/api/walkers/test-walker", Json(new { route = new[] { new { x = 1, z = 2 } }, @return = "reverse" }))).StatusCode);
         Assert.Equal(RouteReturn.Reverse, Store.Current.Walkers.Single(w => w.Id == "test-walker").Return);
 

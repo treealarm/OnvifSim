@@ -27,6 +27,10 @@
   `/api/vehicles/{id}/pose`. The route rule is shared with walkers (`RouteMotion`). A parked car's
   panel has **Make it drive**, which turns it into a moving car on a straight route along its heading
   and keeps its paint, size and plate; the conversion is one Undo step.
+- **Closed roads and routes.** A road's panel has **Closed loop**: the last point joins the first and
+  the strip runs round as a ring (`closed` in the world file). People and moving cars have the same
+  choice on their routes: closed, they go round; open, they turn round at the last point and come
+  back, which is the existing `return` loop/reverse setting with a clearer control.
 - **Documentation**: the README is now the complete English documentation; the outdated
   `docs/PLAN.md` was removed (git history keeps it), and the README gained screenshots of the world
   manager, the contents tree, the car's plate and a moving car's route.

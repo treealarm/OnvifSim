@@ -208,10 +208,11 @@ is marked with a dot, so the viewport keeps doing exactly what it did until anot
   selection, Escape drops it.
 - **Add** trees, houses, rocks, boxes, cars and fixed or PTZ cameras: pick one and click the ground.
 - **Draw** roads, people and car routes: click the ground point by point and finish with a
-  double-click or Enter. A person walks their route, a car drives theirs, over and over, round in a
-  loop or there and back, at the speed you set; a car turns to follow the route. Every camera sees
-  them move: where they are follows from the clock, so all streams and snapshots agree. Drag the
-  points of a selected road or route to reshape it.
+  double-click or Enter. A person walks their route, a car drives theirs over and over; a car turns
+  to follow the route. **Closed loop** makes the last point join the first, so they go round; left
+  open, they turn round at the last point and come back. A road can be closed into a ring the same
+  way. Every camera sees them move: where they are follows from the clock, so all streams and
+  snapshots agree. Drag the points of a selected road or route to reshape it.
 - **Terrain** brushes: Raise, Lower, Smooth and Flatten, with radius and strength.
 - **Contents** lists every camera, object, road, person and moving car in the world on the left.
   Objects are grouped by type, and opening a type shows its ids. Clicking a row selects it exactly as
@@ -242,8 +243,9 @@ is marked with a dot, so the viewport keeps doing exactly what it did until anot
   village distance shows the car, not the text. **Make it drive** in a parked car's panel turns it
   into a moving car on a straight route along the way it faces, keeping its paint, size and plate;
   one Undo parks it again. **Car route** under Draw makes a moving car from a route you draw: set its
-  speed, whether it loops or goes back, its body size, paint, plate background and plate, and whether
-  cameras' analytics report it. A selected car shows its route, and the points drag like a person's.
+  speed, whether the route is a closed loop, its body size, paint, plate background and plate, and
+  whether cameras' analytics report it. A selected car shows its route, and the points drag like a
+  person's.
 
 <p align="center">
   <img src="docs/images/car-plate.png" alt="The editor with the car selected: its body and plate settings, including the plate text" width="90%">

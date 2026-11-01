@@ -211,17 +211,24 @@ function roadGeometry(road: Road, terrain: Terrain): BufferGeometry {
   const across = Math.max(2, Math.ceil(road.width / sampleSpacing));
   const positions: number[] = [];
   const indices: number[] = [];
+  const segments = road.closed ? points.length : points.length - 1;
   let previousRow = -1;
-  for (let i = 0; i < points.length - 1; i++) {
+  for (let i = 0; i < segments; i++) {
     const a = points[i];
-    const b = points[i + 1];
+    const b = points[(i + 1) % points.length];
     const length = Math.hypot(b.x - a.x, b.z - a.z);
     if (length === 0) continue;
     const steps = Math.max(1, Math.ceil(length / sampleSpacing));
     for (let s = previousRow < 0 ? 0 : 1; s <= steps; s++) {
       const t = s / steps;
       const centre = { x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t };
-      const side = sideOf(points, i, s === steps ? i + 1 : -1);
+      // At a joint the two segments share one edge; a closed road's last row meets its first.
+      const side =
+        s === 0 && i === 0
+          ? jointSide(points, 0, road.closed)
+          : s === steps
+            ? jointSide(points, (i + 1) % points.length, road.closed)
+            : acrossOf(a, b);
       const row = positions.length / 3;
       for (let k = 0; k <= across; k++) {
         const offset = half * ((2 * k) / across - 1);
@@ -245,18 +252,33 @@ function roadGeometry(road: Road, terrain: Terrain): BufferGeometry {
   return geometry;
 }
 
-function sideOf(points: GroundPoint[], segment: number, joint: number) {
-  const across = (from: GroundPoint, to: GroundPoint) => {
-    const length = Math.hypot(to.x - from.x, to.z - from.z);
-    return { x: -(to.z - from.z) / length, z: (to.x - from.x) / length };
+function acrossOf(from: GroundPoint, to: GroundPoint) {
+  const length = Math.hypot(to.x - from.x, to.z - from.z);
+  return { x: -(to.z - from.z) / length, z: (to.x - from.x) / length };
+}
+
+function jointSide(points: GroundPoint[], joint: number, closed: boolean) {
+  const n = points.length;
+  const incoming = (joint - 1 + n) % n;
+  const outgoing = (joint + 1) % n;
+  let x = 0;
+  let z = 0;
+  const add = (from: GroundPoint, to: GroundPoint) => {
+    const side = acrossOf(from, to);
+    x += side.x;
+    z += side.z;
   };
-  let side = across(points[segment], points[segment + 1]);
-  const next = points[joint + 1];
-  if (joint > 0 && next && (next.x !== points[joint].x || next.z !== points[joint].z)) {
-    const other = across(points[joint], next);
-    const sum = { x: side.x + other.x, z: side.z + other.z };
-    const length = Math.hypot(sum.x, sum.z);
-    if (length > 1e-3) side = { x: sum.x / length, z: sum.z / length };
+  if ((closed || joint > 0) && (points[incoming].x !== points[joint].x || points[incoming].z !== points[joint].z))
+    add(points[incoming], points[joint]);
+  if ((closed || joint < n - 1) && (points[outgoing].x !== points[joint].x || points[outgoing].z !== points[joint].z))
+    add(points[joint], points[outgoing]);
+  const length = Math.hypot(x, z);
+  if (length > 1e-3) return { x: x / length, z: z / length };
+  // A joint surrounded by zero-length segments has no direction; take any segment that has one.
+  for (let i = 0; i < (closed ? n : n - 1); i++) {
+    const from = points[i];
+    const to = points[(i + 1) % n];
+    if (from.x !== to.x || from.z !== to.z) return acrossOf(from, to);
   }
-  return side;
+  return { x: 1, z: 0 };
 }

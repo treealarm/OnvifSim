@@ -71,6 +71,8 @@ public sealed class RoadModel
     public List<GroundPoint> Points { get; set; } = [];
     public float Width { get; set; } = 4;
     public string? Color { get; set; }
+    // Join the last point to the first: the road goes round as a ring instead of ending.
+    public bool Closed { get; set; }
 }
 
 // A person walking a route over and over, at a steady pace. Where they are follows from the clock, so

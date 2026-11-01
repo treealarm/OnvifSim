@@ -113,7 +113,7 @@ test('a person drawn point by point walks the route', async ({ page, request }) 
   await expect(page.getByRole('heading', { level: 2 })).toContainText('Person');
   await expect.poll(async () => (await world(request)).walkers.length).toBe(before + 1);
   expect((await world(request)).walkers.at(-1)?.route).toHaveLength(3);
-  await page.getByLabel('At the end').selectOption('reverse');
+  await page.getByLabel('Closed loop', { exact: true }).uncheck();
   await expect.poll(async () => (await world(request)).walkers.at(-1)?.return).toBe('reverse');
 });
 
@@ -201,6 +201,29 @@ test('a person can be selected by clicking it in the viewport', async ({ page, r
   } finally {
     await request.delete(`/api/walkers/${standing.id}`);
     for (const walker of before.walkers) await request.put(`/api/walkers/${walker.id}`, { data: walker });
+  }
+});
+
+test('a road can be closed into a ring', async ({ page, request }) => {
+  await openEditor(page);
+  await openGroup(page, 'Draw');
+  await page.getByRole('button', { name: 'Road', exact: true }).click();
+  const box = await page.locator('.viewport canvas').boundingBox();
+  if (!box) throw new Error('The viewport is not on screen.');
+  for (const [fx, fy] of [[0.25, 0.72], [0.5, 0.72], [0.5, 0.82], [0.25, 0.82]]) await page.mouse.click(box.x + box.width * fx, box.y + box.height * fy);
+  await expect(page.getByText('4 points; double-click or Enter to finish')).toBeVisible();
+  await page.keyboard.press('Enter');
+
+  const heading = page.getByRole('heading', { level: 2 });
+  await expect(heading).toContainText('Road');
+  const id = (await heading.locator('span').textContent()) ?? '';
+  try {
+    await page.getByLabel('Closed loop', { exact: true }).check();
+    await expect.poll(async () => (await world(request)).roads.find((r) => r.id === id)?.closed).toBe(true);
+    await page.getByLabel('Closed loop', { exact: true }).uncheck();
+    await expect.poll(async () => (await world(request)).roads.find((r) => r.id === id)?.closed).toBe(false);
+  } finally {
+    await request.delete(`/api/roads/${id}`);
   }
 });
 
@@ -446,6 +469,7 @@ async function world(request: APIRequestContext) {
   return (await (await request.get('/api/world')).json()) as {
     cameras: { id: string; name: string; hFov: number; bindAddress?: string | null; rtspPort?: number; streams?: { token: string; path: string }[] }[];
     objects: { id: string; type: string; plate?: string | null; position: { x: number; z: number } }[];
+    roads: { id: string; closed: boolean }[];
     walkers: { id: string; route: unknown[]; return: string }[];
     vehicles: { id: string; route: unknown[]; plate?: string | null }[];
     terrain: { heights: string };
