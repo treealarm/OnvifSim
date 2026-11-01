@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react';
-import { objectTypeNames, type World } from '../model';
+import { objectTypeNames, type ObjectType, type World, type WorldObject } from '../model';
 import { select, useEditor, type Selection } from '../store';
 
 // Every editable thing in the world, grouped. Clicking a row selects it exactly as clicking it in the
@@ -28,15 +28,11 @@ export function ObjectTree({ world }: { world: World }) {
         ))}
       </Group>
       <Group title="Objects" count={world.objects.length}>
-        {world.objects.map((object) => (
-          <Row
-            key={object.id}
-            label={objectTypeNames[object.type]}
-            detail={object.id}
-            active={isSelected('object', object.id)}
-            onClick={() => select({ kind: 'object', id: object.id })}
-          />
-        ))}
+        <ObjectTypes
+          objects={world.objects}
+          selectedId={selection?.kind === 'object' ? selection.id : null}
+          onSelect={(id) => select({ kind: 'object', id })}
+        />
       </Group>
       <Group title="Roads" count={world.roads.length}>
         {world.roads.map((road) => (
@@ -64,6 +60,40 @@ export function ObjectTree({ world }: { world: World }) {
   );
 }
 
+// Objects of one type open together: the type names the rows, and the ids are what the inspector
+// calls them. The group of the selected object opens by itself, so a click in 3D shows its row.
+function ObjectTypes({
+  objects,
+  selectedId,
+  onSelect,
+}: {
+  objects: WorldObject[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+}) {
+  const selectedType = objects.find((object) => object.id === selectedId)?.type;
+  const types = (Object.keys(objectTypeNames) as ObjectType[])
+    .filter((type) => objects.some((object) => object.type === type))
+    .sort((a, b) => objectTypeNames[a].localeCompare(objectTypeNames[b]));
+  return (
+    <>
+      {types.map((type) => {
+        const members = objects.filter((object) => object.type === type);
+        return (
+          <details key={type} className="tree-type" open={type === selectedType || undefined}>
+            <summary>
+              {objectTypeNames[type]} <span className="muted">{members.length}</span>
+            </summary>
+            {members.map((object) => (
+              <Row key={object.id} label={object.id} active={object.id === selectedId} onClick={() => onSelect(object.id)} />
+            ))}
+          </details>
+        );
+      })}
+    </>
+  );
+}
+
 function Group({ title, count, children }: { title: string; count: number; children: ReactNode }) {
   return (
     <details open className="tree-group">
@@ -75,11 +105,11 @@ function Group({ title, count, children }: { title: string; count: number; child
   );
 }
 
-function Row({ label, detail, active, onClick }: { label: string; detail: string; active: boolean; onClick: () => void }) {
+function Row({ label, detail, active, onClick }: { label: string; detail?: string; active: boolean; onClick: () => void }) {
   return (
     <button type="button" className="entity" aria-pressed={active} onClick={onClick}>
       <span>{label}</span>
-      <span className="muted">{detail}</span>
+      {detail && <span className="muted">{detail}</span>}
     </button>
   );
 }

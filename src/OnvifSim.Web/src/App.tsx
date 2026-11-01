@@ -40,8 +40,8 @@ export function App() {
       )}
       {world ? (
         <main>
-          <Viewport world={world} />
           <ObjectTree world={world} />
+          <Viewport world={world} />
           <aside className="inspector">
             <Inspector />
           </aside>

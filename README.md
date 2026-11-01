@@ -210,9 +210,10 @@ is marked with a dot, so the viewport keeps doing exactly what it did until anot
   and every camera sees them walking: where they are follows from the clock, so all streams and
   snapshots agree. Drag the points of a selected road or route to reshape it.
 - **Terrain** brushes: Raise, Lower, Smooth and Flatten, with radius and strength.
-- **Contents** lists every camera, object, road and person in the world on the right. Clicking a row
-  selects it exactly as clicking it in 3D does — the reliable way to reach a person only a few pixels
-  tall. The **World environment** row shows the sun, sky, fog and terrain settings.
+- **Contents** lists every camera, object, road and person in the world on the left. Objects are
+  grouped by type, and opening a type shows its ids. Clicking a row selects it exactly as clicking it
+  in 3D does — the reliable way to reach a person only a few pixels tall. The **World environment**
+  row shows the sun, sky, fog and terrain settings.
 
 <p align="center">
   <img src="docs/images/editor-tree.png" alt="The editor: the 3D view, the contents tree with cameras, objects, roads and people, and the inspector" width="90%">

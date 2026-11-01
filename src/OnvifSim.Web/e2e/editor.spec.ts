@@ -164,7 +164,9 @@ test('the contents tree selects what it lists', async ({ page }) => {
   await tree.getByRole('button', { name: /Person w1/ }).click();
   await expect(page.getByRole('heading', { level: 2 })).toContainText('Person');
 
-  await tree.getByRole('button', { name: /House/ }).first().click();
+  const houses = tree.locator('details.tree-type', { has: page.locator('summary', { hasText: /^House/ }) });
+  await houses.locator('summary').click();
+  await houses.getByRole('button').first().click();
   await expect(page.getByRole('heading', { level: 2 })).toContainText('House');
 
   await tree.getByRole('button', { name: 'World environment' }).click();
