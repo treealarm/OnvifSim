@@ -184,10 +184,20 @@ test('a person can be selected by clicking it in the viewport', async ({ page, r
     await openEditor(page);
     const box = await page.locator('.viewport canvas').boundingBox();
     if (!box) throw new Error('The viewport is not on screen.');
-    // The default camera looks at the origin, where the person stands.
-    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-    await expect(page.getByRole('heading', { level: 2 })).toContainText('Person');
-    await expect(page.getByRole('heading', { level: 2 })).toContainText(standing.id);
+    // The default camera looks at the origin, where the person stands. A slow machine may still be
+    // mounting the scene when the page first appears, and a click then lands on bare ground, so keep
+    // clicking until the person takes the selection.
+    const heading = page.getByRole('heading', { level: 2 });
+    await expect
+      .poll(
+        async () => {
+          await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+          return (await heading.textContent()) ?? '';
+        },
+        { timeout: 15_000 },
+      )
+      .toContain(standing.id);
+    await expect(heading).toContainText('Person');
   } finally {
     await request.delete(`/api/walkers/${standing.id}`);
     for (const walker of before.walkers) await request.put(`/api/walkers/${walker.id}`, { data: walker });
@@ -315,9 +325,21 @@ test('trashing the active world opens another one', async ({ page, request }) =>
 async function openEditor(page: Page) {
   await page.goto('/');
   await expect(page.getByText(/\d+ objects, .* cameras\./)).toBeVisible();
+  // A canvas is 300x150 until it takes the viewport's size a frame later; coordinates measured
+  // before that fall in the wrong part of the picture, so wait until it fills its container.
+  const canvas = page.locator('.viewport canvas');
+  await expect
+    .poll(async () => {
+      const viewport = await page.locator('.viewport').boundingBox();
+      const drawn = await canvas.boundingBox();
+      return viewport !== null && drawn !== null && Math.abs(drawn.width - viewport.width) < 1 && Math.abs(drawn.height - viewport.height) < 1;
+    })
+    .toBe(true);
   // The viewport takes clicks once it has drawn a frame and seen the pointer move.
   await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-  await page.mouse.move(10, 200);
+  const box = await canvas.boundingBox();
+  if (!box) throw new Error('The viewport is not on screen.');
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
 }
 
 async function openGroup(page: Page, group: 'Select' | 'Add' | 'Draw' | 'Terrain') {
