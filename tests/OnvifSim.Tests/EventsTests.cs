@@ -44,7 +44,7 @@ public class EventsTests
         using var dir = new TempDir();
         var time = new FakeTimeProvider(DateTimeOffset.UnixEpoch.AddDays(20000));
         var store = new WorldStore(dir.Path);
-        store.Update(w => (w.Objects, w.Walkers) = ([], [new WalkerModel { Id = "p", Route = [new GroundPoint(3, 40)] }]));
+        store.Update(w => (w.Objects, w.Walkers, w.Vehicles) = ([], [new WalkerModel { Id = "p", Route = [new GroundPoint(3, 40)] }], []));
         var scene = new SceneState(store);
         using var ptz = new PtzSimulator(store, time, NullLogger<PtzSimulator>.Instance);
         using var pullPoints = new PullPoints(new AnalyticsManager(scene, ptz, time, NullLoggerFactory.Instance), time, NullLogger<PullPoints>.Instance);
@@ -53,7 +53,7 @@ public class EventsTests
         Assert.Equal([("Initialized", "false"), ("Initialized", "false")], Read(await PullAsync(subscription, 2)));
         Assert.Equal([("Changed", "true"), ("Changed", "true")], Read(await PullAsync(subscription, 2)));
 
-        store.Update(w => w.Walkers = []);
+        store.Update(w => (w.Walkers, w.Vehicles) = ([], []));
         for (int i = 0; i < 4; i++) await StepAsync(time);
         Assert.Empty(await subscription.PullAsync(TimeSpan.Zero, 10, CancellationToken.None));
         for (int i = 0; i < 2; i++) await StepAsync(time);

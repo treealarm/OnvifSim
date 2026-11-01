@@ -112,8 +112,8 @@ public class CachingFrameRendererTests
     {
         using var dir = new TempDir();
         var store = new WorldStore(dir.Path);
-        // cam1 looks north; the walker is behind it.
-        store.Update(w => w.Walkers = [new WalkerModel { Id = "w", Route = [new(-4, 80), new(4, 80)], Speed = 2 }]);
+        // cam1 looks north; the walker is behind it, and no car drives into view.
+        store.Update(w => (w.Walkers, w.Vehicles) = ([new WalkerModel { Id = "w", Route = [new(-4, 80), new(4, 80)], Speed = 2 }], []));
         var scene = new SceneState(store);
         var renderer = new CachingFrameRenderer(_time);
         var cam1 = scene.Current.World.Cameras.Single(c => c.Id == "cam1");

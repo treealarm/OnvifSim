@@ -115,8 +115,9 @@ what the cameras show depends on where they are and where they point.
   worlds in `/var/snap/onvifsim/common`; OnvifSim in the applications menu opens the editor.
 
 Every package carries ffmpeg for the H.264 streams. Worlds are kept in `%LOCALAPPDATA%\OnvifSim`
-or `~/.local/share/OnvifSim`; on first start the default village is written there, with a car in
-view of the fixed camera so every feature is in sight. The editor is at http://localhost:18180/.
+or `~/.local/share/OnvifSim`; on first start the default village is written there, with a car and
+walkers on its road in view of the fixed camera, so every feature is in sight. The editor is at
+http://localhost:18180/.
 
 | Option | |
 |---|---|

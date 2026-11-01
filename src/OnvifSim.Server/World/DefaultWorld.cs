@@ -90,6 +90,15 @@ public static class DefaultWorld
             Id = "w3", Return = RouteReturn.Reverse, Speed = 1.1f, Height = 1.65f, Color = "#a83b3b", Color2 = "#2f4a6b",
             Route = [new(-90, 14.1f), new(-70, 7), new(0, 4), new(70, 2), new(110, -12.7f)],
         });
+        // A car driving the same road, in the right-hand lane, so the walkers and a moving vehicle
+        // share it in a fresh install. The lane is the road's points pushed sideways by the width of
+        // half a lane.
+        world.Vehicles.Add(new VehicleModel
+        {
+            Id = "v1", Return = RouteReturn.Reverse, Speed = 7,
+            Color = "#2f6fde", Color2 = "#f0f0ea", Plate = "M777MM",
+            Route = [new(-159.67f, 41.36f), new(-69.74f, 9.36f), new(0.05f, 6.4f), new(70.26f, 4.36f), new(160.48f, -28.69f)],
+        });
 
         world.Cameras.Add(new CameraModel
         {

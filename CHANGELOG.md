@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- The default village's road now carries a moving car as well as its walkers, so a fresh install
+  shows both kinds of traffic sharing one road.
+
 ## 0.3.0 (2026-11-01)
 
 - **Worlds you prepare and switch between.** The data directory now holds any number of named worlds
