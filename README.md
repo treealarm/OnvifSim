@@ -18,9 +18,9 @@ it gets PTZ commands, just like real hardware. Point ONVIF Device Manager, an NV
 ONVIF client at it; no cameras needed.
 
 What the cameras show is not a test pattern or a looped video: they look at a 3D world you build in
-the browser (terrain, trees, houses, roads, cars with readable licence plates, people walking their
-routes), so a PTZ camera really turns towards what you asked for, and a person walks out of one
-camera's view into the next. Prepare as many worlds as the tests need, switch between them from the
+the browser (terrain, trees, houses, roads, cars with readable licence plates, people walking and
+cars driving their routes), so a PTZ camera really turns towards what you asked for, and a person
+walks out of one camera's view into the next. Prepare as many worlds as the tests need, switch between them from the
 editor, and put away the ones you no longer use without losing them.
 
 <p align="center">
@@ -48,13 +48,14 @@ editor, and put away the ones you no longer use without losing them.
   at `/<camera id>/h264`); add or remove streams in the camera panel.
 
 **Analytics with exact answers**
-- Every camera reports the people it sees, as a camera's own analytics would: boxes with object ids
-  in the ONVIF metadata track of its RTSP streams (`vnd.onvif.metadata`), five times a second.
-- The boxes are exact, to the pixel of the picture, and people hidden behind a house or a hill are
+- Every camera reports the people and cars it sees, as a camera's own analytics would: boxes with
+  object ids in the ONVIF metadata track of its RTSP streams (`vnd.onvif.metadata`), five times a
+  second. A person is classed `Human`, a moving car `Vehicle`.
+- The boxes are exact, to the pixel of the picture, and objects hidden behind a house or a hill are
   not reported, so a VMS's overlay, tracking or rules can be checked against the truth.
 - Optionally the PTZ position too, in the same track.
 - Motion events through ONVIF pull points (`tns1:VideoSource/MotionAlarm`,
-  `tns1:RuleEngine/CellMotionDetector/Motion`) while someone is in view.
+  `tns1:RuleEngine/CellMotionDetector/Motion`) while someone or a car is in view.
 
 **PTZ you can see**
 - AbsoluteMove, RelativeMove, ContinuousMove, Stop, GetStatus, presets and home.
@@ -64,13 +65,14 @@ editor, and put away the ones you no longer use without losing them.
 
 **A world you edit in the browser**
 - Place trees, houses, rocks, boxes, cars with editable licence plates and fixed or PTZ cameras;
-  sculpt the terrain; draw roads and routes for people who walk them over and over.
+  sculpt the terrain; draw roads and routes for people who walk them and cars that drive them over
+  and over.
 - Prepare any number of named worlds in the data directory and switch between them in the header,
   without restarting; move a world to the trash and restore it, or empty the trash for good.
-- See each camera's picture beside the 3D view, with the people its analytics reports boxed, and drive
-  PTZ cameras with a joystick.
-- Find every object, camera, road and person in the contents tree and select it there — the reliable
-  way to reach a person only a few pixels tall in the 3D view.
+- See each camera's picture beside the 3D view, with the people and cars its analytics reports
+  boxed, and drive PTZ cameras with a joystick.
+- Find every object, camera, road, person and moving car in the contents tree and select it there —
+  the reliable way to reach a person only a few pixels tall in the 3D view.
 - Every edit is live, on all streams within a moment; undo and redo; no Save button.
 - Worlds are JSON files you can keep in git; an HTTP API changes them from scripts and tests.
 
@@ -205,15 +207,16 @@ is marked with a dot, so the viewport keeps doing exactly what it did until anot
   the gizmo to move it (G) or turn it (R), or type exact values in the panel. Delete removes the
   selection, Escape drops it.
 - **Add** trees, houses, rocks, boxes, cars and fixed or PTZ cameras: pick one and click the ground.
-- **Draw** roads and people: click the ground point by point and finish with a double-click or Enter.
-  A person walks their route over and over, round in a loop or there and back, at the speed you set,
-  and every camera sees them walking: where they are follows from the clock, so all streams and
-  snapshots agree. Drag the points of a selected road or route to reshape it.
+- **Draw** roads, people and car routes: click the ground point by point and finish with a
+  double-click or Enter. A person walks their route, a car drives theirs, over and over, round in a
+  loop or there and back, at the speed you set; a car turns to follow the route. Every camera sees
+  them move: where they are follows from the clock, so all streams and snapshots agree. Drag the
+  points of a selected road or route to reshape it.
 - **Terrain** brushes: Raise, Lower, Smooth and Flatten, with radius and strength.
-- **Contents** lists every camera, object, road and person in the world on the left. Objects are
-  grouped by type, and opening a type shows its ids. Clicking a row selects it exactly as clicking it
-  in 3D does — the reliable way to reach a person only a few pixels tall. The **World environment**
-  row shows the sun, sky, fog and terrain settings.
+- **Contents** lists every camera, object, road, person and moving car in the world on the left.
+  Objects are grouped by type, and opening a type shows its ids. Clicking a row selects it exactly as
+  clicking it in 3D does — the reliable way to reach a person only a few pixels tall. The **World
+  environment** row shows the sun, sky, fog and terrain settings.
 
 <p align="center">
   <img src="docs/images/editor-tree.png" alt="The editor: the 3D view, the contents tree with cameras, objects, roads and people, and the inspector" width="90%">
@@ -236,18 +239,23 @@ is marked with a dot, so the viewport keeps doing exactly what it did until anot
 - **Cars** have a plate text field: Latin letters, digits, spaces and hyphens, up to 8 characters. The
   plate is part of the mesh, so it appears in every camera picture as well as in the editor. As with
   real cameras, the characters are readable at close range or through a narrow lens; a wide camera at
-  village distance shows the car, not the text.
+  village distance shows the car, not the text. **Car route** under Draw makes a car drive a route:
+  set its speed, whether it loops or goes back, its body size, paint, plate background and plate, and
+  whether cameras' analytics report it. A selected car shows its route, and the points drag like a
+  person's.
 
 <p align="center">
   <img src="docs/images/car-plate.png" alt="The editor with the car selected: its body and plate settings, including the plate text" width="90%">
   <br>
   <img src="docs/images/camera-car.jpg" alt="The village camera's picture: a red car in the foreground with its licence plate" width="70%">
+  <br>
+  <img src="docs/images/car-route.png" alt="A moving car selected: its route on the ground, speed, body and plate settings" width="90%">
 </p>
 
-- **Analytics**: the camera's picture boxes the people its analytics reports, with their object ids,
-  exactly as the metadata stream sends them; the panel turns people detection and the PTZ position in
-  the metadata on and off, and a person's own panel can leave them out of every camera's analytics
-  ("Seen by analytics"), so they only appear in the picture.
+- **Analytics**: the camera's picture boxes the people and cars its analytics reports, with their
+  object ids, exactly as the metadata stream sends them; the panel turns analytics and the PTZ
+  position in the metadata on and off, and a person's or car's own panel can leave it out of every
+  camera's analytics ("Seen by analytics"), so it only appears in the picture.
 - **World**: sun, sky colours, fog, terrain size, and what the camera pictures show of the other
   cameras: their bodies, and optionally the wire frame of where they look.
 - **Worlds**: the header menu creates, opens, trashes and restores worlds; see [Worlds](#worlds).
@@ -260,17 +268,17 @@ port 18180; `npm run e2e` runs the browser test.
 |---|---|
 | `GET /api/world`, `PUT /api/world` | the active world as JSON |
 | `GET /api/worlds`, `POST /api/worlds`, `POST /api/worlds/{name}/activate`, `POST /api/worlds/{name}/trash`, `POST /api/trash/{name}/restore`, `DELETE /api/trash` | the world library; see [Worlds](#worlds) |
-| `PUT`, `DELETE /api/objects/{id}`, `/api/roads/{id}`, `/api/walkers/{id}`, `/api/cameras/{id}` | add, replace or remove one object, road, walker or camera |
+| `PUT`, `DELETE /api/objects/{id}`, `/api/roads/{id}`, `/api/walkers/{id}`, `/api/vehicles/{id}`, `/api/cameras/{id}` | add, replace or remove one object, road, walker, moving car or camera |
 | `PUT /api/terrain`, `PUT /api/environment` | the terrain or the sun, sky and fog |
 | `POST /api/cameras/{id}/ptz/move`, `goto`, `stop`, `home` | drive a PTZ head |
 | `GET /api/events` | server-sent events: `world` (the active world), `worlds` (the library), `world-switched`, `status` (ONVIF and RTSP ports, H.264) and `ptz` (head positions) |
 | `GET /api/cameras` | camera list |
 | `GET /api/cameras/{id}/snapshot.jpg` | one rendered frame |
 | `GET /api/cameras/{id}/mjpeg` | live Motion JPEG (open it in a browser) |
-| `GET /api/cameras/{id}/analytics` | server-sent events: the people the camera's analytics sees, five times a second, each with where they stand on the ground (`x`, `z`, `heading`) |
+| `GET /api/cameras/{id}/analytics` | server-sent events: the people and cars the camera's analytics sees, five times a second, each with its `kind`, `objectId` and where it is on the ground (`x`, `z`, `heading`) |
 | `GET /api/cameras/{id}/pose` | ground truth: where the camera stands (absolute, terrain included) and looks (heading and pitch with the PTZ head, the picture's own axes `forward`, `right`, `up`, field of view from the zoom) |
 | `POST /api/cameras/{id}/ptz/aim` | turn a PTZ head until a point of the world (`x`, `y`, `z`, absolute) is in the middle of its picture; answers the pan and tilt, or 409 beyond the head's limits |
-| `GET /api/walkers/{id}/pose` | ground truth: where a walker is at this moment |
+| `GET /api/walkers/{id}/pose`, `/api/vehicles/{id}/pose` | ground truth: where a walker or a car is at this moment |
 | `GET /api/cameras/{id}/recording` | the camera's own recording: whether it records, whether it is online, its retention and the spans it holds |
 | `PUT /api/cameras/{id}/recording` | `{"recording": false}` stops the camera's own recording, `true` starts it again |
 | `PUT /api/cameras/{id}/network` | `{"online": false}` cuts the camera off the network (it goes on recording), `true` brings it back |
@@ -306,14 +314,15 @@ default 10 fps, ~7 s at 3 fps. VLC and GStreamer show the first frame at once.
 
 Every stream of a camera carries a second track, the ONVIF metadata stream (`m=application`,
 `vnd.onvif.metadata/90000`, `{stream}/track2`), as cameras with analytics do. Each document is a
-`tt:MetadataStream` with a scene frame: every person the camera sees is a `tt:Object` with an
-`ObjectId` that stays the same while they stay in view, a `BoundingBox` and `CenterOfGravity` in
-ONVIF's normalized frame coordinates (-1..1, y up) and the class `Human`. A document goes out with
-every look of the analytics (five a second) while someone is in view, one more when the last person
-leaves, and once a second otherwise. With `ptzStatus` on, a PTZ camera adds its `tt:PTZStatus`.
+`tt:MetadataStream` with a scene frame: every person and moving car the camera sees is a
+`tt:Object` with an `ObjectId` that stays the same while it stays in view, a `BoundingBox` and
+`CenterOfGravity` in ONVIF's normalized frame coordinates (-1..1, y up) and the class `Human` or
+`Vehicle`. A document goes out with every look of the analytics (five a second) while something is
+in view, one more when the last object leaves, and once a second otherwise. With `ptzStatus` on, a
+PTZ camera adds its `tt:PTZStatus`.
 
-The boxes are where the picture draws the people, and someone hidden behind a house, a tree or a hill
-is not reported; a person shorter than 2.5% of the frame is too small to detect. Clients that do not
+The boxes are where the picture draws the objects, and one hidden behind a house, a tree or a hill is
+not reported; a figure shorter than 2.5% of the frame is too small to detect. Clients that do not
 want the track simply do not set it up; ffmpeg shows it as a data stream (`-map 0:d`).
 
 ### H.264
@@ -369,8 +378,8 @@ WS-Discovery, so ONVIF Device Manager, an NVR or `OnvifLib.Probe --discovery` li
 - **Events** (ver10): pull point subscriptions (`CreatePullPointSubscription`, `PullMessages`,
   `SetSynchronizationPoint`, `Renew`, `Unsubscribe`, topic filters in the ConcreteSet dialect). A
   camera raises motion on `tns1:VideoSource/MotionAlarm` and `tns1:RuleEngine/CellMotionDetector/Motion`
-  as soon as its analytics sees someone, and clears it a second after the last person is gone; a new
-  subscription first gets the current state. A subscription lives for the time it asked for (a minute
+  as soon as its analytics sees someone or a car, and clears it a second after the last object is
+  gone; a new subscription first gets the current state. A subscription lives for the time it asked for (a minute
   by default), renewed by `Renew` and by every pull; a camera keeps at most 10.
 
 - **Recording, Search, Replay** (Profile G): the camera's own recording, as on a camera with an SD

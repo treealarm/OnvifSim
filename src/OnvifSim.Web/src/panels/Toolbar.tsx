@@ -43,6 +43,7 @@ const brushes: { brush: BrushKind; label: string }[] = [
 const drawables: { what: Drawable; label: string }[] = [
   { what: 'road', label: 'Road' },
   { what: 'walker', label: 'Person' },
+  { what: 'vehicle', label: 'Car route' },
 ];
 
 function sameTool(a: Tool, b: Tool): boolean {

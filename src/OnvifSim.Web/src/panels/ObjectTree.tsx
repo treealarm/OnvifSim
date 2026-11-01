@@ -56,6 +56,17 @@ export function ObjectTree({ world }: { world: World }) {
           />
         ))}
       </Group>
+      <Group title="Vehicles" count={world.vehicles.length}>
+        {world.vehicles.map((vehicle) => (
+          <Row
+            key={vehicle.id}
+            label="Car"
+            detail={vehicle.id}
+            active={isSelected('vehicle', vehicle.id)}
+            onClick={() => select({ kind: 'vehicle', id: vehicle.id })}
+          />
+        ))}
+      </Group>
     </aside>
   );
 }

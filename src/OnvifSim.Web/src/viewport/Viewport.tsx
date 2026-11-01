@@ -28,7 +28,7 @@ export function Viewport({ world }: { world: World }) {
       <OrbitControls makeDefault maxPolarAngle={Math.PI / 2 - 0.02} />
       <TerrainView terrain={world.terrain} />
       <ObjectsView objects={world.objects} terrain={world.terrain} />
-      <RoutesView roads={world.roads} walkers={world.walkers} terrain={world.terrain} />
+      <RoutesView roads={world.roads} walkers={world.walkers} vehicles={world.vehicles} terrain={world.terrain} />
       {world.cameras.map((camera) => (
         <CameraGizmo
           key={camera.id}

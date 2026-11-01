@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { CameraInspector } from './panels/CameraInspector';
 import { ObjectInspector } from './panels/ObjectInspector';
 import { ObjectTree } from './panels/ObjectTree';
-import { RoadInspector, WalkerInspector } from './panels/RouteInspectors';
+import { RoadInspector, VehicleInspector, WalkerInspector } from './panels/RouteInspectors';
 import { Toolbar } from './panels/Toolbar';
 import { WorldInspector } from './panels/WorldInspector';
 import { WorldMenu } from './panels/WorldMenu';
@@ -68,6 +68,10 @@ function Inspector() {
   if (selection?.kind === 'walker') {
     const walker = world.walkers.find((w) => w.id === selection.id);
     if (walker) return <WalkerInspector key={walker.id} walker={walker} />;
+  }
+  if (selection?.kind === 'vehicle') {
+    const vehicle = world.vehicles.find((v) => v.id === selection.id);
+    if (vehicle) return <VehicleInspector key={vehicle.id} vehicle={vehicle} />;
   }
   if (selection?.kind === 'camera') {
     const camera = world.cameras.find((c) => c.id === selection.id);

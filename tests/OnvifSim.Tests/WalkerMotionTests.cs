@@ -24,9 +24,25 @@ public class WalkerMotionTests
     [Fact]
     public void AWalkerWhoTurnsRound_ComesBackTheSameWay()
     {
-        var walker = new WalkerModel { Route = [new(0, 0), new(10, 0)], Speed = 1, Return = WalkerReturn.Reverse };
+        var walker = new WalkerModel { Route = [new(0, 0), new(10, 0)], Speed = 1, Return = RouteReturn.Reverse };
         var pose = WalkerMotion.PoseAt(walker, After(15, round: 20));
         Assert.Equal((5f, 0f, -90f), (pose.X, pose.Z, pose.Heading));
+    }
+
+    [Fact]
+    public void ACar_DrivesTheSameRouteRuleAtItsOwnSpeed()
+    {
+        var car = new VehicleModel { Route = [new(0, 0), new(100, 0)], Speed = 10 };
+        var pose = VehicleMotion.PoseAt(car, DateTimeOffset.FromUnixTimeMilliseconds(5_000));
+        Assert.Equal((50f, 0f, 90f), (pose.X, pose.Z, pose.Heading));
+    }
+
+    [Fact]
+    public void ACarThatTurnsRound_ComesBackTheSameWay()
+    {
+        var car = new VehicleModel { Route = [new(0, 0), new(100, 0)], Speed = 10, Return = RouteReturn.Reverse };
+        var pose = VehicleMotion.PoseAt(car, DateTimeOffset.FromUnixTimeMilliseconds(12_000));
+        Assert.Equal((80f, 0f, -90f), (pose.X, pose.Z, pose.Heading));
     }
 
     [Fact]

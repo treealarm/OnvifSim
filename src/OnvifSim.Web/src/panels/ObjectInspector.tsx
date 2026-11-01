@@ -1,4 +1,4 @@
-import { objectTypeNames, objectTypes, type ObjectType, type Vec3, type WorldObject } from '../model';
+import { objectTypeNames, objectTypes, plateText, type ObjectType, type Vec3, type WorldObject } from '../model';
 import { defaultScale, removeSelected, updateObject } from '../store';
 import { ColorField, NumberField, Section, SelectField, TextField } from './fields';
 
@@ -24,14 +24,6 @@ const colorSlots: Record<ObjectType, { label: string; fallback: string }[]> = {
     { label: 'Plate background', fallback: '#f0f0ea' },
   ],
 };
-
-// The font on the plate has no lower case and only Latin letters, digits, spaces and hyphens.
-function plateText(text: string): string {
-  return text
-    .toUpperCase()
-    .replace(/[^A-Z0-9 -]/g, '')
-    .slice(0, 8);
-}
 
 const typeOptions = objectTypes.map((type) => ({ value: type, label: objectTypeNames[type] }));
 

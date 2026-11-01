@@ -2,18 +2,31 @@ import { Line } from '@react-three/drei';
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import { BufferAttribute, BufferGeometry, type Group, type Mesh } from 'three';
-import { heightAt, walkerPoseAt, type GroundPoint, type Road, type Terrain, type Walker } from '../model';
+import { heightAt, vehiclePoseAt, walkerPoseAt, type GroundPoint, type Road, type Terrain, type Vehicle, type Walker } from '../model';
 import { select, useEditor, type Selection } from '../store';
+import { useVehicleGeometries, vehicleKey } from './vehicleGeometry';
 
-// Roads and walkers in the viewport. Roads lie on the ground as the server lays them; walkers walk
-// their routes on the browser's clock, by the same rule as the server's (WalkerMotion.cs).
+// Roads, walkers and moving cars in the viewport. Roads lie on the ground as the server lays them;
+// walkers and cars travel their routes on the browser's clock, by the same rule as the server's
+// (RouteMotion.cs).
 
 const roadLift = 0.12;
 const sampleSpacing = 2;
 
-export function RoutesView({ roads, walkers, terrain }: { roads: Road[]; walkers: Walker[]; terrain: Terrain }) {
+export function RoutesView({
+  roads,
+  walkers,
+  vehicles,
+  terrain,
+}: {
+  roads: Road[];
+  walkers: Walker[];
+  vehicles: Vehicle[];
+  terrain: Terrain;
+}) {
   const selection = useEditor((s) => s.selection);
   const isSelected = (kind: Selection['kind'], id: string) => selection?.kind === kind && selection.id === id;
+  const geometries = useVehicleGeometries(vehicles);
   return (
     <>
       {roads.map((road) => (
@@ -21,6 +34,15 @@ export function RoutesView({ roads, walkers, terrain }: { roads: Road[]; walkers
       ))}
       {walkers.map((walker) => (
         <WalkerView key={walker.id} walker={walker} terrain={terrain} selected={isSelected('walker', walker.id)} />
+      ))}
+      {vehicles.map((vehicle) => (
+        <VehicleView
+          key={vehicle.id}
+          vehicle={vehicle}
+          terrain={terrain}
+          geometry={geometries.get(vehicleKey(vehicle))}
+          selected={isSelected('vehicle', vehicle.id)}
+        />
       ))}
       <DrawingPreview terrain={terrain} />
     </>
@@ -96,6 +118,42 @@ function WalkerView({ walker, terrain, selected }: { walker: Walker; terrain: Te
         </mesh>
       </group>
       {selected && closed.length > 1 && <GroundLine points={closed} terrain={terrain} color="#ffcc33" />}
+      {selected && <PointHandles points={route} terrain={terrain} />}
+    </>
+  );
+}
+
+function VehicleView({
+  vehicle,
+  terrain,
+  geometry,
+  selected,
+}: {
+  vehicle: Vehicle;
+  terrain: Terrain;
+  geometry: BufferGeometry | undefined;
+  selected: boolean;
+}) {
+  const body = useRef<Group>(null);
+  useFrame(() => {
+    const group = body.current;
+    if (!group) return;
+    const pose = vehiclePoseAt(vehicle, Date.now());
+    group.position.set(pose.x, heightAt(terrain, pose.x, pose.z), pose.z);
+    group.rotation.y = (-pose.heading * Math.PI) / 180;
+  });
+  const route = vehicle.route;
+  const closed = vehicle.return === 'loop' && route.length > 2 ? [...route, route[0]] : route;
+  return (
+    <>
+      <group ref={body} onClick={selectOnClick({ kind: 'vehicle', id: vehicle.id })}>
+        {geometry && (
+          <mesh geometry={geometry}>
+            <meshLambertMaterial vertexColors emissive={selected ? '#333322' : '#000000'} />
+          </mesh>
+        )}
+      </group>
+      {selected && closed.length > 1 && <GroundLine points={closed} terrain={terrain} color="#ff9933" />}
       {selected && <PointHandles points={route} terrain={terrain} />}
     </>
   );

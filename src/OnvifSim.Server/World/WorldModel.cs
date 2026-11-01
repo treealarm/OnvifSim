@@ -13,6 +13,7 @@ public sealed class WorldModel
     public List<WorldObject> Objects { get; set; } = [];
     public List<RoadModel> Roads { get; set; } = [];
     public List<WalkerModel> Walkers { get; set; } = [];
+    public List<VehicleModel> Vehicles { get; set; } = [];
     public List<CameraModel> Cameras { get; set; } = [];
 }
 
@@ -82,7 +83,7 @@ public sealed class WalkerModel
     // Metres per second; 1.4 is an ordinary walk.
     public float Speed { get; set; } = 1.4f;
     // Back from the last point to the first and round again, or there and back the same way.
-    public WalkerReturn Return { get; set; } = WalkerReturn.Loop;
+    public RouteReturn Return { get; set; } = RouteReturn.Loop;
     public float Height { get; set; } = 1.75f;
     // Clothes: the top and the trousers.
     public string? Color { get; set; }
@@ -91,7 +92,31 @@ public sealed class WalkerModel
     public bool Detectable { get; set; } = true;
 }
 
-public enum WalkerReturn { Loop, Reverse }
+public enum RouteReturn { Loop, Reverse }
+
+// A car driving a route over and over, at a steady pace. Like a walker, where it is follows from the
+// clock, so every camera and every client sees it at the same spot; the plate turns with it.
+public sealed class VehicleModel
+{
+    public string Id { get; set; } = "";
+    // One point is a car parked with its engine running.
+    public List<GroundPoint> Route { get; set; } = [];
+    // Metres per second; 8 is about 29 km/h.
+    public float Speed { get; set; } = 8;
+    public RouteReturn Return { get; set; } = RouteReturn.Loop;
+    // Body size: width across, height up, length along the way it faces.
+    public float Width { get; set; } = 1.8f;
+    public float Height { get; set; } = 1.45f;
+    public float Length { get; set; } = 4.4f;
+    // Paint, and the plate's background.
+    public string? Color { get; set; }
+    public string? Color2 { get; set; }
+    // The licence plate text; null keeps the car's default, an empty string leaves the plate blank.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Plate { get; set; }
+    // Whether cameras' analytics report this car; off, it is only seen in the picture.
+    public bool Detectable { get; set; } = true;
+}
 
 public enum CameraKind { Fixed, Ptz }
 

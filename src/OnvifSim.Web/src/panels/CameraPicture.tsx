@@ -1,19 +1,20 @@
 import { useEffect, useState } from 'react';
 import type { CameraModel } from '../model';
 
-// A person the camera's analytics sees, as its metadata stream reports them: the object id and the box in
-// ONVIF's normalized frame coordinates (x -1..1 left to right, y -1..1 bottom to top).
+// A person or car the camera's analytics sees, as its metadata stream reports them: the object id and
+// the box in ONVIF's normalized frame coordinates (x -1..1 left to right, y -1..1 bottom to top).
 interface SeenObject {
   id: number;
-  walker: string;
+  kind: 'person' | 'vehicle';
+  objectId: string;
   left: number;
   top: number;
   right: number;
   bottom: number;
 }
 
-// The server's own picture, exactly what RTSP and ONVIF clients get, with the people its analytics
-// sees boxed over it.
+// The server's own picture, exactly what RTSP and ONVIF clients get, with the people and cars its
+// analytics sees boxed over it.
 export function CameraPicture({ camera, showBoxes }: { camera: CameraModel; showBoxes: boolean }) {
   const objects = useSeenObjects(camera.id, showBoxes && camera.metadata.analytics);
   const percent = (fraction: number) => `${fraction * 100}%`;
@@ -24,7 +25,7 @@ export function CameraPicture({ camera, showBoxes }: { camera: CameraModel; show
         <div
           key={o.id}
           className="seen"
-          title={`Object ${o.id}: ${o.walker}`}
+          title={`Object ${o.id}: ${o.kind} ${o.objectId}`}
           style={{
             left: percent((o.left + 1) / 2),
             top: percent((1 - o.top) / 2),

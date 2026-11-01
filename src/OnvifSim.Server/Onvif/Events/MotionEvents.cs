@@ -5,9 +5,9 @@ using OnvifSim.Onvif.Wsdl;
 
 namespace OnvifSim.Onvif.Events;
 
-// The events a simulated camera raises: motion, while its analytics sees someone. Like most cameras it
-// says so on two topics, the motion alarm of the video source and the cell motion detector's rule;
-// both are properties, so a subscriber first gets their current state ("Initialized") and then every
+// The events a simulated camera raises: motion, while its analytics sees someone or a car. Like most
+// cameras it says so on two topics, the motion alarm of the video source and the cell motion detector's
+// rule; both are properties, so a subscriber first gets their current state ("Initialized") and then every
 // change ("Changed").
 public static class MotionEvents
 {

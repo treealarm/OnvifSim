@@ -218,6 +218,35 @@ test('a car can be placed and its plate edited', async ({ page, request }) => {
   await expect.poll(async () => (await objectById(request, id))?.plate).toBe('B777AA');
 });
 
+test('a car drives the route drawn for it', async ({ page, request }) => {
+  await openEditor(page);
+  await openGroup(page, 'Draw');
+  await page.getByRole('button', { name: 'Car route', exact: true }).click();
+  const box = await page.locator('.viewport canvas').boundingBox();
+  if (!box) throw new Error('The viewport is not on screen.');
+  for (const [fx, fy] of [[0.25, 0.7], [0.5, 0.72], [0.75, 0.7]]) await page.mouse.click(box.x + box.width * fx, box.y + box.height * fy);
+  await expect(page.getByText('3 points; double-click or Enter to finish')).toBeVisible();
+  await page.keyboard.press('Enter');
+
+  const heading = page.getByRole('heading', { level: 2 });
+  await expect(heading).toContainText('Car');
+  const id = (await heading.locator('span').textContent()) ?? '';
+  try {
+    await expect.poll(async () => (await world(request)).vehicles.find((v) => v.id === id)?.route.length).toBe(3);
+
+    await page.getByLabel('Plate text', { exact: true }).fill('B777AA');
+    await page.getByLabel('Plate text', { exact: true }).blur();
+    await expect.poll(async () => (await world(request)).vehicles.find((v) => v.id === id)?.plate).toBe('B777AA');
+
+    // The route is travelled on the clock, so the car is somewhere else a moment later.
+    const left = (await (await request.get(`/api/vehicles/${id}/pose`)).json()) as { x: number; z: number };
+    await page.waitForTimeout(600);
+    const right = (await (await request.get(`/api/vehicles/${id}/pose`)).json()) as { x: number; z: number };
+    expect([right.x, right.z]).not.toEqual([left.x, left.z]);
+  } finally {
+    await request.delete(`/api/vehicles/${id}`);
+  }
+});
 
 test('a camera stream can be added, given a path and removed', async ({ page, request }) => {
   await openEditor(page);
@@ -408,6 +437,7 @@ async function world(request: APIRequestContext) {
     cameras: { id: string; name: string; hFov: number; bindAddress?: string | null; rtspPort?: number; streams?: { token: string; path: string }[] }[];
     objects: { id: string; type: string; plate?: string | null; position: { x: number; z: number } }[];
     walkers: { id: string; route: unknown[]; return: string }[];
+    vehicles: { id: string; route: unknown[]; plate?: string | null }[];
     terrain: { heights: string };
   };
 }

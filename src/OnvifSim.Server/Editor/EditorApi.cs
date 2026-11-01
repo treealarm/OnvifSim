@@ -101,6 +101,15 @@ public static class EditorApi
         app.MapDelete("/api/walkers/{id}", (string id, WorldStore store, SimOptions options) =>
             Remove(store, options, world => world.Walkers, w => w.Id == id));
 
+        app.MapPut("/api/vehicles/{id}", (string id, VehicleModel vehicle, WorldStore store, SimOptions options) =>
+        {
+            vehicle.Id = id;
+            return Change(store, options, world => Upsert(world.Vehicles, vehicle, v => v.Id == id));
+        });
+
+        app.MapDelete("/api/vehicles/{id}", (string id, WorldStore store, SimOptions options) =>
+            Remove(store, options, world => world.Vehicles, v => v.Id == id));
+
         app.MapPut("/api/cameras/{id}", (string id, CameraModel camera, WorldStore store, SimOptions options) =>
         {
             camera.Id = id;
@@ -185,8 +194,9 @@ public static class EditorApi
                 yield return new SseItem<string>(JsonSerializer.Serialize(
                     frame.Objects.Select(o => new
                     {
-                        id = o.ObjectId, walker = o.WalkerId, o.Box.Left, o.Box.Top, o.Box.Right, o.Box.Bottom,
-                        x = o.Walk.X, z = o.Walk.Z, heading = o.Walk.Heading,
+                        id = o.ObjectId, kind = o.Kind == DetectionKind.Vehicle ? "vehicle" : "person", objectId = o.ObjectKey,
+                        o.Box.Left, o.Box.Top, o.Box.Right, o.Box.Bottom,
+                        x = o.Pose.X, z = o.Pose.Z, heading = o.Pose.Heading,
                     }),
                     CompactJson), "objects");
     }
@@ -266,6 +276,19 @@ public static class EditorApi
             return Results.Json(new
             {
                 utcTime = now, x = walk.X, y = snapshot.Scene.Terrain.HeightAt(walk.X, walk.Z), z = walk.Z, heading = walk.Heading,
+            }, CompactJson);
+        });
+
+        app.MapGet("/api/vehicles/{id}/pose", (string id, SceneState scene, TimeProvider time) =>
+        {
+            var snapshot = scene.Current;
+            var vehicle = snapshot.World.Vehicles.FirstOrDefault(v => SameId(v.Id, id));
+            if (vehicle == null) return Results.NotFound();
+            var now = time.GetUtcNow();
+            var drive = VehicleMotion.PoseAt(vehicle, now);
+            return Results.Json(new
+            {
+                utcTime = now, x = drive.X, y = snapshot.Scene.Terrain.HeightAt(drive.X, drive.Z), z = drive.Z, heading = drive.Heading,
             }, CompactJson);
         });
     }

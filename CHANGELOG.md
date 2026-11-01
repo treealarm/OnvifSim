@@ -10,17 +10,24 @@
   recordings; the server requires that choice when the outgoing world has recordings. The library is
   also available over HTTP (`/api/worlds`, `/api/trash`) and as `worlds` and `world-switched` events
   on `/api/events`.
-- **A contents tree** on the right lists every camera, object, road and person and selects them with
-  a click. A person now also has a larger invisible pick target in the 3D view, so they can be
-  clicked there too.
+- **A contents tree** on the left lists every camera, object, road, person and moving car and selects
+  them with a click; objects are grouped by type, with their ids inside. A person now also has a
+  larger invisible pick target in the 3D view, so they can be clicked there too.
 - **A grouped toolbar**: Select, Add, Draw and Terrain choose which tools the second row offers; the
   active tool is marked with a dot, so changing the palette does not change what the viewport does.
 - **Cars with licence plates**, for testing LPR clients: a new `car` object draws a low-poly car with
   real glyph geometry on its plates (5×7 bitmap font, no textures), and the inspector edits the plate
   text. The default village now includes a car in view of its fixed camera.
+- **Cars that drive a route.** A `vehicle` is a moving car with a route, speed, loop-or-back
+  behaviour, body size, paint and plate, drawn from the same mesh as a parked car. The editor's
+  **Car route** tool draws its route point by point, and the car turns to follow it; its position
+  follows from the clock like a walker's, so every stream, snapshot and replay agrees. Cameras'
+  analytics box it with the class `Vehicle` in the ONVIF metadata track and raise motion while it is
+  in view; `vehicles` is a list in the world file, with `/api/vehicles/{id}` and a ground-truth
+  `/api/vehicles/{id}/pose`. The route rule is shared with walkers (`RouteMotion`).
 - **Documentation**: the README is now the complete English documentation; the outdated
   `docs/PLAN.md` was removed (git history keeps it), and the README gained screenshots of the world
-  manager, the contents tree and the car's plate.
+  manager, the contents tree, the car's plate and a moving car's route.
 - **Streams are ONVIF profiles, and can be added and removed.** A camera starts with `Profile_1`
   (JPEG) and `Profile_2` (H.264); the camera panel adds and removes streams, names them and edits
   each one's RTSP path and encoder settings. Encoder tokens follow the profile tokens, deleted

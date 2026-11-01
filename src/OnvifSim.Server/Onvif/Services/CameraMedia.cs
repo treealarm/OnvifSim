@@ -9,8 +9,8 @@ namespace OnvifSim.Onvif.Services;
 // Profile_2 its second, and the encoder token is derived from the profile token. Without ffmpeg the
 // H.264 streams stay in the world but are not offered, as a camera without an encoder would. Every
 // profile shares one metadata configuration (the camera's MetadataModel: what the metadata track of the
-// streams carries) and one video analytics configuration, the people detector, which has no modules or
-// rules to configure.
+// streams carries) and one video analytics configuration, the scene detector for people and cars, which
+// has no modules or rules to configure.
 public static class CameraMedia
 {
     public const string VideoSourceToken = "VideoSource_1";
@@ -187,7 +187,7 @@ public static class CameraMedia
     public static VideoAnalyticsConfiguration AnalyticsConfiguration(OnvifRequestContext context) => new()
     {
         token = AnalyticsConfigurationToken,
-        Name = "PeopleDetector",
+        Name = "SceneDetector",
         UseCount = VisibleStreams(context).Count,
         AnalyticsEngineConfiguration = new AnalyticsEngineConfiguration { AnalyticsModule = [] },
         RuleEngineConfiguration = new RuleEngineConfiguration { Rule = [] },

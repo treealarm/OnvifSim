@@ -41,6 +41,8 @@ public static partial class WorldValidation
         RequireUnique(world.Roads.Select(r => r.Id), "Road id");
         foreach (var walker in world.Walkers) CheckWalker(walker);
         RequireUnique(world.Walkers.Select(w => w.Id), "Walker id");
+        foreach (var vehicle in world.Vehicles) CheckVehicle(vehicle);
+        RequireUnique(world.Vehicles.Select(v => v.Id), "Vehicle id");
         foreach (var camera in world.Cameras) CheckCamera(camera);
         RequireUnique(world.Cameras.Select(c => c.Id), "Camera id");
         CheckStreams(world);
@@ -72,9 +74,7 @@ public static partial class WorldValidation
         Require(IsFinite(obj.Position) && float.IsFinite(obj.RotationY), $"Object {obj.Id}: position and rotation must be finite.");
         Require(obj.Scale is { X: > 0 and <= MaxObjectSize, Y: > 0 and <= MaxObjectSize, Z: > 0 and <= MaxObjectSize },
             $"Object {obj.Id}: every size must be above 0 and at most {MaxObjectSize} m.");
-        if (obj.Type == "car" && obj.Plate != null)
-            Require(obj.Plate.Length <= 8 && obj.Plate.All(c => char.IsAsciiLetterOrDigit(c) || c is ' ' or '-'),
-                $"Object {obj.Id}: the plate must be at most 8 Latin letters, digits, spaces or hyphens.");
+        if (obj.Type == "car") CheckPlate($"Object {obj.Id}", obj.Plate);
     }
 
     private static void CheckRoad(RoadModel road)
@@ -92,6 +92,26 @@ public static partial class WorldValidation
         Require(walker.Route.All(IsFinite), $"Walker {walker.Id}: route points must be finite.");
         Require(walker.Speed is >= 0 and <= 10, $"Walker {walker.Id}: speed {walker.Speed} m/s is outside 0..10.");
         Require(walker.Height is >= 0.5f and <= 3, $"Walker {walker.Id}: height {walker.Height} m is outside 0.5..3.");
+    }
+
+    private static void CheckVehicle(VehicleModel vehicle)
+    {
+        Require(vehicle.Id.Length > 0, "A vehicle has no id.");
+        Require(vehicle.Route.Count >= 1, $"Vehicle {vehicle.Id} needs at least one point to stand on.");
+        Require(vehicle.Route.All(IsFinite), $"Vehicle {vehicle.Id}: route points must be finite.");
+        Require(vehicle.Speed is >= 0 and <= 50, $"Vehicle {vehicle.Id}: speed {vehicle.Speed} m/s is outside 0..50.");
+        Require(vehicle.Width is >= 0.5f and <= 5, $"Vehicle {vehicle.Id}: width {vehicle.Width} m is outside 0.5..5.");
+        Require(vehicle.Height is >= 0.5f and <= 5, $"Vehicle {vehicle.Id}: height {vehicle.Height} m is outside 0.5..5.");
+        Require(vehicle.Length is >= 1 and <= 15, $"Vehicle {vehicle.Id}: length {vehicle.Length} m is outside 1..15.");
+        CheckPlate($"Vehicle {vehicle.Id}", vehicle.Plate);
+    }
+
+    // A licence plate is Latin letters, digits, spaces and hyphens, at most eight characters.
+    private static void CheckPlate(string what, string? plate)
+    {
+        if (plate != null)
+            Require(plate.Length <= 8 && plate.All(c => char.IsAsciiLetterOrDigit(c) || c is ' ' or '-'),
+                $"{what}: the plate must be at most 8 Latin letters, digits, spaces or hyphens.");
     }
 
     private static void CheckCamera(CameraModel camera)

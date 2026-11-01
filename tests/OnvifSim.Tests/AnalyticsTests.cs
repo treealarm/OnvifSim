@@ -55,7 +55,7 @@ public class AnalyticsTests
             }
         Assert.True(right > left, "the person is in the picture");
 
-        var box = Assert.Single(PersonDetector.Detect(withPerson, camera, default, _time.GetUtcNow())).Box;
+        var box = Assert.Single(ObjectDetector.Detect(withPerson, camera, default, _time.GetUtcNow())).Box;
         // Normalized to pixel edges; the drawn pixels lie inside the box, within a pixel of its edges.
         float boxLeft = (box.Left + 1) / 2 * width, boxRight = (box.Right + 1) / 2 * width;
         float boxTop = (1 - box.Top) / 2 * height, boxBottom = (1 - box.Bottom) / 2 * height;
@@ -72,10 +72,10 @@ public class AnalyticsTests
         static WorldObject House(float x) => new() { Id = "h", Type = "house", Position = new Vec3(x, 0, 48), Scale = new Vec3(8, 6, 6) };
 
         var hidden = WorldWithOnePerson(dir, 0, 35, w => w.Objects = [House(0)]);
-        Assert.Empty(PersonDetector.Detect(hidden.Current, Cam1(hidden), default, _time.GetUtcNow()));
+        Assert.Empty(ObjectDetector.Detect(hidden.Current, Cam1(hidden), default, _time.GetUtcNow()));
 
         var aside = WorldWithOnePerson(dir, 0, 35, w => w.Objects = [House(20)]);
-        Assert.Single(PersonDetector.Detect(aside.Current, Cam1(aside), default, _time.GetUtcNow()));
+        Assert.Single(ObjectDetector.Detect(aside.Current, Cam1(aside), default, _time.GetUtcNow()));
     }
 
     [Fact]
@@ -83,7 +83,7 @@ public class AnalyticsTests
     {
         using var dir = new TempDir();
         var scene = WorldWithOnePerson(dir, 3, 40, w => (w.Objects, w.Walkers[0].Detectable) = ([], false));
-        Assert.Empty(PersonDetector.Detect(scene.Current, Cam1(scene), default, _time.GetUtcNow()));
+        Assert.Empty(ObjectDetector.Detect(scene.Current, Cam1(scene), default, _time.GetUtcNow()));
     }
 
     [Theory]
@@ -94,7 +94,57 @@ public class AnalyticsTests
     {
         using var dir = new TempDir();
         var scene = WorldWithOnePerson(dir, x, z, w => w.Objects = []);
-        Assert.Empty(PersonDetector.Detect(scene.Current, Cam1(scene), default, _time.GetUtcNow()));
+        Assert.Empty(ObjectDetector.Detect(scene.Current, Cam1(scene), default, _time.GetUtcNow()));
+    }
+
+    [Fact]
+    public void CarInView_IsReportedAsAVehicleWithABox()
+    {
+        using var dir = new TempDir();
+        var store = new WorldStore(dir.Path);
+        store.Update(w => (w.Objects, w.Walkers, w.Vehicles) =
+            ([], [], [new VehicleModel { Id = "v", Route = [new GroundPoint(3, 40)] }]));
+        var scene = new SceneState(store);
+
+        var car = Assert.Single(ObjectDetector.Detect(scene.Current, Cam1(scene), default, _time.GetUtcNow()));
+        Assert.Equal(DetectionKind.Vehicle, car.Kind);
+        Assert.Equal("v", car.ObjectId);
+        Assert.True(car.Box.Top > car.Box.Bottom, "the car makes a box");
+        Assert.Equal((3f, 40f), (car.Pose.X, car.Pose.Z));
+    }
+
+    [Fact]
+    public void CarLeftOutOfAnalytics_IsNotSeen()
+    {
+        using var dir = new TempDir();
+        var store = new WorldStore(dir.Path);
+        store.Update(w => (w.Objects, w.Walkers, w.Vehicles) = ([], [], [new VehicleModel { Id = "v", Route = [new GroundPoint(3, 40)], Detectable = false }]));
+        var scene = new SceneState(store);
+
+        Assert.Empty(ObjectDetector.Detect(scene.Current, Cam1(scene), default, _time.GetUtcNow()));
+    }
+
+    [Fact]
+    public void Tracker_KeepsPeopleAndCarsApart_WhenTheyShareAnId()
+    {
+        var tracker = new ObjectTracker();
+        var box = new FrameBox(-0.1f, 0.2f, 0.1f, -0.2f);
+        var first = tracker.Update([new Sighting("a", DetectionKind.Person, box, default), new Sighting("a", DetectionKind.Vehicle, box, default)]);
+        Assert.Equal([1, 2], first.Select(o => o.ObjectId));
+    }
+
+    [Fact]
+    public void Document_NamesACarAsAVehicle()
+    {
+        var camera = new CameraModel { Id = "c", Metadata = new MetadataModel { Analytics = true } };
+        var frame = new AnalyticsFrame(DateTimeOffset.UnixEpoch, camera,
+            [new TrackedObject(3, "v", DetectionKind.Vehicle, new FrameBox(-0.1f, 0.1f, 0.1f, -0.1f), default)], null);
+
+        var root = XDocument.Parse(System.Text.Encoding.UTF8.GetString(MetadataDocument.Write(frame))).Root!;
+        var obj = Assert.Single(root.Element(Tt + "VideoAnalytics")!.Element(Tt + "Frame")!.Elements(Tt + "Object"));
+        var objectClass = obj.Element(Tt + "Appearance")!.Element(Tt + "Class")!;
+        Assert.Equal("Vehicle", (string?)objectClass.Element(Tt + "ClassCandidate")!.Element(Tt + "Type"));
+        Assert.Equal("Vehicle", (string?)objectClass.Element(Tt + "Type"));
     }
 
     [Fact]
@@ -102,11 +152,11 @@ public class AnalyticsTests
     {
         var tracker = new ObjectTracker();
         var box = new FrameBox(-0.1f, 0.2f, 0.1f, -0.2f);
-        Sighting Seen(string walker) => new(walker, box, default);
+        Sighting Seen(string id, DetectionKind kind = DetectionKind.Person) => new(id, kind, box, default);
 
         var first = tracker.Update([Seen("a"), Seen("b")]);
         Assert.Equal([1, 2], first.Select(o => o.ObjectId));
-        Assert.Equal([1, 2], tracker.Update([Seen("b"), Seen("a")]).OrderBy(o => o.WalkerId).Select(o => o.ObjectId));
+        Assert.Equal([1, 2], tracker.Update([Seen("b"), Seen("a")]).OrderBy(o => o.ObjectKey).Select(o => o.ObjectId));
         Assert.Equal([2], tracker.Update([Seen("b")]).Select(o => o.ObjectId));
         Assert.Equal([3, 2], tracker.Update([Seen("a"), Seen("b")]).Select(o => o.ObjectId));
     }
@@ -122,7 +172,7 @@ public class AnalyticsTests
         };
         var time = new DateTimeOffset(2026, 10, 13, 12, 0, 0, 250, TimeSpan.Zero);
         var frame = new AnalyticsFrame(time, camera,
-            [new TrackedObject(7, "w", new FrameBox(-0.5f, 0.25f, -0.25f, -0.75f), default)],
+            [new TrackedObject(7, "w", DetectionKind.Person, new FrameBox(-0.5f, 0.25f, -0.25f, -0.75f), default)],
             new PtzState(new PtzPosition(0, 0, 0.5f), PanTiltMoving: true, ZoomMoving: false));
 
         var root = XDocument.Parse(System.Text.Encoding.UTF8.GetString(MetadataDocument.Write(frame))).Root!;

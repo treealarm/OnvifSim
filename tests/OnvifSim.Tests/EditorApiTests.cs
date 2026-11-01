@@ -43,7 +43,7 @@ public class EditorApiTests(SimFactory factory) : IClassFixture<SimFactory>
         Assert.Equal(HttpStatusCode.NoContent, (await client.PutAsync("/api/roads/test-road", Json(new { points = new[] { new { x = 0, z = 0 }, new { x = 20, z = 5 } }, width = 3 }))).StatusCode);
         Assert.Equal(3, Store.Current.Roads.Single(r => r.Id == "test-road").Width);
         Assert.Equal(HttpStatusCode.NoContent, (await client.PutAsync("/api/walkers/test-walker", Json(new { route = new[] { new { x = 1, z = 2 } }, @return = "reverse" }))).StatusCode);
-        Assert.Equal(WalkerReturn.Reverse, Store.Current.Walkers.Single(w => w.Id == "test-walker").Return);
+        Assert.Equal(RouteReturn.Reverse, Store.Current.Walkers.Single(w => w.Id == "test-walker").Return);
 
         // A road of one point is no road.
         var single = await client.PutAsync("/api/roads/test-road", Json(new { points = new[] { new { x = 0, z = 0 } } }));
@@ -53,6 +53,30 @@ public class EditorApiTests(SimFactory factory) : IClassFixture<SimFactory>
         Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync("/api/walkers/test-walker")).StatusCode);
         Assert.DoesNotContain(Store.Current.Roads, r => r.Id == "test-road");
         Assert.DoesNotContain(Store.Current.Walkers, w => w.Id == "test-walker");
+    }
+
+    [Fact]
+    public async Task Vehicles_DriveTheirRoute_AndAreAddedAndDeleted_ByTheirId()
+    {
+        var client = factory.CreateClient();
+        var put = await client.PutAsync("/api/vehicles/test-car", Json(new
+        {
+            route = new[] { new { x = 0, z = 20 }, new { x = 30, z = 20 } }, speed = 10, plate = "B777AA",
+        }));
+        Assert.Equal(HttpStatusCode.NoContent, put.StatusCode);
+        var car = Store.Current.Vehicles.Single(v => v.Id == "test-car");
+        Assert.Equal("B777AA", car.Plate);
+
+        var pose = await GetJson(client, "/api/vehicles/test-car/pose");
+        Assert.False(string.IsNullOrEmpty(pose.GetProperty("utcTime").GetString()));
+        Assert.InRange(pose.GetProperty("x").GetSingle(), 0, 30);
+
+        var badPlate = await client.PutAsync("/api/vehicles/test-car", Json(new { route = new[] { new { x = 0, z = 20 } }, plate = "Ж777АА" }));
+        Assert.Equal(HttpStatusCode.BadRequest, badPlate.StatusCode);
+
+        Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync("/api/vehicles/test-car")).StatusCode);
+        Assert.DoesNotContain(Store.Current.Vehicles, v => v.Id == "test-car");
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/api/vehicles/test-car/pose")).StatusCode);
     }
 
     [Fact]
@@ -258,7 +282,7 @@ public class EditorApiTests(SimFactory factory) : IClassFixture<SimFactory>
             {
                 if (!line.StartsWith("data: ")) continue;
                 foreach (var o in JsonDocument.Parse(line["data: ".Length..]).RootElement.EnumerateArray())
-                    if (o.GetProperty("walker").GetString() == "test-seen") seen = o;
+                    if (o.GetProperty("objectId").GetString() == "test-seen") seen = o;
             }
             Assert.NotNull(seen);
             Assert.Equal((2f, 45f), (seen.Value.GetProperty("x").GetSingle(), seen.Value.GetProperty("z").GetSingle()));

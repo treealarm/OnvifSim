@@ -1,11 +1,11 @@
-import type { GroundPoint, Road, Walker, WalkerReturn } from '../model';
-import { removeSelected, startDrawing, updateRoad, updateWalker } from '../store';
-import { CheckboxField, ColorField, NumberField, Section, SelectField } from './fields';
+import { plateText, type GroundPoint, type Road, type RouteReturn, type Vehicle, type Walker } from '../model';
+import { removeSelected, startDrawing, updateRoad, updateVehicle, updateWalker } from '../store';
+import { CheckboxField, ColorField, NumberField, Section, SelectField, TextField } from './fields';
 
 const returnOptions = [
   { value: 'loop', label: 'Round in a loop' },
   { value: 'reverse', label: 'There and back' },
-] as const satisfies readonly { value: WalkerReturn; label: string }[];
+] as const satisfies readonly { value: RouteReturn; label: string }[];
 
 export function RoadInspector({ road }: { road: Road }) {
   const change = (patch: Partial<Road>) => updateRoad({ ...road, ...patch });
@@ -54,6 +54,42 @@ export function WalkerInspector({ walker }: { walker: Walker }) {
       />
       <button type="button" className="danger" onClick={removeSelected}>
         Delete person
+      </button>
+    </>
+  );
+}
+
+export function VehicleInspector({ vehicle }: { vehicle: Vehicle }) {
+  const change = (patch: Partial<Vehicle>) => updateVehicle({ ...vehicle, ...patch });
+  return (
+    <>
+      <h2>
+        Car <span className="muted">{vehicle.id}</span>
+      </h2>
+      <Section title="Drive">
+        <NumberField label="Speed, m/s" value={vehicle.speed} min={0} max={50} step={0.5} onChange={(speed) => change({ speed })} />
+        <SelectField label="At the end" value={vehicle.return} options={returnOptions} onChange={(value) => change({ return: value })} />
+        <CheckboxField label="Seen by analytics" checked={vehicle.detectable} onChange={(detectable) => change({ detectable })} />
+      </Section>
+      <Section title="Body">
+        <NumberField label="Width, m" value={vehicle.width} min={0.5} max={5} step={0.05} onChange={(width) => change({ width })} />
+        <NumberField label="Height, m" value={vehicle.height} min={0.5} max={5} step={0.05} onChange={(height) => change({ height })} />
+        <NumberField label="Length, m" value={vehicle.length} min={1} max={15} step={0.1} onChange={(length) => change({ length })} />
+        <ColorField label="Paint" value={vehicle.color ?? '#3a6ea5'} onChange={(color) => change({ color })} />
+        <ColorField label="Plate background" value={vehicle.color2 ?? '#f0f0ea'} onChange={(color2) => change({ color2 })} />
+      </Section>
+      <Section title="License plate">
+        <TextField label="Plate text" value={vehicle.plate ?? 'A123BC'} onChange={(text) => change({ plate: plateText(text) })} />
+        <p className="muted">Latin letters, digits, spaces and hyphens, up to 8 characters. Clearing the field leaves it blank.</p>
+      </Section>
+      <Points
+        points={vehicle.route}
+        minimum={1}
+        onChange={(route) => change({ route })}
+        onExtend={() => startDrawing('vehicle', vehicle.id)}
+      />
+      <button type="button" className="danger" onClick={removeSelected}>
+        Delete car
       </button>
     </>
   );

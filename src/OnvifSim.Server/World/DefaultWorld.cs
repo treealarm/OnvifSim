@@ -77,17 +77,17 @@ public static class DefaultWorld
         });
         world.Walkers.Add(new WalkerModel
         {
-            Id = "w1", Return = WalkerReturn.Reverse,
+            Id = "w1", Return = RouteReturn.Reverse,
             Route = [new(-45, 6), new(0, 4.5f), new(45, 3.5f)],
         });
         world.Walkers.Add(new WalkerModel
         {
-            Id = "w2", Return = WalkerReturn.Reverse, Speed = 1.6f, Height = 1.8f, Color = "#d9c27a", Color2 = "#4a3b2a",
+            Id = "w2", Return = RouteReturn.Reverse, Speed = 1.6f, Height = 1.8f, Color = "#d9c27a", Color2 = "#4a3b2a",
             Route = [new(50, 4.6f), new(0, 6), new(-50, 8.1f)],
         });
         world.Walkers.Add(new WalkerModel
         {
-            Id = "w3", Return = WalkerReturn.Reverse, Speed = 1.1f, Height = 1.65f, Color = "#a83b3b", Color2 = "#2f4a6b",
+            Id = "w3", Return = RouteReturn.Reverse, Speed = 1.1f, Height = 1.65f, Color = "#a83b3b", Color2 = "#2f4a6b",
             Route = [new(-90, 14.1f), new(-70, 7), new(0, 4), new(70, 2), new(110, -12.7f)],
         });
 

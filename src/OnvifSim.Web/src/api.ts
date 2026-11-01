@@ -7,6 +7,7 @@ import {
   type PtzSettings,
   type Road,
   type Terrain,
+  type Vehicle,
   type Walker,
   type WorldObject,
   type WorldsInfo,
@@ -67,6 +68,8 @@ export const api = {
   deleteRoad: (id: string) => send('DELETE', `/api/roads/${encodeURIComponent(id)}`),
   putWalker: (walker: Partial<Walker> & Pick<Walker, 'id'>) => send('PUT', `/api/walkers/${encodeURIComponent(walker.id)}`, walker),
   deleteWalker: (id: string) => send('DELETE', `/api/walkers/${encodeURIComponent(id)}`),
+  putVehicle: (vehicle: Partial<Vehicle> & Pick<Vehicle, 'id'>) => send('PUT', `/api/vehicles/${encodeURIComponent(vehicle.id)}`, vehicle),
+  deleteVehicle: (id: string) => send('DELETE', `/api/vehicles/${encodeURIComponent(id)}`),
   putTerrain: (terrain: Terrain) => send('PUT', '/api/terrain', encodeTerrain(terrain)),
   putEnvironment: (environment: Environment) => send('PUT', '/api/environment', environment),
 

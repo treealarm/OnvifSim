@@ -13,6 +13,7 @@ import {
   type ServerStatus,
   type Terrain,
   type Vec3,
+  type Vehicle,
   type Walker,
   type World,
   type WorldObject,
@@ -20,10 +21,10 @@ import {
   type WorldSwitchSignal,
 } from './model';
 
-export type Selection = { kind: 'object' | 'camera' | 'road' | 'walker'; id: string };
+export type Selection = { kind: 'object' | 'camera' | 'road' | 'walker' | 'vehicle'; id: string };
 export type Placeable = ObjectType | 'camera.fixed' | 'camera.ptz';
 export type BrushKind = 'raise' | 'lower' | 'smooth' | 'flatten';
-export type Drawable = 'road' | 'walker';
+export type Drawable = 'road' | 'walker' | 'vehicle';
 // Which tool palette the toolbar shows. Choosing a palette does not change the active tool.
 export type ToolGroup = 'select' | 'add' | 'draw' | 'terrain';
 // Drawing a road or a walker's route point by point; extending adds the points to the end of an
@@ -262,6 +263,7 @@ type Part =
   | { kind: 'camera'; id: string; value: CameraModel | null }
   | { kind: 'road'; id: string; value: Road | null }
   | { kind: 'walker'; id: string; value: Walker | null }
+  | { kind: 'vehicle'; id: string; value: Vehicle | null }
   | { kind: 'terrain'; value: Terrain }
   | { kind: 'environment'; value: Environment };
 
@@ -293,6 +295,8 @@ function currentOf(world: World, part: Part): Part {
       return { ...part, value: world.roads.find((r) => r.id === part.id) ?? null };
     case 'walker':
       return { ...part, value: world.walkers.find((w) => w.id === part.id) ?? null };
+    case 'vehicle':
+      return { ...part, value: world.vehicles.find((v) => v.id === part.id) ?? null };
     case 'terrain':
       return { kind: 'terrain', value: world.terrain };
     case 'environment':
@@ -315,6 +319,8 @@ function applyPart(world: World, part: Part): World {
       return { ...world, roads: upsert(world.roads, part.id, part.value) };
     case 'walker':
       return { ...world, walkers: upsert(world.walkers, part.id, part.value) };
+    case 'vehicle':
+      return { ...world, vehicles: upsert(world.vehicles, part.id, part.value) };
     case 'terrain':
       return { ...world, terrain: part.value };
     case 'environment':
@@ -332,6 +338,8 @@ async function sendPart(part: Part): Promise<unknown> {
       return part.value ? api.putRoad(part.value) : ignoreMissing(api.deleteRoad(part.id));
     case 'walker':
       return part.value ? api.putWalker(part.value) : ignoreMissing(api.deleteWalker(part.id));
+    case 'vehicle':
+      return part.value ? api.putVehicle(part.value) : ignoreMissing(api.deleteVehicle(part.id));
     case 'terrain':
       return api.putTerrain(part.value);
     case 'environment':
@@ -405,6 +413,10 @@ export function updateRoad(road: Road) {
 
 export function updateWalker(walker: Walker) {
   change({ kind: 'walker', id: walker.id, value: walker });
+}
+
+export function updateVehicle(vehicle: Vehicle) {
+  change({ kind: 'vehicle', id: vehicle.id, value: vehicle });
 }
 
 // Every stroke of a brush is a step of its own, however quickly the next one follows.
@@ -533,7 +545,7 @@ export function cancelDrawing() {
   set({ tool: { kind: 'select' }, toolGroup: 'select' });
 }
 
-// A road needs two points, a walker one (standing there); fewer just ends the drawing.
+// A road needs two points; a walker or a car needs one (standing there). Fewer just ends the drawing.
 export async function finishDrawing() {
   const { tool, world } = useEditor.getState();
   if (tool.kind !== 'draw' || !world) return;
@@ -544,9 +556,12 @@ export async function finishDrawing() {
     if (what === 'road') {
       const road = world.roads.find((r) => r.id === extending);
       if (road) updateRoad({ ...road, points: [...road.points, ...points] });
-    } else {
+    } else if (what === 'walker') {
       const walker = world.walkers.find((w) => w.id === extending);
       if (walker) updateWalker({ ...walker, route: [...walker.route, ...points] });
+    } else {
+      const vehicle = world.vehicles.find((v) => v.id === extending);
+      if (vehicle) updateVehicle({ ...vehicle, route: [...vehicle.route, ...points] });
     }
     return;
   }
@@ -557,11 +572,16 @@ export async function finishDrawing() {
       await api.putRoad({ id, points });
       remember({ kind: 'road', id, value: null }, false);
       select({ kind: 'road', id });
-    } else {
+    } else if (what === 'walker') {
       const id = nextId('w', world.walkers.map((w) => w.id));
       await api.putWalker({ id, route: points });
       remember({ kind: 'walker', id, value: null }, false);
       select({ kind: 'walker', id });
+    } else {
+      const id = nextId('v', world.vehicles.map((v) => v.id));
+      await api.putVehicle({ id, route: points });
+      remember({ kind: 'vehicle', id, value: null }, false);
+      select({ kind: 'vehicle', id });
     }
   } catch (error) {
     showError(error);
@@ -579,6 +599,9 @@ export function movePoint(selection: Selection, index: number, point: GroundPoin
   } else if (selection.kind === 'walker') {
     const walker = world.walkers.find((w) => w.id === selection.id);
     if (walker) updateWalker({ ...walker, route: replace(walker.route) });
+  } else if (selection.kind === 'vehicle') {
+    const vehicle = world.vehicles.find((v) => v.id === selection.id);
+    if (vehicle) updateVehicle({ ...vehicle, route: replace(vehicle.route) });
   }
 }
 

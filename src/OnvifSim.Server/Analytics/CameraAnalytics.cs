@@ -4,7 +4,7 @@ using OnvifSim.World;
 
 namespace OnvifSim.Analytics;
 
-// One look of a camera's analytics: the people in its picture with their object ids, and its PTZ head
+// One look of a camera's analytics: the people and cars in its picture with their object ids, and its PTZ head
 // (null for a fixed camera). Camera is the camera's configuration the look was taken with.
 public sealed record AnalyticsFrame(DateTimeOffset UtcTime, CameraModel Camera, IReadOnlyList<TrackedObject> Objects, PtzState? Ptz);
 
@@ -88,7 +88,7 @@ public sealed class CameraAnalytics(string cameraId, SceneState scene, PtzSimula
         var now = time.GetUtcNow();
         PtzState? head = camera.Kind == CameraKind.Ptz && camera.Ptz != null ? ptz.StateOf(camera) : null;
         var sightings = camera.Metadata.Analytics
-            ? PersonDetector.Detect(snapshot, camera, head?.Position ?? default, now)
+            ? ObjectDetector.Detect(snapshot, camera, head?.Position ?? default, now)
             : [];
         return new AnalyticsFrame(now, camera, tracker.Update(sightings), head);
     }

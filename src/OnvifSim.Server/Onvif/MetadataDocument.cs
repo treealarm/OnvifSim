@@ -10,7 +10,7 @@ using OnvifSim.Onvif.Wsdl;
 namespace OnvifSim.Onvif;
 
 // One document of a camera's metadata stream (tt:MetadataStream, ONVIF Streaming spec 5.1.2.1): the
-// people its analytics sees as objects of a scene frame, and where its PTZ head is. Boxes are in the
+// people and cars its analytics sees as objects of a scene frame, and where its PTZ head is. Boxes are in the
 // normalized frame coordinates, so no Transformation is needed; the class is given both ways the schema
 // allows, ClassCandidate for older clients and Type, which ONVIF recommends now.
 public static class MetadataDocument
@@ -73,14 +73,15 @@ public static class MetadataDocument
         writer.WriteEndElement();
         writer.WriteEndElement();
 
+        string type = obj.Kind == DetectionKind.Vehicle ? "Vehicle" : "Human";
         writer.WriteStartElement("Class", tt);
         writer.WriteStartElement("ClassCandidate", tt);
-        writer.WriteElementString("Type", tt, "Human");
+        writer.WriteElementString("Type", tt, type);
         writer.WriteElementString("Likelihood", tt, "1");
         writer.WriteEndElement();
         writer.WriteStartElement("Type", tt);
         writer.WriteAttributeString("Likelihood", "1");
-        writer.WriteString("Human");
+        writer.WriteString(type);
         writer.WriteEndElement();
         writer.WriteEndElement();
 

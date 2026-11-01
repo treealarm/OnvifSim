@@ -7,7 +7,7 @@ namespace OnvifSim.Onvif.Events;
 
 // One pull point subscription (ONVIF Core 9.1.2): the events a client asked for from one camera,
 // queued until it pulls them. While it lives it keeps the camera's analytics looking and turns what
-// they see into motion: on as soon as someone is in view, off once nobody has been for MotionHold, so
+// they see into motion: on as soon as something is in view, off once nothing has been for MotionHold, so
 // a person on the edge of a house does not flicker the alarm.
 public sealed class PullPoint : IDisposable
 {

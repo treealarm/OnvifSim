@@ -9,19 +9,20 @@ namespace OnvifSim.Streaming;
 // Renders one camera's frames and remembers the last one. Rendering is deterministic, so while the scene,
 // the camera pose, the image adjustments and the size stay the same, the previous frame is exactly what a
 // new render would produce: a camera nobody moves costs a comparison per frame instead of a render (and,
-// for JPEG, an encode). Walkers are the exception: they move, so a camera that sees any draws every
-// frame anew; so are other cameras' PTZ heads while they turn, when the picture shows cameras. The JPEG
+// for JPEG, an encode). Walkers and moving cars are the exception: they move, so a camera that sees any
+// draws every frame anew; so are other cameras' PTZ heads while they turn, when the picture shows
+// cameras. The JPEG
 // stream and the snapshots of a camera share one instance; its H.264 stream has one of its own, as its
 // size is set separately. heads says where every PTZ head is now; without it, heads are where the world
 // stores them.
 public sealed class CachingFrameRenderer(TimeProvider time, Func<CameraModel, PtzState>? heads = null)
 {
     // RenderScene is compared by reference: the world store builds a new one for every change.
-    // WalkTime is the moment walkers are drawn at, 0 when the camera sees none; HeadsTime the moment
-    // other cameras are drawn at, 0 while none of their heads moves.
+    // MovingTime is the moment walkers and cars are drawn at, 0 when the camera sees none; HeadsTime the
+    // moment other cameras are drawn at, 0 while none of their heads moves.
     private readonly record struct FrameKey(
         RenderScene Scene, CameraPose Pose, float Brightness, float Contrast, float ColorSaturation, bool AngleGrid, int Width, int Height,
-        long WalkTime, long HeadsTime);
+        long MovingTime, long HeadsTime);
 
     private readonly Lock _gate = new();
     private readonly SoftwareRasterizer _rasterizer = new();
@@ -74,15 +75,18 @@ public sealed class CachingFrameRenderer(TimeProvider time, Func<CameraModel, Pt
         var imaging = camera.Imaging;
         var scene = snapshot.Scene;
         var pose = CameraPose.From(camera, scene.Terrain, ptz);
-        var walkers = WalkersInView(snapshot.World.Walkers, scene, new ViewFrustum(pose, (float)width / height, scene.FogEnd), now);
+        var frustum = new ViewFrustum(pose, (float)width / height, scene.FogEnd);
+        var walkers = WalkersInView(snapshot.World.Walkers, scene, frustum, now);
+        var vehicles = VehiclesInView(snapshot.World.Vehicles, scene, frustum, now);
         bool headsMoving = CameraMarkers.Any(scene) && snapshot.World.Cameras.Any(c =>
             c.Kind == CameraKind.Ptz && c.Ptz != null && !string.Equals(c.Id, camera.Id, StringComparison.OrdinalIgnoreCase) && IsMoving(HeadOf(c)));
         var key = new FrameKey(scene, pose, imaging.Brightness, imaging.Contrast, imaging.ColorSaturation, camera.AngleGrid, width, height,
-            walkers.Count == 0 ? 0 : now.ToUnixTimeMilliseconds(), headsMoving ? now.ToUnixTimeMilliseconds() : 0);
+            walkers.Count == 0 && vehicles.Count == 0 ? 0 : now.ToUnixTimeMilliseconds(), headsMoving ? now.ToUnixTimeMilliseconds() : 0);
         if (key == _frameKey) return key;
         if (_frame == null || _frame.Width != width || _frame.Height != height)
             _frame = new Frame(width, height);
         var moving = walkers.Select(w => scene.Light(SceneBuilder.WalkerChunk(w.Walker, w.Pose, scene.Terrain))).ToList();
+        moving.AddRange(vehicles.Select(v => scene.Light(SceneBuilder.VehicleChunk(v.Vehicle, v.Pose, scene.Terrain))));
         moving.AddRange(CameraMarkers.Build(scene, snapshot.World, camera.Id, c => HeadOf(c).Position));
         _rasterizer.Render(scene, moving, key.Pose, _frame);
         ImageAdjustments.Apply(_frame, imaging);
@@ -107,6 +111,22 @@ public sealed class CachingFrameRenderer(TimeProvider time, Func<CameraModel, Pt
             // A sphere round the whole figure, swinging arms included.
             var centre = new Vector3(pose.X, scene.Terrain.HeightAt(pose.X, pose.Z) + walker.Height / 2, pose.Z);
             if (frustum.Sees(centre, walker.Height * 0.6f)) inView.Add((walker, pose));
+        }
+        return inView;
+    }
+
+    // The moving cars the camera can see now. A car's body is wide and long, so its reach is the ball
+    // around the whole body, not its height.
+    private static List<(VehicleModel Vehicle, RoutePose Pose)> VehiclesInView(
+        List<VehicleModel> vehicles, RenderScene scene, ViewFrustum frustum, DateTimeOffset now)
+    {
+        var inView = new List<(VehicleModel, RoutePose)>();
+        foreach (var vehicle in vehicles)
+        {
+            var pose = VehicleMotion.PoseAt(vehicle, now);
+            var centre = new Vector3(pose.X, scene.Terrain.HeightAt(pose.X, pose.Z) + vehicle.Height / 2, pose.Z);
+            float reach = MathF.Sqrt(vehicle.Width * vehicle.Width + vehicle.Length * vehicle.Length) / 2;
+            if (frustum.Sees(centre, reach)) inView.Add((vehicle, pose));
         }
         return inView;
     }
