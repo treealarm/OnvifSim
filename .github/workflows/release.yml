@@ -307,6 +307,15 @@ jobs:
 
             The cameras look at a 3D world you build in the browser (terrain, trees, houses, roads, people walking their routes), so a PTZ camera really turns when told to (AbsoluteMove, RelativeMove, ContinuousMove, presets, home) and a person walks from one camera's view into the next. Every edit is live; the world is one JSON file. See the [README](https://github.com/treealarm/OnvifSim#readme) for the full feature list.
 
+            ### What's new in 0.3.0
+            - **Named worlds**: prepare several scenes, switch between them without a restart, and move the old ones to the trash.
+            - **Contents tree** on the left, grouping every camera, object, road, person and car by type.
+            - **Moving cars**: draw a car's route the way you draw a person's; cameras draw the car, box it as `Vehicle` in the ONVIF metadata track and raise motion while it is in view. Parked cars have legible licence plates for LPR clients, and **Make it drive** turns one into a moving car in a single step.
+            - **Closed loops**: roads and routes can close into a ring; an open route turns round at its last point and comes back.
+            - **Streams are ONVIF profiles**: add, remove and rename streams, with their own RTSP path and encoder settings; a camera can bind one network address and its own RTSP port.
+            - **Profile G**: each camera records on its own virtual SD card and replays it over RTSP; the network can be cut and restored to test what a VMS does with missed footage.
+            - **Changed**: new cameras keep one hour of recording by default (was 30 days); a camera mounted any way up now PTZ-pans about its own axes.
+
             ### Downloads
             - **OnvifSim-win-x64.msi**: Windows x64 installer (Program Files, Start menu entry that starts the simulator and opens the editor).
             - **OnvifSim-win-x64.zip**, **OnvifSim-linux-x64.zip**, **OnvifSim-linux-arm64.zip**: portable; unzip and run `OnvifSim` (`OnvifSim.exe`).

@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 (2026-11-01)
 
 - **Worlds you prepare and switch between.** The data directory now holds any number of named worlds
   (`worlds/<name>.json`), an `active-world.json` marker and a `trash/`. The editor's world manager
