@@ -41,7 +41,11 @@ export function WorldMenu() {
       if (action.kind !== 'trash') setOpen(false);
     } catch (failure) {
       if (failure instanceof ApiError && failure.code === 'recordings') setRecordingsFor(action);
-      else setError(failure instanceof Error ? failure.message : String(failure));
+      else {
+        setError(failure instanceof Error ? failure.message : String(failure));
+        // A switch picked in the header has no dialog open to show the failure in.
+        setOpen(true);
+      }
     } finally {
       setBusy(false);
     }
@@ -74,8 +78,21 @@ export function WorldMenu() {
 
   return (
     <div className="world-menu">
-      <button type="button" aria-haspopup="dialog" disabled={!activeWorld} onClick={() => setOpen(true)}>
-        World: {activeWorld ?? '…'}
+      <select
+        aria-label="World"
+        value={activeWorld ?? ''}
+        disabled={!activeWorld || busy}
+        onChange={(e) => void run({ kind: 'switch', name: e.target.value })}
+      >
+        {!activeWorld && <option value="">…</option>}
+        {worlds.map((name) => (
+          <option key={name} value={name}>
+            {name}
+          </option>
+        ))}
+      </select>
+      <button type="button" aria-haspopup="dialog" onClick={() => setOpen(true)}>
+        Manage worlds
       </button>
 
       <Dialog
@@ -91,16 +108,10 @@ export function WorldMenu() {
         <ul className="world-list">
           {worlds.map((name) => (
             <li key={name} className="world-row">
-              <button
-                type="button"
-                className="name"
-                aria-pressed={name === activeWorld}
-                disabled={busy || name === activeWorld}
-                onClick={() => void run({ kind: 'switch', name })}
-              >
+              <span className="name">
                 {name}
                 {name === activeWorld && <span className="muted"> active</span>}
-              </button>
+              </span>
               <button type="button" className="danger" disabled={busy} onClick={() => void run({ kind: 'trash', name })}>
                 Trash
               </button>

@@ -355,7 +355,7 @@ test('a world can be trashed, restored and the trash emptied', async ({ page, re
   await openWorld(page, 'default', false);
   await expect.poll(async () => (await worlds(request)).active).toBe('default');
 
-  await page.getByRole('button', { name: /^World:/ }).click();
+  await page.getByRole('button', { name: 'Manage worlds', exact: true }).click();
   const manager = page.getByRole('dialog', { name: 'Worlds' });
   await manager.locator('.world-row').filter({ hasText: name }).first().getByRole('button', { name: 'Trash', exact: true }).click();
   await expect.poll(async () => (await worlds(request)).trash).toContain(name);
@@ -377,7 +377,7 @@ test('trashing the active world opens another one', async ({ page, request }) =>
   const name = `e2e-active-${Date.now()}`;
   await createWorld(page, name, true);
 
-  await page.getByRole('button', { name: /^World:/ }).click();
+  await page.getByRole('button', { name: 'Manage worlds', exact: true }).click();
   const manager = page.getByRole('dialog', { name: 'Worlds' });
   await manager.locator('.world-row').filter({ hasText: name }).first().getByRole('button', { name: 'Trash', exact: true }).click();
   await expect.poll(async () => (await worlds(request)).active).toBe('default');
@@ -421,7 +421,7 @@ async function placeOnGround(page: Page, tool: string) {
 // Creates an empty world and opens it. When the outgoing world has cameras, the server asks about the
 // recordings before anything is written.
 async function createWorld(page: Page, name: string, expectRecordings: boolean) {
-  await page.getByRole('button', { name: /^World:/ }).click();
+  await page.getByRole('button', { name: 'Manage worlds', exact: true }).click();
   const manager = page.getByRole('dialog', { name: 'Worlds' });
   await expect(manager).toBeVisible();
   await manager.getByLabel('New world').fill(name);
@@ -431,11 +431,8 @@ async function createWorld(page: Page, name: string, expectRecordings: boolean) 
 }
 
 async function openWorld(page: Page, name: string, expectRecordings: boolean) {
-  await page.getByRole('button', { name: /^World:/ }).click();
-  const manager = page.getByRole('dialog', { name: 'Worlds' });
-  await manager.locator('.world-row').filter({ hasText: name }).first().locator('button.name').click();
+  await page.getByLabel('World', { exact: true }).selectOption(name);
   await answerRecordings(page, expectRecordings);
-  await expect(manager).toBeHidden();
 }
 
 async function answerRecordings(page: Page, expected: boolean) {

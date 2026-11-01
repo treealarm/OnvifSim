@@ -255,6 +255,12 @@ main {
 
 .world-menu {
   display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.world-menu select {
+  max-width: 180px;
 }
 
 .world-list {
@@ -275,11 +281,6 @@ main {
 .world-row .name {
   flex: 1;
   text-align: left;
-}
-
-.world-row .name[aria-pressed='true'] {
-  border-color: var(--accent);
-  background: var(--accent-soft);
 }
 
 .world-new {

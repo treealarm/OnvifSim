@@ -146,10 +146,10 @@ restart.
   recordings.json         the cameras' own recordings (see Profile G below)
 ```
 
-- **New world** in the header creates an empty one — flat ground, no cameras — and opens it.
-- **Switch** by choosing a world in the list. Edits in the outgoing world are saved first, and the
-  new world starts with an empty undo history.
-- **Trash**, **Restore** and **Empty trash**: a trashed world keeps its file and can be brought back;
+- **Switch** by choosing a world in the header's list. Edits in the outgoing world are saved first,
+  and the new world starts with an empty undo history.
+- **Manage worlds** in the header creates an empty world — flat ground, no cameras — and opens it,
+  and offers **Trash**, **Restore** and **Empty trash**: a trashed world keeps its file and can be brought back;
   emptying the trash deletes those files permanently. The active world may be trashed too — the next
   world opens, or a fresh empty `default` if none is left.
 - Names may contain spaces and any letters, Cyrillic included. Path separators, control characters
@@ -261,7 +261,8 @@ is marked with a dot, so the viewport keeps doing exactly what it did until anot
   camera's analytics ("Seen by analytics"), so it only appears in the picture.
 - **World**: sun, sky colours, fog, terrain size and ground colour, and what the camera pictures show
   of the other cameras: their bodies, and optionally the wire frame of where they look.
-- **Worlds**: the header menu creates, opens, trashes and restores worlds; see [Worlds](#worlds).
+- **Worlds**: the header's world list switches worlds; **Manage worlds** creates, trashes and
+  restores them. See [Worlds](#worlds).
 
 ONVIF clients' changes (a new resolution, a preset, where a PTZ camera stopped) show up in the editor
 too. `npm run dev` in `src/OnvifSim.Web` serves the editor with hot reload against a simulator on
