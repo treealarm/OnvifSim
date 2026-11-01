@@ -9,16 +9,17 @@ namespace OnvifSim.Streaming;
 // derived from it never jumps when the wall clock is adjusted, and evenly spaced at the frame rate.
 public sealed record EncodedFrame(byte[] Jpeg, int Width, int Height, long CaptureTimestamp);
 
-// Renders one camera only while somebody watches: the first subscriber starts the frame loop, the
-// last one leaving stops it. Every subscriber gets the same frames through a one-slot channel that
+// Renders one camera stream only while somebody watches: the first subscriber starts the frame loop,
+// the last one leaving stops it. Every subscriber gets the same frames through a one-slot channel that
 // drops stale frames, so a slow client never holds back the others.
-public sealed class CameraFeed(string cameraId, SceneState scene, CachingFrameRenderer renderer, PtzSimulator ptz, ILogger logger)
+public sealed class CameraFeed(string cameraId, string streamToken, SceneState scene, CachingFrameRenderer renderer, PtzSimulator ptz, ILogger logger)
 {
     private readonly Lock _gate = new();
     private readonly List<Channel<EncodedFrame>> _subscribers = [];
     private CancellationTokenSource? _cts;
 
     public string CameraId => cameraId;
+    public string StreamToken => streamToken;
 
     public int SubscriberCount
     {
@@ -60,7 +61,7 @@ public sealed class CameraFeed(string cameraId, SceneState scene, CachingFrameRe
 
     private async Task RunAsync(CancellationToken token)
     {
-        logger.LogInformation("Camera {Camera}: stream started", cameraId);
+        logger.LogInformation("Camera {Camera}: stream {Stream} started", cameraId, streamToken);
         // Stopwatch timestamp the next frame is due at, and the one it is stamped with: frames sit on an
         // even grid like a real camera's, whatever the scheduling jitter.
         long next = Stopwatch.GetTimestamp();
@@ -75,8 +76,14 @@ public sealed class CameraFeed(string cameraId, SceneState scene, CachingFrameRe
                     CompleteAll();
                     return;
                 }
-                var video = cam.Video;
-                var encoded = new EncodedFrame(renderer.Render(snap, cam, ptz.PositionOf(cam)), video.Width, video.Height, next);
+                var stream = CameraStreamsModel.Find(cam, streamToken);
+                if (stream == null || stream.Codec != StreamCodec.Jpeg)
+                {
+                    CompleteAll();
+                    return;
+                }
+                var video = CameraStreamsModel.VideoOf(cam, stream);
+                var encoded = new EncodedFrame(renderer.Render(snap, cam, ptz.PositionOf(cam), video), video.Width, video.Height, next);
                 lock (_gate)
                     foreach (var s in _subscribers)
                         s.Writer.TryWrite(encoded);
@@ -94,7 +101,7 @@ public sealed class CameraFeed(string cameraId, SceneState scene, CachingFrameRe
             logger.LogError(ex, "Camera {Camera}: stream failed", cameraId);
             CompleteAll();
         }
-        logger.LogInformation("Camera {Camera}: stream stopped", cameraId);
+        logger.LogInformation("Camera {Camera}: stream {Stream} stopped", cameraId, streamToken);
     }
 
     private void CompleteAll()

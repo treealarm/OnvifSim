@@ -29,9 +29,10 @@ internal sealed class RtspConnection : IAsyncDisposable
     private readonly SemaphoreSlim _writeLock = new(1, 1);
     private readonly CancellationTokenSource _closed = new();
 
-    public RtspConnection(Socket socket, RtspServer server, ILogger logger)
+    public RtspConnection(Socket socket, RtspServer server, string listenerKey, ILogger logger)
     {
         _socket = socket;
+        ListenerKey = listenerKey;
         _stream = new NetworkStream(socket, ownsSocket: true);
         _server = server;
         _logger = logger;
@@ -41,6 +42,8 @@ internal sealed class RtspConnection : IAsyncDisposable
 
     public IPEndPoint RemoteEndPoint { get; }
     public IPEndPoint LocalEndPoint { get; }
+    // The listener that accepted this connection; its sessions end when the listener does.
+    public string ListenerKey { get; }
 
     public async Task RunAsync(CancellationToken serverStopping)
     {
@@ -170,7 +173,7 @@ internal sealed class RtspConnection : IAsyncDisposable
         if (transport == null || (existing != null && ((transport is UdpTransport) != existing.IsUdp || existing.SharesChannel(transport))))
             return (new RtspResponse(461), existing);
 
-        var session = existing ?? new RtspSession(path, _logger);
+        var session = existing ?? new RtspSession(path, LocalEndPoint.Port, ListenerKey, _logger);
         var track = session.AddTrack(definition, request.Url, transport);
         if (existing == null) _server.AddSession(session);
         _logger.LogInformation("RTSP {Client}: session {Session} for {Path}: {Track} over {Transport}",
@@ -181,7 +184,7 @@ internal sealed class RtspConnection : IAsyncDisposable
     private RtspResponse Play(RtspRequest request, RtspSession? session)
     {
         if (session == null) return new RtspResponse(454);
-        if (_server.Media.Find(session.Path) == null) return new RtspResponse(404);
+        if (_server.Media.Find(session.Path, session.LocalPort) == null) return new RtspResponse(404);
         if (RtspPlayRequest.Parse(request) is not { } play) return new RtspResponse(457);
         // A PLAY of a session already playing changes nothing (RFC 2326 10.5 would queue it).
         if (!session.IsPlaying) session.PlayRequest = play;
@@ -266,7 +269,7 @@ internal sealed class RtspConnection : IAsyncDisposable
 
     private bool IsAuthorized(RtspRequest request, IReadOnlyList<string> path)
     {
-        if (_server.Media.IsAuthorized(request, path)) return true;
+        if (_server.Media.IsAuthorized(request, path, LocalEndPoint.Port)) return true;
         if (request.Header("Authorization") != null)
             _logger.LogInformation("RTSP {Client}: wrong credentials for {Path}", RemoteEndPoint, string.Join('/', path));
         return false;
@@ -293,9 +296,9 @@ internal sealed class RtspConnection : IAsyncDisposable
         var raw = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
         var segments = raw.Select(Uri.UnescapeDataString).ToArray();
         int length;
-        if (_server.Media.Find(segments) is { Tracks: [var first, ..] } whole)
+        if (_server.Media.Find(segments, LocalEndPoint.Port) is { Tracks: [var first, ..] } whole)
             (media, track, length) = (whole, first, segments.Length);
-        else if (segments.Length > 1 && _server.Media.Find(segments[..^1]) is { } parent
+        else if (segments.Length > 1 && _server.Media.Find(segments[..^1], LocalEndPoint.Port) is { } parent
                  && parent.Tracks.FirstOrDefault(t => t.Control == segments[^1]) is { } named)
             (media, track, length) = (parent, named, segments.Length - 1);
         else

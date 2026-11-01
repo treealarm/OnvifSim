@@ -14,7 +14,7 @@ using OnvifSim.World;
 
 var options = SimOptions.Parse(args);
 // Validation is the editor's rule book, but a world opened from the library must pass it too.
-var store = new WorldStore(options.DataDirectory, world => WorldValidation.Check(world, options.OnvifBasePort));
+var store = new WorldStore(options.DataDirectory, world => WorldValidation.Check(world, options.OnvifBasePort, options.RtspPort));
 
 if (options.Bench)
 {
@@ -41,13 +41,17 @@ builder.Services.AddSingleton<RecordingLog>();
 builder.Services.AddSingleton<CameraNetwork>();
 builder.Services.AddSingleton<ReplayStreams>();
 builder.Services.AddSingleton<HttpAuthenticator>();
-builder.Services.AddSingleton<IRtspMediaSource, CameraStreams>();
+builder.Services.AddSingleton<RtspEndpoints>();
+builder.Services.AddSingleton<CameraStreams>();
+builder.Services.AddSingleton<IRtspMediaSource>(sp => sp.GetRequiredService<CameraStreams>());
 builder.Services.AddSingleton(new RtspServerOptions
 {
     Port = options.RtspPort, RtpPort = options.RtpPort, ServerName = "OnvifSim/" + CameraIdentity.FirmwareVersion,
 });
 builder.Services.AddSingleton<RtspServer>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<RtspServer>());
+builder.Services.AddSingleton<RtspHost>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<RtspHost>());
 builder.Services.AddSingleton(sp => new OnvifDispatcher(
     [typeof(DeviceHandlers), typeof(MediaHandlers), typeof(Media2Handlers), typeof(PtzHandlers), typeof(ImagingHandlers),
      typeof(EventHandlers), typeof(PullPointHandlers), typeof(SubscriptionManagerHandlers),
@@ -66,14 +70,20 @@ var app = builder.Build();
 // A camera that loses its network loses its streams too: they stop, as packets would. The recording
 // log is created here rather than on first use, so that cameras record from the start.
 var rtspServer = app.Services.GetRequiredService<RtspServer>();
+var cameraStreams = app.Services.GetRequiredService<CameraStreams>();
 var network = app.Services.GetRequiredService<CameraNetwork>();
 network.WentOffline += cameraId =>
-    _ = rtspServer.CloseSessionsAsync(path => string.Equals(path[0], cameraId, StringComparison.OrdinalIgnoreCase));
+{
+    _ = rtspServer.CloseSessionsAsync((port, path) =>
+        string.Equals(cameraStreams.CameraIdOf(port, path), cameraId, StringComparison.OrdinalIgnoreCase));
+};
+// A stream whose path or listener went away takes its sessions with it; RtspHost closes them once the
+// new listeners are known.
 // A new world starts with every camera online, and a replay belongs to the world it was recorded in.
 store.Switched += _ => network.Reset();
 store.Switched += switched =>
 {
-    _ = rtspServer.CloseSessionsAsync(path =>
+    _ = rtspServer.CloseSessionsAsync((port, path) =>
         path is [_, var last] && string.Equals(last, ReplayStreams.PathSegment, StringComparison.OrdinalIgnoreCase));
 };
 app.Services.GetRequiredService<RecordingLog>();

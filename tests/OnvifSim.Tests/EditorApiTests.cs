@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using OnvifSim.Editor;
 using OnvifSim.Onvif;
+using OnvifSim.Streaming;
 using OnvifSim.World;
 
 namespace OnvifSim.Tests;
@@ -287,6 +288,7 @@ public class EditorApiTests(SimFactory factory) : IClassFixture<SimFactory>
         Assert.Equal(Store.Current.Cameras.Count, events["world"].GetProperty("cameras").GetArrayLength());
         Assert.Equal(Store.ActiveName, events["worlds"].GetProperty("active").GetString());
         Assert.Equal(factory.Services.GetRequiredService<OnvifHost>().PortOf("cam1"), events["status"].GetProperty("onvifPorts").GetProperty("cam1").GetInt32());
+        Assert.Equal(factory.Services.GetRequiredService<RtspEndpoints>().PortOf("cam1"), events["status"].GetProperty("rtspPorts").GetProperty("cam1").GetInt32());
         Assert.True(events["ptz"].TryGetProperty("cam2", out var head));
         Assert.False(head.GetProperty("moving").GetBoolean());
     }
@@ -330,4 +332,113 @@ public class WorldValidationTests
         world.Objects[^1].Plate = "A123BC!";
         Assert.Throws<InvalidWorldException>(() => WorldValidation.Check(world, onvifBasePort: 8001));
     }
+
+    [Fact]
+    public void AStreamPath_IsUniqueAcrossTheWholeWorld()
+    {
+        var world = DefaultWorld.Create();
+        world.Cameras.Single(c => c.Id == "cam1").Streams =
+        [
+            JpegStream("Profile_1", "Main", "cam1"),
+            JpegStream("Profile_3", "Clash", "cam2"),
+        ];
+
+        var error = Assert.Throws<InvalidWorldException>(() => WorldValidation.Check(world, onvifBasePort: 8001));
+        Assert.Contains("already used", error.Message);
+    }
+
+    [Fact]
+    public void AStreamPath_MustBeUrlSafeAndNotNameATrack()
+    {
+        foreach (var path in new[] { "bad path", "cam1/track1", "cam1/track2", "a/b/c/d/e" })
+        {
+            var world = DefaultWorld.Create();
+            world.Cameras.Single(c => c.Id == "cam1").Streams = [JpegStream("Profile_1", "Main", path)];
+            Assert.Throws<InvalidWorldException>(() => WorldValidation.Check(world, onvifBasePort: 8001));
+        }
+    }
+
+    [Fact]
+    public void AStreamPath_CannotTakeTheReplayPath()
+    {
+        var world = DefaultWorld.Create();
+        world.Cameras.Single(c => c.Id == "cam1").Streams = [JpegStream("Profile_1", "Main", "cam1/replay")];
+
+        Assert.Throws<InvalidWorldException>(() => WorldValidation.Check(world, onvifBasePort: 8001));
+    }
+
+    [Fact]
+    public void ACameraNeedsAtLeastOneStream_WithASettingsObjectOfItsCodec()
+    {
+        var world = DefaultWorld.Create();
+        var camera = world.Cameras.Single(c => c.Id == "cam1");
+        camera.Streams = [];
+        Assert.Throws<InvalidWorldException>(() => WorldValidation.Check(world, onvifBasePort: 8001));
+
+        camera.Streams = [new StreamModel { Token = "Profile_1", Name = "Main", Codec = StreamCodec.Jpeg, Path = "cam1" }];
+        Assert.Throws<InvalidWorldException>(() => WorldValidation.Check(world, onvifBasePort: 8001));
+    }
+
+    [Fact]
+    public void StreamTokens_AreUniqueWithinACamera()
+    {
+        var world = DefaultWorld.Create();
+        world.Cameras.Single(c => c.Id == "cam1").Streams =
+        [
+            JpegStream("Profile_1", "Main", "cam1"),
+            JpegStream("Profile_1", "Second", "cam1/second"),
+        ];
+
+        Assert.Throws<InvalidWorldException>(() => WorldValidation.Check(world, onvifBasePort: 8001));
+    }
+
+    [Fact]
+    public void ABindAddress_NeedsAnIpAndAnExplicitRtspPort()
+    {
+        var world = DefaultWorld.Create();
+        var camera = world.Cameras.Single(c => c.Id == "cam1");
+        camera.BindAddress = "not-an-ip";
+        Assert.Throws<InvalidWorldException>(() => WorldValidation.Check(world, onvifBasePort: 8001));
+
+        camera.BindAddress = "127.0.0.1";
+        camera.RtspPort = 0;
+        Assert.Throws<InvalidWorldException>(() => WorldValidation.Check(world, onvifBasePort: 8001));
+
+        camera.BindAddress = "0.0.0.0";
+        camera.RtspPort = 8555;
+        Assert.Throws<InvalidWorldException>(() => WorldValidation.Check(world, onvifBasePort: 8001));
+    }
+
+    [Fact]
+    public void AWildcardAndASpecificListener_CannotShareAPort()
+    {
+        var world = DefaultWorld.Create();
+        var camera = world.Cameras.Single(c => c.Id == "cam1");
+        camera.BindAddress = "127.0.0.1";
+        camera.RtspPort = 8554;
+
+        var error = Assert.Throws<InvalidWorldException>(() => WorldValidation.Check(world, onvifBasePort: 8001, defaultRtspPort: 8554));
+        Assert.Contains("8554", error.Message);
+    }
+
+    [Fact]
+    public void TwoCameras_MayShareAPortWhenTheirAddressesDiffer()
+    {
+        var world = DefaultWorld.Create();
+        var cam1 = world.Cameras.Single(c => c.Id == "cam1");
+        var cam2 = world.Cameras.Single(c => c.Id == "cam2");
+        cam1.BindAddress = "127.0.0.1";
+        cam1.OnvifPort = 8001;
+        cam1.RtspPort = 8601;
+        cam2.BindAddress = "127.0.0.2";
+        cam2.OnvifPort = 8001;
+        cam2.RtspPort = 8601;
+
+        WorldValidation.Check(world, onvifBasePort: 8001, defaultRtspPort: 8554);
+    }
+
+    private static StreamModel JpegStream(string token, string name, string path) => new()
+    {
+        Token = token, Name = name, Codec = StreamCodec.Jpeg, Path = path, Video = new VideoModel(),
+    };
 }

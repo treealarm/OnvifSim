@@ -40,10 +40,12 @@ editor, and put away the ones you no longer use without losing them.
   are kept in the world file and survive a restart.
 
 **Video**
-- RTSP for every camera at `rtsp://<host>:8554/<camera id>`: Motion JPEG always, H.264 through the
-  bundled ffmpeg; RTP over UDP or interleaved in TCP.
+- RTSP for every camera: Motion JPEG always, H.264 through the bundled ffmpeg; RTP over UDP or
+  interleaved in TCP.
 - Snapshot URIs, and a live Motion JPEG page for the browser.
-- Two streams per camera with their own resolution, frame rate and quality, as ONVIF profiles.
+- One or more streams per camera, each an ONVIF profile with its own RTSP path, resolution, frame
+  rate and quality. A camera starts with `Profile_1` (JPEG at `/<camera id>`) and `Profile_2` (H.264
+  at `/<camera id>/h264`); add or remove streams in the camera panel.
 
 **Analytics with exact answers**
 - Every camera reports the people it sees, as a camera's own analytics would: boxes with object ids
@@ -217,11 +219,19 @@ is marked with a dot, so the viewport keeps doing exactly what it did until anot
 </p>
 
 - **Cameras** show what they see (the server's own picture, the same as RTSP), their ONVIF and RTSP
-  addresses and every setting: mount, field of view, PTZ limits and speeds, both streams, image
-  adjustments, users and port, and a colour of their own, which their body and the wire frame of
-  where they look take in the editor and in the other cameras' pictures. A PTZ camera gets a joystick
-  (drag it, or focus it and hold the arrow keys), zoom buttons and pan/tilt/zoom boxes that drive the
-  same PTZ head as ONVIF clients.
+  addresses and every setting: mount, field of view, PTZ limits and speeds, their streams, image
+  adjustments, users, the address and ports they listen on, and a colour of their own, which their
+  body and the wire frame of where they look take in the editor and in the other cameras' pictures. A
+  PTZ camera gets a joystick (drag it, or focus it and hold the arrow keys), zoom buttons and
+  pan/tilt/zoom boxes that drive the same PTZ head as ONVIF clients.
+  Every stream has a name, a path and its own encoder settings; **Add** makes a new profile, **Remove**
+  takes it and its RTSP path away, and at least one stream stays. **Bind address** makes the camera's
+  ONVIF listener and RTSP port listen on one interface; **RTSP port** 0 keeps the global one.
+
+<p align="center">
+  <img src="docs/images/camera-streams.png" alt="A camera panel: its ONVIF and RTSP addresses, and the list of its streams with each path and encoder settings" width="90%">
+</p>
+
 - **Cars** have a plate text field: Latin letters, digits, spaces and hyphens, up to 8 characters. The
   plate is part of the mesh, so it appears in every camera picture as well as in the editor. As with
   real cameras, the characters are readable at close range or through a narrow lens; a wide camera at
@@ -252,7 +262,7 @@ port 18180; `npm run e2e` runs the browser test.
 | `PUT`, `DELETE /api/objects/{id}`, `/api/roads/{id}`, `/api/walkers/{id}`, `/api/cameras/{id}` | add, replace or remove one object, road, walker or camera |
 | `PUT /api/terrain`, `PUT /api/environment` | the terrain or the sun, sky and fog |
 | `POST /api/cameras/{id}/ptz/move`, `goto`, `stop`, `home` | drive a PTZ head |
-| `GET /api/events` | server-sent events: `world` (the active world), `worlds` (the library), `world-switched`, `status` (ports, H.264) and `ptz` (head positions) |
+| `GET /api/events` | server-sent events: `world` (the active world), `worlds` (the library), `world-switched`, `status` (ONVIF and RTSP ports, H.264) and `ptz` (head positions) |
 | `GET /api/cameras` | camera list |
 | `GET /api/cameras/{id}/snapshot.jpg` | one rendered frame |
 | `GET /api/cameras/{id}/mjpeg` | live Motion JPEG (open it in a browser) |
@@ -268,6 +278,13 @@ A change the simulator cannot run with (an unknown object type, a frame size tha
 multiple of 8, two cameras on one port…) is refused with 400 and the reason.
 
 ## RTSP
+
+Each stream is an ONVIF profile and an RTSP path. A new camera starts with `Profile_1` (JPEG) at
+`/<camera id>` and `Profile_2` (H.264) at `/<camera id>/h264`; the camera panel adds and removes
+streams and edits their paths. Paths are unique across the world, so `rtsp://<host>:<port>/<path>`
+names exactly one stream, and a stream is served only on its camera's RTSP port (`0` keeps the global
+`--rtsp-port`). A camera may bind its ONVIF listener and RTSP port to one address; a specific address
+cannot share a port with a wildcard listener. RTP and RTCP stay on the one shared UDP pair.
 
 Every camera streams Motion JPEG (RTP/JPEG, RFC 2435) at `rtsp://<host>:8554/<camera id>`:
 
@@ -286,7 +303,7 @@ default 10 fps, ~7 s at 3 fps. VLC and GStreamer show the first frame at once.
 
 ### Metadata
 
-Both streams of a camera carry a second track, the ONVIF metadata stream (`m=application`,
+Every stream of a camera carries a second track, the ONVIF metadata stream (`m=application`,
 `vnd.onvif.metadata/90000`, `{stream}/track2`), as cameras with analytics do. Each document is a
 `tt:MetadataStream` with a scene frame: every person the camera sees is a `tt:Object` with an
 `ObjectId` that stays the same while they stay in view, a `BoundingBox` and `CenterOfGravity` in
@@ -301,10 +318,11 @@ want the track simply do not set it up; ffmpeg shows it as a data stream (`-map 
 ### H.264
 
 When an ffmpeg with libx264 is on `PATH` (or named with `--ffmpeg <path>`, `ONVIFSIM_FFMPEG`), every
-camera also streams H.264 (RTP, RFC 6184) at `rtsp://<host>:8554/<camera id>/h264`, with settings of
-its own (`h264` in the active world file: 640×360, 10 fps, 1024 kbit/s, a key frame every 10 frames by
-default). One ffmpeg process per camera runs while someone watches; a new viewer starts at the next
-key frame. Without ffmpeg (or with `--ffmpeg none`) cameras stream JPEG only.
+H.264 stream is served (RTP, RFC 6184) at its path, by default
+`rtsp://<host>:8554/<camera id>/h264`, with settings of its own (`h264` in the stream, 640×360, 10 fps,
+1024 kbit/s, a key frame every 10 frames by default). One ffmpeg process per stream runs while someone
+watches; a new viewer starts at the next key frame. Without ffmpeg (or with `--ffmpeg none`) H.264
+streams stay in the world but are hidden from ONVIF profiles and RTSP: cameras stream JPEG only.
 
 ```bash
 ffplay -rtsp_transport tcp rtsp://admin:admin@localhost:8554/cam1/h264
@@ -330,12 +348,18 @@ WS-Discovery, so ONVIF Device Manager, an NVR or `OnvifLib.Probe --discovery` li
 
 - **Device**: device information, clock, `GetServices`/`GetCapabilities`, scopes, users, a read-only
   view of the network settings.
-- **Media** (ver10) and **Media2** (ver20): `Profile_1` with the JPEG stream and, when H.264 is on,
-  `Profile_2` with the H.264 one, each with its RTSP and snapshot URIs.
-  `SetVideoEncoderConfiguration` changes resolution, frame rate, JPEG quality, H.264 bitrate and GOV
-  length within the offered options and is saved to the active world file. Both profiles share the metadata
-  configuration `Metadata_1` (`SetMetadataConfiguration` turns analytics and the PTZ status on and
-  off, saved as `metadata` in the active world file) and the analytics configuration `VideoAnalytics_1`.
+- **Media** (ver10) and **Media2** (ver20): every stream is a profile (`Profile_1`, `Profile_2`, …),
+  with its own encoder token (`VideoEncoder_N`), RTSP path and encoder settings, and the camera's
+  snapshot URI. `SetVideoEncoderConfiguration` changes resolution, frame rate, JPEG quality, H.264
+  bitrate and GOV length within the offered options and is saved to that stream in the active world
+  file. Streams are managed in the editor: ONVIF `CreateProfile` and `DeleteProfile` remain
+  unsupported, and a deleted stream's token answers `NoProfile`. Without ffmpeg, H.264 streams are
+  left out of the profiles. All profiles share the metadata configuration `Metadata_1`
+  (`SetMetadataConfiguration` turns analytics and the PTZ status on and off, saved as `metadata` in the
+  active world file) and the analytics configuration `VideoAnalytics_1`.
+- A camera's `bindAddress`, `rtspPort` and `streams` in the active world file hold its listener address,
+  its own RTSP port and its streams; `streams` absent means the legacy `Profile_1`/`Profile_2` pair.
+  Each stream has a token, a name, a codec, an RTSP path and its codec's settings.
 - **PTZ** (ver20, PTZ cameras only): AbsoluteMove, RelativeMove, ContinuousMove, Stop and
   GetStatus in the generic spaces, presets and a home position. The head moves at the camera's top
   speeds (`ptz` in the active world file), the stream shows it turning, and where it stops, its presets and
@@ -351,8 +375,8 @@ WS-Discovery, so ONVIF Device Manager, an NVR or `OnvifLib.Probe --discovery` li
 - **Recording, Search, Replay** (Profile G): the camera's own recording, as on a camera with an SD
   card. Every camera records from the moment it is in the world, with one recording (`Recording_1`,
   one video track) and one job (`RecordingJob_1`); `SetRecordingJobMode` Idle and Active stop and
-  start it, and its `MaximumRetentionTime` (`recordingRetentionHours` in the active world file, 30 days by
-  default) is how far back the card reaches before it records over the oldest footage.
+  start it, and its `MaximumRetentionTime` (`recordingRetentionHours` in the active world file, 1 hour
+  by default) is how far back the card reaches before it records over the oldest footage.
   `FindRecordings` (with the usual `TrackType`/`DataFrom`/`DataTo` filter) returns everything at
   once, `GetRecordingInformation`, `GetRecordingSummary` and `GetReplayUri` the rest; recordings and
   tracks cannot be created or deleted. No frame is stored: the world is a function of time, so replay
@@ -388,12 +412,17 @@ camera.
 |---|---|
 | 18180/tcp | editor and API (`--port`, `ONVIFSIM_PORT`) |
 | 8001…/tcp | ONVIF, one port per camera (`--onvif-base-port`, `ONVIFSIM_ONVIF_BASE_PORT`) |
-| 8554/tcp | RTSP for all cameras (`--rtsp-port`, `ONVIFSIM_RTSP_PORT`) |
+| 8554/tcp | RTSP for cameras that keep the global port (`--rtsp-port`, `ONVIFSIM_RTSP_PORT`) |
+| camera `rtspPort` | a camera's own RTSP port, when the inspector sets one |
 | 6970-6971/udp | RTP and RTCP of every UDP session (`--rtp-port`, `ONVIFSIM_RTP_PORT`) |
 | 3702/udp | WS-Discovery (`--discovery-port`, `ONVIFSIM_DISCOVERY_PORT`; 0 turns it off) |
 
 `--bench` prints render and JPEG timings per camera and resolution, and what drawing the other
 cameras and their fields of view adds.
+
+A camera's `bindAddress` moves its ONVIF listener and RTSP port to that interface; WS-Discovery then
+advertises the same address, IPv6 in brackets. A specific address needs an explicit `rtspPort`, and it
+cannot share a port with a wildcard listener.
 
 ## How it works
 
@@ -414,7 +443,9 @@ history and pending edits cannot leak into the scene that has just opened.
 
 The RTSP server and the RTP payload formats (JPEG, H.264, ONVIF metadata) are a library of their
 own, [src/OnvifSim.Rtsp](src/OnvifSim.Rtsp), which knows nothing of the simulator: the cameras reach
-it through one interface.
+it through one interface. `RtspHost` keeps one listener per (address, port) a camera asks for, all
+sharing the one RTP/RTCP pair; `RtspEndpoints` tells the streams and the editor which port each camera
+is on.
 
 ONVIF requests and responses are (de)serialized with types generated from the official ONVIF WSDL
 ([onvif/specs](https://github.com/onvif/specs)); `src/OnvifSim.Server/Onvif/Wsdl/generate.sh`

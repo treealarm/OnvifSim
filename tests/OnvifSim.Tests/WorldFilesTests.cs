@@ -6,6 +6,12 @@ namespace OnvifSim.Tests;
 public class WorldFilesTests
 {
     [Fact]
+    public void ANewCamera_KeepsAnHourOfRecordingByDefault()
+    {
+        Assert.Equal(1, new CameraModel().RecordingRetentionHours);
+    }
+
+    [Fact]
     public void FreshStart_WritesTheVillageAndTheActiveMarker()
     {
         using var dir = new TempDir();

@@ -83,6 +83,35 @@ export interface Walker {
 
 export type CameraKind = 'fixed' | 'ptz';
 
+export type StreamCodec = 'jpeg' | 'h264';
+
+export interface VideoSettings {
+  width: number;
+  height: number;
+  fps: number;
+  quality: number;
+  rotate: number;
+}
+
+export interface H264Settings {
+  width: number;
+  height: number;
+  fps: number;
+  bitrateKbps: number;
+  govLength: number;
+}
+
+// One video stream of a camera, which is also its ONVIF profile. The encoder token is derived from the
+// profile token. Source rotation stays on the camera (video.rotate), not per stream.
+export interface StreamModel {
+  token: string;
+  name: string;
+  codec: StreamCodec;
+  path: string;
+  video?: VideoSettings | null;
+  h264?: H264Settings | null;
+}
+
 export interface PtzPosition {
   pan: number;
   tilt: number;
@@ -122,16 +151,43 @@ export interface CameraModel {
   // The camera's colour, its body's and its field of view's; null or absent takes its kind's (kindColor).
   color?: string | null;
   // rotate: the picture turned clockwise, 0, 90, 180 or 270 degrees.
-  video: { width: number; height: number; fps: number; quality: number; rotate: number };
-  h264: { width: number; height: number; fps: number; bitrateKbps: number; govLength: number };
+  video: VideoSettings;
+  h264: H264Settings;
   imaging: { brightness: number; contrast: number; colorSaturation: number };
   // What the metadata track of the camera's RTSP streams carries: people as boxes, the PTZ position.
   metadata: { analytics: boolean; ptzStatus: boolean };
   ptz: PtzSettings | null;
   onvifPort: number;
+  // The address the camera listens on; null or absent is every interface.
+  bindAddress?: string | null;
+  // The camera's RTSP port; 0 uses the simulator's global port.
+  rtspPort: number;
+  // The camera's streams. Absent keeps the legacy pair built from video and h264.
+  streams?: StreamModel[] | null;
   users: { username: string; password: string }[];
   // How far back the camera's own recording (Profile G replay) reaches, in hours.
   recordingRetentionHours: number;
+}
+
+// The streams a camera actually serves: its list, or the legacy Profile_1/Profile_2 pair.
+export function effectiveStreams(camera: CameraModel): StreamModel[] {
+  if (camera.streams) return camera.streams;
+  return [
+    { token: 'Profile_1', name: 'MainStream', codec: 'jpeg', path: camera.id, video: camera.video },
+    { token: 'Profile_2', name: 'H264Stream', codec: 'h264', path: `${camera.id}/h264`, h264: camera.h264 },
+  ];
+}
+
+export function streamVideo(camera: CameraModel, stream: StreamModel): VideoSettings {
+  return stream.video ?? camera.video;
+}
+
+export function streamH264(camera: CameraModel, stream: StreamModel): H264Settings {
+  return stream.h264 ?? camera.h264;
+}
+
+export function encoderTokenOf(stream: StreamModel): string {
+  return `VideoEncoder_${stream.token.replace(/^Profile_/, '')}`;
 }
 
 // A camera's colour when it has none of its own (CameraMesh.ColorOf).
@@ -150,6 +206,8 @@ export interface World {
 // What the server says about the running services.
 export interface ServerStatus {
   rtspPort: number;
+  // The port each camera's streams are served on; null when its listener could not be opened.
+  rtspPorts: Partial<Record<string, number | null>>;
   h264: boolean;
   // Null for a camera whose port could not be opened.
   onvifPorts: Partial<Record<string, number | null>>;

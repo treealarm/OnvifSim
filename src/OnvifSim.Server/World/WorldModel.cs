@@ -95,6 +95,22 @@ public enum WalkerReturn { Loop, Reverse }
 
 public enum CameraKind { Fixed, Ptz }
 
+public enum StreamCodec { Jpeg, H264 }
+
+// One video stream of a camera. Its Token is the ONVIF profile token (Profile_1, Profile_2, ...), and
+// the matching encoder token is derived from it; Path is the RTSP path that serves it, without a leading
+// slash. Video carries the JPEG settings, H264 the H.264 ones; the other is null. Source-level rotation
+// stays on CameraModel.Video.Rotate, so every stream of a camera turns together.
+public sealed class StreamModel
+{
+    public string Token { get; set; } = "";
+    public string Name { get; set; } = "";
+    public StreamCodec Codec { get; set; }
+    public string Path { get; set; } = "";
+    public VideoModel? Video { get; set; }
+    public H264Model? H264 { get; set; }
+}
+
 public sealed class CameraModel
 {
     public string Id { get; set; } = "";
@@ -126,11 +142,21 @@ public sealed class CameraModel
     // Port of the camera's ONVIF service; 0 means automatic: 8001 for the first camera, 8002 for the
     // second and so on (--onvif-base-port moves the start).
     public int OnvifPort { get; set; }
+    // The address the camera's ONVIF listener and its RTSP streams listen on. Null or empty is every
+    // interface, as before addresses were editable.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? BindAddress { get; set; }
+    // The camera's RTSP port; 0 uses the simulator's global --rtsp-port.
+    public int RtspPort { get; set; }
+    // The camera's video streams, each an ONVIF profile. Null keeps the legacy pair built from Video and
+    // H264 (Profile_1 JPEG at /{id}, Profile_2 H.264 at /{id}/h264); an explicit empty list is invalid.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<StreamModel>? Streams { get; set; }
     // Accounts the camera accepts on RTSP (and on ONVIF). No users: the camera asks for no credentials.
     public List<UserModel> Users { get; set; } = [];
     // How far back the camera's own recording (its "SD card", see RecordingLog) reaches: a card is
-    // finite and records round, overwriting the oldest footage. 720 hours is 30 days.
-    public int RecordingRetentionHours { get; set; } = 720;
+    // finite and records round, overwriting the oldest footage. One hour by default; 720 hours is 30 days.
+    public int RecordingRetentionHours { get; set; } = 1;
 }
 
 public sealed class UserModel

@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text.RegularExpressions;
 using OnvifSim.Geometry;
 using OnvifSim.Onvif;
@@ -16,12 +17,21 @@ public static partial class WorldValidation
     private const int MaxVideoSide = 2040;
     private const float MaxObjectSize = 1000;
     private const int MaxTerrainResolution = 1024;
+    private const int MaxStreamPathLength = 128;
 
-    // Camera ids are RTSP paths (rtsp://host:8554/{id}), so they stay URL-safe.
+    // Camera ids stay URL-safe: they are the default RTSP paths and appear in editor API URLs.
     [GeneratedRegex("^[A-Za-z0-9_-]{1,32}$")]
     private static partial Regex CameraIdPattern();
 
-    public static void Check(WorldModel world, int onvifBasePort)
+    // Profile_1 ... Profile_8, and the legacy two.
+    [GeneratedRegex("^Profile_[0-9]{1,3}$")]
+    private static partial Regex StreamTokenPattern();
+
+    // Up to four URL-safe path segments, e.g. cam1 or gate/lpr/main.
+    [GeneratedRegex("^[A-Za-z0-9_.-]{1,32}(/[A-Za-z0-9_.-]{1,32}){0,3}$")]
+    private static partial Regex StreamPathPattern();
+
+    public static void Check(WorldModel world, int onvifBasePort, int defaultRtspPort = 8554)
     {
         CheckTerrain(world.Terrain);
         CheckEnvironment(world.Environment);
@@ -33,9 +43,8 @@ public static partial class WorldValidation
         RequireUnique(world.Walkers.Select(w => w.Id), "Walker id");
         foreach (var camera in world.Cameras) CheckCamera(camera);
         RequireUnique(world.Cameras.Select(c => c.Id), "Camera id");
-        RequireUnique(
-            world.Cameras.Select(c => OnvifHost.RequestedPort(world, c, onvifBasePort)).Where(p => p != 0).Select(p => p.ToString()),
-            "ONVIF port");
+        CheckStreams(world);
+        CheckEndpoints(world, onvifBasePort, defaultRtspPort);
     }
 
     private static void CheckTerrain(TerrainModel terrain)
@@ -93,6 +102,16 @@ public static partial class WorldValidation
             $"Camera {id}: position and orientation must be finite.");
         Require(camera.HFov is >= 1 and <= 170, $"Camera {id}: field of view {camera.HFov} is outside 1..170.");
         Require(camera.OnvifPort is >= 0 and <= 65535, $"Camera {id}: ONVIF port {camera.OnvifPort} is outside 0..65535.");
+        string? bindAddress = string.IsNullOrWhiteSpace(camera.BindAddress) ? null : camera.BindAddress.Trim();
+        if (bindAddress != null)
+        {
+            Require(IPAddress.TryParse(bindAddress, out var address),
+                $"Camera {id}: bind address '{bindAddress}' is not an IP address.");
+            Require(!address!.Equals(IPAddress.Any) && !address.Equals(IPAddress.IPv6Any),
+                $"Camera {id}: leave the bind address empty to listen on every interface.");
+            Require(camera.RtspPort != 0, $"Camera {id}: set an RTSP port when binding a specific address.");
+        }
+        Require(camera.RtspPort is >= 0 and <= 65535, $"Camera {id}: RTSP port {camera.RtspPort} is outside 0..65535.");
         Require(camera.RecordingRetentionHours is >= 1 and <= 8760,
             $"Camera {id}: recording retention {camera.RecordingRetentionHours} h is outside 1..8760 (a year).");
 
@@ -131,6 +150,97 @@ public static partial class WorldValidation
             $"Camera {id}: zoom fields of view must be within 1..170, tele no wider than wide.");
         Require(ptz.PanSpeed > 0 && ptz.TiltSpeed > 0 && ptz.ZoomSpeed > 0, $"Camera {id}: PTZ speeds must be above 0.");
     }
+
+    private static void CheckStreams(WorldModel world)
+    {
+        // RTSP paths are the whole address of a stream: the first camera to claim one owns it.
+        var paths = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var camera in world.Cameras)
+        {
+            var streams = CameraStreamsModel.Effective(camera);
+            Require(streams.Count is >= 1 and <= CameraStreamsModel.MaxStreams,
+                $"Camera {camera.Id}: a camera needs 1..{CameraStreamsModel.MaxStreams} streams, got {streams.Count}.");
+            RequireUnique(streams.Select(s => s.Token), $"Camera {camera.Id}: stream token");
+            foreach (var stream in streams)
+            {
+                CheckStream(camera, stream);
+                ClaimPath(paths, stream.Path, $"Camera {camera.Id}: stream {stream.Token}");
+            }
+            ClaimPath(paths, CameraStreamsModel.ReplayPath(camera), $"Camera {camera.Id}: replay");
+        }
+    }
+
+    private static void CheckStream(CameraModel camera, StreamModel stream)
+    {
+        string where = $"Camera {camera.Id}, stream '{stream.Token}'";
+        Require(StreamTokenPattern().IsMatch(stream.Token), $"{where}: the token must look like Profile_1.");
+        Require(stream.Name.Length is >= 1 and <= 64, $"{where}: the name must be 1..64 characters.");
+        Require(stream.Path.Length <= MaxStreamPathLength && StreamPathPattern().IsMatch(stream.Path),
+            $"{where}: RTSP path '{stream.Path}' must be up to four URL-safe segments, at most {MaxStreamPathLength} characters.");
+        string last = stream.Path.Split('/')[^1];
+        Require(!last.Equals("track1", StringComparison.OrdinalIgnoreCase) && !last.Equals("track2", StringComparison.OrdinalIgnoreCase),
+            $"{where}: a stream path cannot end in track1 or track2, which name RTSP tracks.");
+        switch (stream.Codec)
+        {
+            case StreamCodec.Jpeg:
+                Require(stream.Video != null, $"{where}: a JPEG stream needs Video settings.");
+                CheckVideoSize(camera.Id, $"{where} (JPEG)", stream.Video!.Width, stream.Video.Height);
+                CheckRange(camera.Id, $"{where} JPEG frame rate", stream.Video.Fps, CameraMedia.MinFrameRate, CameraMedia.MaxFrameRate);
+                CheckRange(camera.Id, $"{where} JPEG quality", stream.Video.Quality, CameraMedia.MinQuality, CameraMedia.MaxQuality);
+                break;
+            case StreamCodec.H264:
+                Require(stream.H264 != null, $"{where}: an H.264 stream needs H264 settings.");
+                CheckVideoSize(camera.Id, $"{where} (H.264)", stream.H264!.Width, stream.H264.Height);
+                CheckRange(camera.Id, $"{where} H.264 frame rate", stream.H264.Fps, CameraMedia.MinFrameRate, CameraMedia.MaxFrameRate);
+                CheckRange(camera.Id, $"{where} H.264 bitrate", stream.H264.BitrateKbps, CameraMedia.MinBitrateKbps, CameraMedia.MaxBitrateKbps);
+                CheckRange(camera.Id, $"{where} H.264 GOV length", stream.H264.GovLength, CameraMedia.MinGovLength, CameraMedia.MaxGovLength);
+                break;
+            default:
+                throw new InvalidWorldException($"{where}: unknown codec {stream.Codec}.");
+        }
+    }
+
+    private static void ClaimPath(Dictionary<string, string> paths, string path, string owner)
+    {
+        if (paths.TryGetValue(path, out var existing))
+            throw new InvalidWorldException($"{owner}: RTSP path '{path}' is already used by {existing}.");
+        paths[path] = owner;
+    }
+
+    // One ONVIF listener and one RTSP listener may share a port only when both bind the same address:
+    // the wildcard occupies the port, so a specific address cannot be added beside it.
+    private static void CheckEndpoints(WorldModel world, int onvifBasePort, int defaultRtspPort)
+    {
+        const string wildcard = "*";
+        string AddressOf(CameraModel camera) =>
+            string.IsNullOrWhiteSpace(camera.BindAddress) ? wildcard : IPAddress.Parse(camera.BindAddress.Trim()).ToString();
+
+        var onvif = world.Cameras
+            .Select(camera => (Address: AddressOf(camera), Port: OnvifHost.RequestedPort(world, camera, onvifBasePort), camera.Id))
+            .Where(endpoint => endpoint.Port != 0)
+            .ToList();
+        foreach (var group in onvif.GroupBy(endpoint => (endpoint.Address, endpoint.Port)).Where(group => group.Count() > 1))
+            throw new InvalidWorldException(
+                $"ONVIF endpoint {Describe(group.Key.Address, group.Key.Port)} is used by cameras {string.Join(", ", group.Select(e => e.Id))}.");
+        foreach (var group in onvif.GroupBy(endpoint => endpoint.Port))
+        {
+            var addresses = group.Select(endpoint => endpoint.Address).Distinct().ToList();
+            Require(addresses.Count == 1 || !addresses.Contains(wildcard),
+                $"ONVIF port {group.Key} is asked for both on every interface and on a specific address.");
+        }
+
+        var rtsp = world.Cameras
+            .Select(camera => (Address: AddressOf(camera), Port: CameraStreamsModel.EffectiveRtspPort(camera, defaultRtspPort)))
+            .ToList();
+        foreach (var group in rtsp.GroupBy(endpoint => endpoint.Port))
+        {
+            var addresses = group.Select(endpoint => endpoint.Address).Distinct().ToList();
+            Require(addresses.Count == 1 || !addresses.Contains(wildcard),
+                $"RTSP port {group.Key} is asked for both on every interface and on a specific address.");
+        }
+    }
+
+    private static string Describe(string address, int port) => address == "*" ? $"*:{port}" : $"{address}:{port}";
 
     private static void CheckVideoSize(string id, string stream, int width, int height)
     {

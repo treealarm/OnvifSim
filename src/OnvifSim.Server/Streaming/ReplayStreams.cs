@@ -39,20 +39,29 @@ public sealed class ReplayStreams(
 
     public RtspTrack VideoTrack(CameraModel camera)
     {
+        var stream = RecordingStream(camera);
         string id = camera.Id;
-        if (h264.FfmpegPath is { } ffmpeg)
+        if (stream.Codec == StreamCodec.H264 && h264.FfmpegPath is { } ffmpeg)
+        {
+            var settings = CameraStreamsModel.H264Of(camera, stream);
             return new RtspTrack(VideoTrackName, "video", H264Packetizer.PayloadType, "H264",
                 (sender, cancellationToken) => ReplayAsync(id, sender, (spans, s, c) => SendH264Async(ffmpeg, spans, s, c), cancellationToken))
             {
                 FormatParameters = H264Packetizer.FormatParameters(ProfileLevelId),
-                FrameRate = camera.H264.Fps,
+                FrameRate = settings.Fps,
             };
+        }
+        var video = CameraStreamsModel.VideoOf(camera, stream);
         return new RtspTrack(VideoTrackName, "video", JpegPacketizer.PayloadType, "JPEG",
             (sender, cancellationToken) => ReplayAsync(id, sender, SendJpegAsync, cancellationToken))
         {
-            FrameRate = camera.Video.Fps,
+            FrameRate = video.Fps,
         };
     }
+
+    private StreamModel RecordingStream(CameraModel camera) =>
+        CameraStreamsModel.RecordingStream(camera, h264.FfmpegPath != null)
+        ?? CameraStreamsModel.Effective(camera).First();
 
     private delegate Task SendFrames(IReadOnlyList<Section> sections, Context context, CancellationToken cancellationToken);
 
@@ -60,9 +69,9 @@ public sealed class ReplayStreams(
     // are sent (FramesOf): a range may reach back weeks.
     internal sealed record Section(DateTimeOffset Start, DateTimeOffset End, bool AfterGap, bool Last);
 
-    // What one playback renders with: the world as it was when PLAY came, the camera in it, and the
-    // clock its frames are paced and stamped by.
-    private sealed class Context(SceneState.Snapshot snapshot, CameraModel camera, RtpSender sender, DateTimeOffset from, TimeProvider time)
+    // What one playback renders with: the world as it was when PLAY came, the camera in it, the stream
+    // whose settings it uses, and the clock its frames are paced and stamped by.
+    private sealed class Context(SceneState.Snapshot snapshot, CameraModel camera, StreamModel stream, RtpSender sender, DateTimeOffset from, TimeProvider time)
     {
         // Stopwatch timestamp of the range's start: a frame recorded at t is stamped origin + (t - from),
         // which makes its RTP time follow the recording.
@@ -71,6 +80,7 @@ public sealed class ReplayStreams(
 
         public SceneState.Snapshot Snapshot => snapshot;
         public CameraModel Camera => camera;
+        public StreamModel Stream => stream;
         public RtpSender Sender => sender;
 
         public long CaptureTimestampOf(DateTimeOffset frameTime) =>
@@ -96,9 +106,10 @@ public sealed class ReplayStreams(
         if (camera == null) return;
         var request = sender.Request;
         var spans = recordings.SpansOf(camera);
+        var stream = RecordingStream(camera);
         var from = request.From ?? spans.FirstOrDefault().From;
         var to = request.To ?? DateTimeOffset.MaxValue;
-        var sections = Sections(spans, from, to, KeyFrameInterval(camera));
+        var sections = Sections(spans, from, to, KeyFrameInterval(camera, stream));
         if (sections.Count == 0)
         {
             _logger.LogInformation("Camera {Camera}: nothing recorded in {Range}", cameraId, request.RangeHeader);
@@ -108,14 +119,20 @@ public sealed class ReplayStreams(
         // that starts between key frames at the key frame before it.
         var first = sections[0].Start;
         _logger.LogInformation("Camera {Camera}: replaying {From:O} to {To:O}", cameraId, first, sections[^1].End);
-        await send(sections, new Context(snapshot, camera, sender, first, time), cancellationToken);
+        await send(sections, new Context(snapshot, camera, stream, sender, first, time), cancellationToken);
         _logger.LogInformation("Camera {Camera}: replay of {Range} done", cameraId, request.RangeHeader);
     }
 
     // How far apart the recording's key frames are: a GOV length of H.264 frames, or every JPEG frame.
-    private TimeSpan KeyFrameInterval(CameraModel camera) => h264.FfmpegPath != null
-        ? TimeSpan.FromSeconds((double)Math.Max(1, camera.H264.GovLength) / Math.Clamp(camera.H264.Fps, 1, 60))
-        : TimeSpan.FromSeconds(1.0 / Math.Clamp(camera.Video.Fps, 1, 60));
+    private TimeSpan KeyFrameInterval(CameraModel camera, StreamModel stream)
+    {
+        if (stream.Codec == StreamCodec.H264 && h264.FfmpegPath != null)
+        {
+            var settings = CameraStreamsModel.H264Of(camera, stream);
+            return TimeSpan.FromSeconds((double)Math.Max(1, settings.GovLength) / Math.Clamp(settings.Fps, 1, 60));
+        }
+        return TimeSpan.FromSeconds(1.0 / Math.Clamp(CameraStreamsModel.VideoOf(camera, stream).Fps, 1, 60));
+    }
 
     // The parts of the range the camera recorded, the first starting at the last key frame at or before the
     // range's start. A span keys from where it begins, as an encoder started with the recording would; of a
@@ -157,7 +174,7 @@ public sealed class ReplayStreams(
     {
         var at = DateTimeOffset.MinValue;
         var renderer = new CachingFrameRenderer(time, c => ptz.StateAt(c, at));
-        var video = context.Camera.Video;
+        var video = CameraStreamsModel.VideoOf(context.Camera, context.Stream);
         var batch = new RtpPacketBatch();
         foreach (var frame in sections.SelectMany(s => FramesOf(s, Math.Clamp(video.Fps, 1, 60))))
         {
@@ -177,7 +194,7 @@ public sealed class ReplayStreams(
     {
         var at = DateTimeOffset.MinValue;
         var renderer = new CachingFrameRenderer(time, c => ptz.StateAt(c, at));
-        var settings = context.Camera.H264;
+        var settings = CameraStreamsModel.H264Of(context.Camera, context.Stream);
         var encoded = Channel.CreateUnbounded<(H264AccessUnit Unit, FrameInfo Frame)>(new UnboundedChannelOptions { SingleReader = true });
         var sending = SendEncodedAsync(encoded.Reader, context, cancellationToken);
         try

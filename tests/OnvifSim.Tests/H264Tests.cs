@@ -1,10 +1,12 @@
 using System.Buffers.Binary;
+using System.Net.Http.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using OnvifLib;
 using OnvifSim.Onvif;
 using OnvifSim.Rtsp;
 using OnvifSim.Rtsp.Rtp;
+using OnvifSim.Streaming;
 using OnvifSim.Streaming.H264;
 using OnvifSim.World;
 
@@ -118,6 +120,75 @@ public class H264StreamTests(H264SimFactory factory) : IClassFixture<H264SimFact
 
     private Camera Connect(string cameraId) => Camera.Create("127.0.0.1",
         factory.Services.GetRequiredService<OnvifHost>().PortOf(cameraId)!.Value, "admin", "admin", timeout: 10);
+
+    [FfmpegFact]
+    public async Task ASecondH264Stream_IsItsOwnProfileAndItsOwnSettings()
+    {
+        var client = factory.CreateClient();
+        var create = await client.PutAsync("/api/cameras/h264cam", JsonContent.Create(new
+        {
+            name = "Two H.264 streams",
+            kind = "fixed",
+            position = new { x = 0, y = 3, z = 30 },
+            heading = 0,
+            pitch = -10,
+            users = Array.Empty<object>(),
+            streams = new object[]
+            {
+                new { token = "Profile_1", name = "JPEG", codec = "jpeg", path = "h264cam", video = new { width = 640, height = 360, fps = 10, quality = 70, rotate = 0 } },
+                new { token = "Profile_2", name = "H.264 main", codec = "h264", path = "h264cam/h264", h264 = new { width = 640, height = 360, fps = 10, bitrateKbps = 1024, govLength = 10 } },
+                new { token = "Profile_3", name = "H.264 second", codec = "h264", path = "h264cam/second", h264 = new { width = 320, height = 240, fps = 5, bitrateKbps = 512, govLength = 5 } },
+            },
+        }, options: WorldStore.Json));
+        Assert.Equal(System.Net.HttpStatusCode.NoContent, create.StatusCode);
+        try
+        {
+            int onvifPort = await WaitForOnvif(factory, "h264cam");
+            var media = await Camera.Create("127.0.0.1", onvifPort, "admin", "admin", timeout: 10).GetMediaService()
+                        ?? throw new InvalidOperationException("no media service");
+            var profiles = media.GetProfiles();
+            Assert.Contains(profiles, profile => profile.Token == "Profile_3" && profile.Encoding == "H264");
+            int rtspPort = factory.Services.GetRequiredService<RtspEndpoints>().PortOf("h264cam")!.Value;
+            Assert.Equal($"rtsp://127.0.0.1:{rtspPort}/h264cam/second", await media.GetStreamUri("Profile_3"));
+
+            var encoders = await media.GetVideoEncoderConfigsAsync();
+            var second = encoders.Single(encoder => encoder.Token == "VideoEncoder_3");
+            Assert.Equal(320, second.Width);
+            Assert.Equal(240, second.Height);
+            Assert.Equal(512, second.BitrateLimit);
+            await media.SetVideoEncoderConfigAsync(second with { Width = 640, Height = 360, BitrateLimit = 2000 });
+            var world = factory.Services.GetRequiredService<WorldStore>().Current;
+            Assert.Equal((640, 360, 2000), (
+                world.Cameras.Single(c => c.Id == "h264cam").Streams!.Single(s => s.Token == "Profile_3").H264!.Width,
+                world.Cameras.Single(c => c.Id == "h264cam").Streams!.Single(s => s.Token == "Profile_3").H264!.Height,
+                world.Cameras.Single(c => c.Id == "h264cam").Streams!.Single(s => s.Token == "Profile_3").H264!.BitrateKbps));
+            Assert.Equal(1024, world.Cameras.Single(c => c.Id == "h264cam").Streams!.Single(s => s.Token == "Profile_2").H264!.BitrateKbps);
+
+            await using var rtsp = await RtspTestClient.ConnectAsync(rtspPort);
+            var describe = await rtsp.RequestAsync("DESCRIBE", RtspTestClient.Url(rtspPort, "h264cam/second"));
+            Assert.Equal(200, describe.Status);
+            var setup = await rtsp.RequestAsync("SETUP", RtspTestClient.Url(rtspPort, "h264cam/second/track1"), ("Transport", "RTP/AVP/TCP;unicast;interleaved=0-1"));
+            Assert.Equal(200, setup.Status);
+            Assert.Equal(200, (await rtsp.RequestAsync("PLAY", RtspTestClient.Url(rtspPort, "h264cam/second"), ("Session", setup.SessionId!))).Status);
+            var first = await rtsp.ReadFrameAsync(anyPacketStartsFrame: true);
+            Assert.Equal([7, 8, 5], NalTypes(first).Where(type => type is 5 or 7 or 8).Distinct());
+        }
+        finally
+        {
+            await client.DeleteAsync("/api/cameras/h264cam");
+        }
+    }
+
+    private static async Task<int> WaitForOnvif(H264SimFactory factory, string cameraId)
+    {
+        var host = factory.Services.GetRequiredService<OnvifHost>();
+        for (int attempt = 0; attempt < 100; attempt++)
+        {
+            if (host.PortOf(cameraId) is { } port) return port;
+            await Task.Delay(50);
+        }
+        throw new InvalidOperationException($"{cameraId} was not served in time.");
+    }
 
     [FfmpegFact]
     public async Task Rtsp_StreamsH264_StartingWithAKeyFrameAndItsParameterSets()

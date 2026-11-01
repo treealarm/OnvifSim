@@ -27,7 +27,7 @@ test('a camera and a tree placed in the editor are live at once', async ({ page,
   // from the village and the person walking through it.
   await placeOnGround(page, 'Fixed camera');
   await expect(page.getByRole('heading', { level: 2 })).toContainText('cam3');
-  await page.getByLabel('Name').fill('E2E camera');
+  await page.getByLabel('Name', { exact: true }).fill('E2E camera');
   await setNumber(page, 'X (east)', 0);
   await setNumber(page, 'Z (south)', 150);
   await setNumber(page, 'Above ground', 3);
@@ -172,6 +172,10 @@ test('the contents tree selects what it lists', async ({ page }) => {
 });
 
 test('a person can be selected by clicking it in the viewport', async ({ page, request }) => {
+  // The village walkers would walk through the middle of the picture; keep them out of the way and
+  // put them back afterwards, so the click can only hit the person standing at the origin.
+  const before = (await (await request.get('/api/world')).json()) as { walkers: { id: string }[] };
+  for (const walker of before.walkers) await request.delete(`/api/walkers/${walker.id}`);
   const standing = { id: 'e2e-click', route: [{ x: 0, z: 0 }] };
   expect((await request.put(`/api/walkers/${standing.id}`, { data: standing })).ok()).toBe(true);
   try {
@@ -184,6 +188,7 @@ test('a person can be selected by clicking it in the viewport', async ({ page, r
     await expect(page.getByRole('heading', { level: 2 })).toContainText(standing.id);
   } finally {
     await request.delete(`/api/walkers/${standing.id}`);
+    for (const walker of before.walkers) await request.put(`/api/walkers/${walker.id}`, { data: walker });
   }
 });
 
@@ -199,6 +204,48 @@ test('a car can be placed and its plate edited', async ({ page, request }) => {
   await page.getByLabel('Plate text', { exact: true }).fill('B777AA');
   await page.getByLabel('Plate text', { exact: true }).blur();
   await expect.poll(async () => (await objectById(request, id))?.plate).toBe('B777AA');
+});
+
+
+test('a camera stream can be added, given a path and removed', async ({ page, request }) => {
+  await openEditor(page);
+  await placeOnGround(page, 'Fixed camera');
+  const heading = page.getByRole('heading', { level: 2 });
+  await expect(heading).toContainText(/cam\d+/);
+  const id = (await heading.locator('span').textContent()) ?? '';
+  try {
+    await page.getByRole('button', { name: 'Add JPEG stream', exact: true }).click();
+    const card = page.locator('.stream-card').filter({ hasText: 'Profile_3' });
+    await expect(card).toBeVisible();
+    await card.getByLabel('RTSP path', { exact: true }).fill(`${id}/second`);
+    await card.getByLabel('RTSP path', { exact: true }).blur();
+    await expect.poll(async () => (await cameraById(request, id))?.streams?.length).toBe(3);
+    await expect.poll(async () => (await cameraById(request, id))?.streams?.at(-1)?.path).toBe(`${id}/second`);
+
+    await card.getByRole('button', { name: 'Remove', exact: true }).click();
+    await expect.poll(async () => (await cameraById(request, id))?.streams?.length).toBe(2);
+  } finally {
+    await request.delete(`/api/cameras/${id}`);
+  }
+});
+
+test('a camera listens where the inspector says', async ({ page, request }) => {
+  await openEditor(page);
+  await placeOnGround(page, 'Fixed camera');
+  const heading = page.getByRole('heading', { level: 2 });
+  await expect(heading).toContainText(/cam\d+/);
+  const id = (await heading.locator('span').textContent()) ?? '';
+  const port = 20000 + Math.floor(Math.random() * 20000);
+  try {
+    await page.getByLabel('Bind address (empty: any)', { exact: true }).fill('127.0.0.1');
+    await page.getByLabel('Bind address (empty: any)', { exact: true }).blur();
+    await page.getByLabel('RTSP port (0: default)', { exact: true }).fill(String(port));
+    await page.getByLabel('RTSP port (0: default)', { exact: true }).blur();
+    await expect.poll(async () => (await cameraById(request, id))?.bindAddress).toBe('127.0.0.1');
+    await expect.poll(async () => (await cameraById(request, id))?.rtspPort).toBe(port);
+  } finally {
+    await request.delete(`/api/cameras/${id}`);
+  }
 });
 
 test('creating and switching a world clears the edit history', async ({ page, request }) => {
@@ -334,11 +381,15 @@ async function worlds(request: APIRequestContext): Promise<WorldsResponse> {
 
 async function world(request: APIRequestContext) {
   return (await (await request.get('/api/world')).json()) as {
-    cameras: { id: string; name: string; hFov: number }[];
+    cameras: { id: string; name: string; hFov: number; bindAddress?: string | null; rtspPort?: number; streams?: { token: string; path: string }[] }[];
     objects: { id: string; type: string; plate?: string | null; position: { x: number; z: number } }[];
     walkers: { id: string; route: unknown[]; return: string }[];
     terrain: { heights: string };
   };
+}
+
+async function cameraById(request: APIRequestContext, id: string) {
+  return (await world(request)).cameras.find((c) => c.id === id);
 }
 
 async function cameraOf(request: APIRequestContext, id: string) {

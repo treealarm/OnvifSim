@@ -1,8 +1,18 @@
-import { useState } from 'react';
-import { kindColor, type CameraModel, type PtzSettings, type ServerStatus, type Vec3 } from '../model';
+import { Fragment, useState } from 'react';
+import {
+  effectiveStreams,
+  kindColor,
+  streamH264,
+  streamVideo,
+  type CameraModel,
+  type PtzSettings,
+  type ServerStatus,
+  type StreamModel,
+  type Vec3,
+} from '../model';
 import { changeCameraKind, removeSelected, updateCamera, useEditor } from '../store';
 import { CameraPicture } from './CameraPicture';
-import { CheckboxField, ColorField, NumberField, Section, SelectField, TextField } from './fields';
+import { BlurTextField, CheckboxField, ColorField, NumberField, Section, SelectField, TextField } from './fields';
 import { PtzControl } from './PtzControl';
 
 // The sizes the Media service offers ONVIF clients (CameraMedia.StandardResolutions).
@@ -68,18 +78,7 @@ export function CameraInspector({ camera }: { camera: CameraModel }) {
 
       {camera.kind === 'ptz' && camera.ptz && <PtzLimits ptz={camera.ptz} onChange={(ptz) => change({ ptz })} />}
 
-      <Section title="JPEG stream">
-        <ResolutionField width={camera.video.width} height={camera.video.height} onChange={(width, height) => change({ video: { ...camera.video, width, height } })} />
-        <NumberField label="Frame rate" value={camera.video.fps} min={1} max={30} onChange={(fps) => change({ video: { ...camera.video, fps } })} />
-        <NumberField label="Quality" value={camera.video.quality} min={1} max={100} slider onChange={(quality) => change({ video: { ...camera.video, quality } })} />
-      </Section>
-
-      <Section title={status?.h264 === false ? 'H.264 stream (needs ffmpeg)' : 'H.264 stream'}>
-        <ResolutionField width={camera.h264.width} height={camera.h264.height} onChange={(width, height) => change({ h264: { ...camera.h264, width, height } })} />
-        <NumberField label="Frame rate" value={camera.h264.fps} min={1} max={30} onChange={(fps) => change({ h264: { ...camera.h264, fps } })} />
-        <NumberField label="Bitrate, kbit/s" value={camera.h264.bitrateKbps} min={64} max={16384} step={64} onChange={(bitrateKbps) => change({ h264: { ...camera.h264, bitrateKbps } })} />
-        <NumberField label="Key frame every" value={camera.h264.govLength} min={1} max={300} onChange={(govLength) => change({ h264: { ...camera.h264, govLength } })} />
-      </Section>
+      <StreamsSection camera={camera} h264Available={status?.h264 !== false} onChange={(streams) => change({ streams })} />
 
       <Section title="Image">
         <NumberField label="Brightness" value={camera.imaging.brightness} min={0} max={100} slider onChange={(brightness) => change({ imaging: { ...camera.imaging, brightness } })} />
@@ -101,7 +100,14 @@ export function CameraInspector({ camera }: { camera: CameraModel }) {
       </Section>
 
       <Section title="Access">
+        <BlurTextField
+          label="Bind address (empty: any)"
+          value={camera.bindAddress ?? ''}
+          onChange={(value) => change({ bindAddress: value.trim() === '' ? null : value.trim() })}
+          placeholder="e.g. 192.168.1.20"
+        />
         <NumberField label="ONVIF port (0: auto)" value={camera.onvifPort} min={0} max={65535} onChange={(onvifPort) => change({ onvifPort })} />
+        <NumberField label="RTSP port (0: default)" value={camera.rtspPort} min={0} max={65535} onChange={(rtspPort) => change({ rtspPort })} />
         <Users users={camera.users} onChange={(users) => change({ users })} />
       </Section>
 
@@ -113,25 +119,143 @@ export function CameraInspector({ camera }: { camera: CameraModel }) {
 }
 
 function Addresses({ camera, status }: { camera: CameraModel; status: ServerStatus }) {
-  const host = window.location.hostname;
+  const host = camera.bindAddress?.trim() || window.location.hostname;
+  const shownHost = host.includes(':') ? `[${host}]` : host;
   const port = status.onvifPorts[camera.id];
+  const rtspPort = status.rtspPorts?.[camera.id] ?? status.rtspPort;
   const user = camera.users[0];
   const credentials = user ? `${encodeURIComponent(user.username)}:${encodeURIComponent(user.password)}@` : '';
-  const rtsp = `rtsp://${credentials}${host}:${status.rtspPort}/${camera.id}`;
+  const streams = effectiveStreams(camera).filter((stream) => stream.codec !== 'h264' || status.h264);
   return (
     <dl className="addresses">
       <dt>ONVIF</dt>
-      <dd>{port ? `http://${host}:${port}/onvif/device_service` : 'not served (port taken?)'}</dd>
-      <dt>RTSP JPEG</dt>
-      <dd>{rtsp}</dd>
-      {status.h264 && (
-        <>
-          <dt>RTSP H.264</dt>
-          <dd>{rtsp}/h264</dd>
-        </>
-      )}
+      <dd>{port ? `http://${shownHost}:${port}/onvif/device_service` : 'not served (port taken?)'}</dd>
+      {streams.map((stream) => (
+        <Fragment key={stream.token}>
+          <dt>RTSP {stream.name || (stream.codec === 'jpeg' ? 'JPEG' : 'H.264')}</dt>
+          <dd>{rtspPort ? `rtsp://${credentials}${shownHost}:${rtspPort}/${stream.path}` : 'not served (port taken?)'}</dd>
+        </Fragment>
+      ))}
+      <dt>RTSP replay</dt>
+      <dd>{rtspPort ? `rtsp://${credentials}${shownHost}:${rtspPort}/${camera.id}/replay` : 'not served (port taken?)'}</dd>
     </dl>
   );
+}
+
+// The camera's streams, each an ONVIF profile. Editing a stream of a legacy camera materializes the
+// list; adding one picks the next free Profile_N token and a path under the camera id.
+function StreamsSection({
+  camera,
+  h264Available,
+  onChange,
+}: {
+  camera: CameraModel;
+  h264Available: boolean;
+  onChange: (streams: StreamModel[]) => void;
+}) {
+  const streams = effectiveStreams(camera);
+  const update = (index: number, patch: Partial<StreamModel>) =>
+    onChange(streams.map((stream, i) => (i === index ? { ...stream, ...patch } : stream)));
+  const remove = (index: number) => onChange(streams.filter((_, i) => i !== index));
+  function add(codec: 'jpeg' | 'h264') {
+    const token = nextStreamToken(streams);
+    const number = token.slice('Profile_'.length);
+    const path = `${camera.id}/stream${number}`;
+    const stream: StreamModel = codec === 'jpeg'
+      ? { token, name: `JPEG ${number}`, codec, path, video: { ...camera.video, rotate: 0 } }
+      : { token, name: `H.264 ${number}`, codec, path, h264: { ...camera.h264 } };
+    onChange([...streams, stream]);
+  }
+  return (
+    <Section title="Streams">
+      {streams.map((stream, index) => (
+        <StreamCard
+          key={stream.token}
+          camera={camera}
+          stream={stream}
+          h264Available={h264Available}
+          onChange={(patch) => update(index, patch)}
+          onRemove={streams.length > 1 ? () => remove(index) : undefined}
+        />
+      ))}
+      {streams.length < 8 && (
+        <div className="stream-add">
+          <button type="button" onClick={() => add('jpeg')}>
+            Add JPEG stream
+          </button>
+          <button type="button" onClick={() => add('h264')}>
+            Add H.264 stream
+          </button>
+        </div>
+      )}
+    </Section>
+  );
+}
+
+function StreamCard({
+  camera,
+  stream,
+  h264Available,
+  onChange,
+  onRemove,
+}: {
+  camera: CameraModel;
+  stream: StreamModel;
+  h264Available: boolean;
+  onChange: (patch: Partial<StreamModel>) => void;
+  onRemove?: () => void;
+}) {
+  const video = streamVideo(camera, stream);
+  const h264 = streamH264(camera, stream);
+  return (
+    <div className="stream-card">
+      <div className="stream-head">
+        <strong>{stream.name || stream.token}</strong>
+        <span className="muted">
+          {stream.token} · {stream.codec === 'jpeg' ? 'JPEG' : 'H.264'}
+        </span>
+        {onRemove && (
+          <button type="button" onClick={onRemove}>
+            Remove
+          </button>
+        )}
+      </div>
+      <BlurTextField label="Stream name" value={stream.name} onChange={(name) => onChange({ name })} />
+      <BlurTextField label="RTSP path" value={stream.path} onChange={(path) => onChange({ path })} />
+      {stream.codec === 'jpeg' ? (
+        <>
+          <ResolutionField
+            width={video.width}
+            height={video.height}
+            onChange={(width, height) => onChange({ video: { ...video, width, height } })}
+          />
+          <NumberField label="Frame rate" value={video.fps} min={1} max={30} onChange={(fps) => onChange({ video: { ...video, fps } })} />
+          <NumberField label="Quality" value={video.quality} min={1} max={100} slider onChange={(quality) => onChange({ video: { ...video, quality } })} />
+        </>
+      ) : (
+        <>
+          {!h264Available && <p className="muted">ffmpeg is unavailable; ONVIF and RTSP hide this stream until it is.</p>}
+          <ResolutionField
+            width={h264.width}
+            height={h264.height}
+            onChange={(width, height) => onChange({ h264: { ...h264, width, height } })}
+          />
+          <NumberField label="Frame rate" value={h264.fps} min={1} max={30} onChange={(fps) => onChange({ h264: { ...h264, fps } })} />
+          <NumberField label="Bitrate, kbit/s" value={h264.bitrateKbps} min={64} max={16384} step={64} onChange={(bitrateKbps) => onChange({ h264: { ...h264, bitrateKbps } })} />
+          <NumberField label="Key frame every" value={h264.govLength} min={1} max={300} onChange={(govLength) => onChange({ h264: { ...h264, govLength } })} />
+        </>
+      )}
+    </div>
+  );
+}
+
+function nextStreamToken(streams: StreamModel[]): string {
+  let highest = 0;
+  for (const stream of streams) {
+    const number = /^Profile_(\d+)$/.exec(stream.token);
+    if (number) highest = Math.max(highest, Number(number[1]));
+  }
+  return `Profile_${highest + 1}`;
 }
 
 function ResolutionField({ width, height, onChange }: { width: number; height: number; onChange: (width: number, height: number) => void }) {

@@ -35,7 +35,7 @@ public static class CameraRecording
         Address = context.XAddr("device_service"),
     };
 
-    // The card's depth as an xs:duration, PT720H for 30 days.
+    // The card's depth as an xs:duration, PT1H for the default hour.
     public static string MaximumRetentionTime(OnvifRequestContext context) =>
         XmlConvert.ToString(TimeSpan.FromHours(context.Camera.RecordingRetentionHours));
 

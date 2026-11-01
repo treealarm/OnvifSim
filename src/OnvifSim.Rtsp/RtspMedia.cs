@@ -7,12 +7,14 @@ namespace OnvifSim.Rtsp;
 public interface IRtspMediaSource
 {
     // The media at a path: the URL's segments after the host, unescaped (rtsp://host/cam1/h264 is
-    // ["cam1", "h264"]); null when there is none. A track is addressed by one more segment after its
-    // media's path, its control name.
-    RtspMedia? Find(IReadOnlyList<string> path);
+    // ["cam1", "h264"]); null when there is none. localPort is the port of the listener that took the
+    // connection, so a camera's streams can be reachable only on its own port. A track is addressed by
+    // one more segment after its media's path, its control name.
+    RtspMedia? Find(IReadOnlyList<string> path, int localPort);
 
-    // Whether a request (its method and Authorization header) may have the media at path.
-    bool IsAuthorized(RtspRequest request, IReadOnlyList<string> path);
+    // Whether a request (its method and Authorization header) may have the media at path, on the
+    // listener at localPort.
+    bool IsAuthorized(RtspRequest request, IReadOnlyList<string> path, int localPort);
 
     // The WWW-Authenticate values of a 401 response.
     IEnumerable<string> Challenges();

@@ -73,6 +73,42 @@ export function TextField({ label, value, onChange, type = 'text' }: { label: st
   );
 }
 
+// A text box that lets the user type freely and sends the value only when they leave it: an address or
+// a path is refused while half-typed, and a partial value must not reach the server.
+export function BlurTextField({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) {
+  const id = useId();
+  const [draft, setDraft] = useState<string | null>(null);
+  function commit() {
+    if (draft !== null && draft !== value) onChange(draft);
+    setDraft(null);
+  }
+  return (
+    <div className="field">
+      <label htmlFor={id}>{label}</label>
+      <input
+        id={id}
+        value={draft ?? value}
+        placeholder={placeholder}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') e.currentTarget.blur();
+        }}
+      />
+    </div>
+  );
+}
+
 export function CheckboxField({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
   const id = useId();
   return (

@@ -37,6 +37,9 @@ public class RecordingSimFactory : SimFactory
             copy.Name = id;
             world.Cameras.Add(copy);
         }
+        // The fixture's clock moves across tests, by hours in the retention test. A 30-day card keeps
+        // earlier footage there; the simulator's own default is an hour (CameraModel).
+        foreach (var camera in world.Cameras) camera.RecordingRetentionHours = 720;
         store.Replace(world);
         // The host starts on first use, and the cameras start recording with it: now, at Start, not
         // whenever a test first asks for a service.
@@ -187,6 +190,8 @@ public class RecordingTests(RecordingSimFactory factory) : IClassFixture<Recordi
     {
         var recording = (await Connect("cam4").GetRecordingService())!;
         TimeSpan Retention(string? duration) => XmlConvert.ToTimeSpan(duration!);
+        // The fixture gives its cameras 30 days so its shared clock can advance; the simulator's
+        // default for a new camera is one hour.
         Assert.Equal(TimeSpan.FromDays(30), Retention((await recording.GetRecordingConfigurationAsync("Recording_1"))!.MaximumRetentionTime));
 
         // Whole hours: ten minutes round up to one.

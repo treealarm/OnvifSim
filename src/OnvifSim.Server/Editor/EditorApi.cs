@@ -44,9 +44,9 @@ public static class EditorApi
             objects.DistinctBy(o => o.Id).ToDictionary(o => o.Id, o => MeshData.From(SceneBuilder.ObjectMesh(o))));
 
         // The response enumerates the events with the request's own cancellation; shutdown ends them too.
-        app.MapGet("/api/events", (WorldStore store, PtzSimulator ptz, OnvifHost onvif, RtspServer rtsp, FeedManager feeds,
-                RecordingLog recordings, IHostApplicationLifetime lifetime) =>
-            TypedResults.ServerSentEvents(Events(store, ptz, onvif, rtsp, feeds, recordings, lifetime.ApplicationStopping)));
+        app.MapGet("/api/events", (WorldStore store, PtzSimulator ptz, OnvifHost onvif, RtspServer rtsp, RtspEndpoints rtspEndpoints,
+                FeedManager feeds, RecordingLog recordings, IHostApplicationLifetime lifetime) =>
+            TypedResults.ServerSentEvents(Events(store, ptz, onvif, rtsp, rtspEndpoints, feeds, recordings, lifetime.ApplicationStopping)));
     }
 
     private static void MapWorld(WebApplication app)
@@ -57,7 +57,7 @@ public static class EditorApi
         {
             try
             {
-                WorldValidation.Check(world, options.OnvifBasePort);
+                WorldValidation.Check(world, options.OnvifBasePort, options.RtspPort);
             }
             catch (InvalidWorldException ex)
             {
@@ -106,15 +106,17 @@ public static class EditorApi
             camera.Id = id;
             return Change(store, options, world =>
             {
+                var stored = world.Cameras.FirstOrDefault(c => SameId(c.Id, id));
                 // Where the head points, its home and its presets belong to the PTZ simulator and ONVIF
                 // clients; the editor turns the head with PTZ commands, so its copy may be out of date.
-                var stored = world.Cameras.FirstOrDefault(c => SameId(c.Id, id))?.Ptz;
-                if (stored != null && camera.Ptz != null)
+                if (stored?.Ptz != null && camera.Ptz != null)
                 {
-                    camera.Ptz.Position = stored.Position;
-                    camera.Ptz.Home = stored.Home;
-                    camera.Ptz.Presets = stored.Presets;
+                    camera.Ptz.Position = stored.Ptz.Position;
+                    camera.Ptz.Home = stored.Ptz.Home;
+                    camera.Ptz.Presets = stored.Ptz.Presets;
                 }
+                // An editor too old to know about streams leaves the field out; it must not erase them.
+                if (stored?.Streams != null && camera.Streams == null) camera.Streams = stored.Streams;
                 Upsert(world.Cameras, camera, c => SameId(c.Id, id));
             });
         });
@@ -134,7 +136,7 @@ public static class EditorApi
         // Motion JPEG over HTTP: what the editor's camera preview shows, and any browser can open directly.
         app.MapGet("/api/cameras/{id}/mjpeg", async (string id, HttpContext ctx, FeedManager feeds, IHostApplicationLifetime lifetime) =>
         {
-            var feed = feeds.Get(id);
+            var feed = feeds.Preview(id);
             if (feed == null)
             {
                 ctx.Response.StatusCode = StatusCodes.Status404NotFound;
@@ -347,7 +349,7 @@ public static class EditorApi
             store.Update(world =>
             {
                 change(world);
-                WorldValidation.Check(world, options.OnvifBasePort);
+                WorldValidation.Check(world, options.OnvifBasePort, options.RtspPort);
             });
         }
         catch (InvalidWorldException ex)
@@ -379,7 +381,8 @@ public static class EditorApi
     // streams on offer ("status") and where the PTZ heads point while they move ("ptz"). Each comes
     // first on connecting, then only when it changed.
     private static async IAsyncEnumerable<SseItem<string>> Events(WorldStore store, PtzSimulator ptz, OnvifHost onvif, RtspServer rtsp,
-        FeedManager feeds, RecordingLog recordings, CancellationToken stopping, [EnumeratorCancellation] CancellationToken requestAborted = default)
+        RtspEndpoints rtspEndpoints, FeedManager feeds, RecordingLog recordings, CancellationToken stopping,
+        [EnumeratorCancellation] CancellationToken requestAborted = default)
     {
         using var stop = CancellationTokenSource.CreateLinkedTokenSource(requestAborted, stopping);
         using var timer = new PeriodicTimer(EventInterval);
@@ -416,6 +419,7 @@ public static class EditorApi
             var status = JsonSerializer.Serialize(new
             {
                 rtspPort = rtsp.Port,
+                rtspPorts = world.Cameras.ToDictionary(c => c.Id, c => rtspEndpoints.PortOf(c.Id)),
                 h264 = feeds.H264Available,
                 onvifPorts = world.Cameras.ToDictionary(c => c.Id, c => onvif.PortOf(c.Id)),
             }, CompactJson);

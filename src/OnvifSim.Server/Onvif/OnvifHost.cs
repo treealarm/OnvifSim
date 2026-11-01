@@ -1,3 +1,4 @@
+using System.Net;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using OnvifSim.Onvif.Events;
@@ -12,12 +13,13 @@ namespace OnvifSim.Onvif;
 
 // Serves every camera's ONVIF services on a port of its own, as separate devices would be: SOAP at
 // /onvif/{service} and the snapshot at /onvif/snapshot.jpg. Listeners follow the world: cameras that
-// are added, removed or moved to another port are picked up whenever the world changes.
+// are added, removed, moved to another port or bound to another address are picked up whenever the
+// world changes.
 public sealed class OnvifHost(
     SimOptions options, WorldStore store, SceneState scene, PtzSimulator ptz, PullPoints pullPoints, RecordingLog recordings, CameraNetwork network,
     OnvifDispatcher dispatcher, FeedManager feeds, HttpAuthenticator authenticator, RtspServer rtsp, ILoggerFactory loggers) : IHostedService
 {
-    private sealed record Listener(int RequestedPort, int Port, WebApplication App);
+    private sealed record Listener(string? RequestedAddress, int RequestedPort, int Port, WebApplication App);
 
     private const long MaxRequestBytes = 1024 * 1024;
 
@@ -32,6 +34,12 @@ public sealed class OnvifHost(
     public int? PortOf(string cameraId)
     {
         lock (_listeners) return _listeners.TryGetValue(cameraId, out var listener) ? listener.Port : null;
+    }
+
+    // The address a camera's ONVIF service binds, or null for every interface.
+    public string? AddressOf(string cameraId)
+    {
+        lock (_listeners) return _listeners.TryGetValue(cameraId, out var listener) ? listener.RequestedAddress : null;
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -68,6 +76,10 @@ public sealed class OnvifHost(
         : basePort == 0 ? 0
         : basePort + world.Cameras.IndexOf(camera);
 
+    // The address a camera asks for; null or empty is every interface.
+    public static string? RequestedAddress(CameraModel camera) =>
+        string.IsNullOrWhiteSpace(camera.BindAddress) ? null : camera.BindAddress.Trim();
+
     // Called inside the store's lock: hand the work off, and let the reconcile read the latest world.
     private void OnWorldChanged(WorldModel world) => _ = ReconcileAsync();
 
@@ -78,12 +90,17 @@ public sealed class OnvifHost(
         {
             if (_stopped) return;
             var world = store.Current;
-            var wanted = world.Cameras.ToDictionary(c => c.Id, c => RequestedPort(world, c, options.OnvifBasePort), StringComparer.OrdinalIgnoreCase);
+            var wanted = world.Cameras.ToDictionary(
+                c => c.Id,
+                c => (Address: RequestedAddress(c), Port: RequestedPort(world, c, options.OnvifBasePort)),
+                StringComparer.OrdinalIgnoreCase);
 
             List<(string Id, Listener Listener)> obsolete;
             lock (_listeners)
                 obsolete = _listeners
-                    .Where(l => !wanted.TryGetValue(l.Key, out int port) || port != l.Value.RequestedPort)
+                    .Where(l => !wanted.TryGetValue(l.Key, out var endpoint)
+                                || endpoint.Port != l.Value.RequestedPort
+                                || !string.Equals(endpoint.Address, l.Value.RequestedAddress, StringComparison.OrdinalIgnoreCase))
                     .Select(l => (l.Key, l.Value))
                     .ToList();
             foreach (var (id, listener) in obsolete)
@@ -92,11 +109,11 @@ public sealed class OnvifHost(
                 await StopListenerAsync(listener);
             }
 
-            foreach (var (id, port) in wanted)
+            foreach (var (id, endpoint) in wanted)
             {
                 bool running;
                 lock (_listeners) running = _listeners.ContainsKey(id);
-                if (!running) await StartListenerAsync(id, port);
+                if (!running) await StartListenerAsync(id, endpoint.Address, endpoint.Port);
             }
         }
         catch (Exception ex)
@@ -110,7 +127,7 @@ public sealed class OnvifHost(
         ListenersChanged?.Invoke();
     }
 
-    private async Task StartListenerAsync(string cameraId, int port)
+    private async Task StartListenerAsync(string cameraId, string? address, int port)
     {
         var builder = WebApplication.CreateEmptyBuilder(new WebApplicationOptions());
         builder.Services.AddLogging();
@@ -119,7 +136,8 @@ public sealed class OnvifHost(
         builder.Services.Configure<ConsoleLifetimeOptions>(o => o.SuppressStatusMessages = true);
         builder.WebHost.UseKestrelCore().ConfigureKestrel(kestrel =>
         {
-            kestrel.ListenAnyIP(port);
+            if (address == null) kestrel.ListenAnyIP(port);
+            else kestrel.Listen(IPAddress.Parse(address), port);
             kestrel.AddServerHeader = false;
             kestrel.Limits.MaxRequestBodySize = MaxRequestBytes;
         });
@@ -129,16 +147,18 @@ public sealed class OnvifHost(
         {
             await app.StartAsync();
         }
-        catch (IOException ex)
+        catch (Exception ex) when (ex is IOException or ArgumentException)
         {
-            // Typically the port is taken; the other cameras keep working.
-            _logger.LogError("Camera {Camera}: cannot serve ONVIF on port {Port}: {Reason}", cameraId, port, ex.Message);
+            // Typically the port or the address is taken; the other cameras keep working.
+            _logger.LogError("Camera {Camera}: cannot serve ONVIF on {Endpoint}: {Reason}",
+                cameraId, address == null ? $"port {port}" : $"{address}:{port}", ex.Message);
             await app.DisposeAsync();
             return;
         }
         int boundPort = new Uri(app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.First()).Port;
-        lock (_listeners) _listeners[cameraId] = new Listener(port, boundPort, app);
-        _logger.LogInformation("Camera {Camera}: ONVIF at http://localhost:{Port}/onvif/device_service", cameraId, boundPort);
+        lock (_listeners) _listeners[cameraId] = new Listener(address, port, boundPort, app);
+        string shown = address == null ? $"localhost:{boundPort}" : $"{address}:{boundPort}";
+        _logger.LogInformation("Camera {Camera}: ONVIF at http://{Host}/onvif/device_service", cameraId, shown);
     }
 
     private static async Task StopListenerAsync(Listener listener)
@@ -172,7 +192,8 @@ public sealed class OnvifHost(
             http.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
             return;
         }
-        await dispatcher.HandleAsync(http, new OnvifRequestContext(camera, store, ptz, pullPoints, recordings, dispatcher, http.Request, rtsp.Port, feeds.H264Available));
+        await dispatcher.HandleAsync(http, new OnvifRequestContext(camera, store, ptz, pullPoints, recordings, dispatcher, http.Request,
+            CameraStreamsModel.EffectiveRtspPort(camera, rtsp.Port), feeds.H264Available));
     }
 
     // The URL GetSnapshotUri hands out, protected by the camera's users like everything else.

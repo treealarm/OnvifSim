@@ -1,14 +1,13 @@
 using OnvifSim.Onvif.Wsdl;
 using OnvifSim.Onvif.Wsdl.Media2;
 using OnvifSim.Onvif.Soap;
-using OnvifSim.Streaming;
 using OnvifSim.World;
 using static OnvifSim.Onvif.Services.CameraMedia;
 
 namespace OnvifSim.Onvif.Services;
 
-// Media2 (ver20): the same profiles, encoders and metadata as Media1 in the Media2 shapes, which OnvifLib
-// and most current clients prefer. Audio and OSDs are empty, as in Media1.
+// Media2 (ver20): the same streams as Media1 in the Media2 shapes, which OnvifLib and most current
+// clients prefer. Audio and OSDs are empty, as in Media1.
 [OnvifService(typeof(Media2), "media2_service", 21, 12)]
 public sealed class Media2Handlers(OnvifRequestContext context)
 {
@@ -26,7 +25,7 @@ public sealed class Media2Handlers(OnvifRequestContext context)
         {
             ProfileCapabilities = new ProfileCapabilities2
             {
-                MaximumNumberOfProfiles = Codecs(context).Count, MaximumNumberOfProfilesSpecified = true,
+                MaximumNumberOfProfiles = VisibleStreams(context).Count, MaximumNumberOfProfilesSpecified = true,
                 ConfigurationsSupported = context.HasPtz
                     ? ["VideoSource", "VideoEncoder", "Analytics", "Metadata", "PTZ"]
                     : ["VideoSource", "VideoEncoder", "Analytics", "Metadata"],
@@ -47,7 +46,7 @@ public sealed class Media2Handlers(OnvifRequestContext context)
     // Configurations are included only for the types asked for, per Media2: none when Type is absent.
     public GetProfilesResponse GetProfiles(GetProfilesRequest request)
     {
-        var codecs = string.IsNullOrEmpty(request.Token) ? Codecs(context) : [CodecOfProfile(context, request.Token)];
+        var streams = string.IsNullOrEmpty(request.Token) ? VisibleStreams(context) : [StreamOfProfile(context, request.Token)];
         var types = request.Type ?? [];
         bool all = types.Contains("All");
         bool videoSource = all || types.Contains("VideoSource");
@@ -57,19 +56,19 @@ public sealed class Media2Handlers(OnvifRequestContext context)
         bool metadata = all || types.Contains("Metadata");
         return new GetProfilesResponse
         {
-            Profiles = codecs.Select(codec => new MediaProfile
+            Profiles = streams.Select(stream => new MediaProfile
             {
-                token = ProfileTokenOf(codec),
+                token = stream.Token,
                 @fixed = true,
                 fixedSpecified = true,
-                Name = ProfileNameOf(codec),
+                Name = stream.Name,
                 Configurations = videoSource || videoEncoder || ptz || analytics || metadata
                     ? new ConfigurationSet
                     {
                         VideoSource = videoSource ? VideoSourceConfiguration(context) : null,
-                        VideoEncoder = videoEncoder ? VideoEncoderConfiguration(codec) : null,
+                        VideoEncoder = videoEncoder ? VideoEncoderConfiguration(stream) : null,
                         Analytics = analytics ? AnalyticsConfiguration(context) : null,
-                        PTZ = ptz ? CameraPtz.Configuration(context.Camera.Ptz!) : null,
+                        PTZ = ptz ? PtzConfiguration() : null,
                         Metadata = metadata ? MetadataConfiguration(context) : null,
                     }
                     : null,
@@ -86,13 +85,14 @@ public sealed class Media2Handlers(OnvifRequestContext context)
 
     public GetVideoEncoderConfigurationsResponse GetVideoEncoderConfigurations(GetVideoEncoderConfigurationsRequest request) => new()
     {
-        Configurations = SelectCodecs(context, request.ConfigurationToken, request.ProfileToken).Select(VideoEncoderConfiguration).ToArray(),
+        Configurations = SelectStreams(context, request.ConfigurationToken, request.ProfileToken)
+            .Select(VideoEncoderConfiguration).ToArray(),
     };
 
     public GetVideoEncoderConfigurationOptionsResponse GetVideoEncoderConfigurationOptions(GetVideoEncoderConfigurationOptionsRequest request) => new()
     {
-        Options = SelectCodecs(context, request.ConfigurationToken, request.ProfileToken)
-            .Select(codec => codec == VideoCodec.H264 ? H264Options() : JpegOptions())
+        Options = OptionStreams(context, request.ConfigurationToken, request.ProfileToken)
+            .Select(stream => stream.Codec == StreamCodec.H264 ? H264Options(stream) : JpegOptions(stream))
             .ToArray(),
     };
 
@@ -103,27 +103,28 @@ public sealed class Media2Handlers(OnvifRequestContext context)
             throw OnvifFault.InvalidArgValue("The configuration needs a resolution.");
         var resolution = configuration.Resolution;
         var rateControl = configuration.RateControl;
-        if (CodecOfEncoder(context, configuration.token) == VideoCodec.H264)
-            ApplyH264Settings(context, configuration.Encoding ?? "", resolution.Width, resolution.Height,
-                rateControl?.FrameRateLimit ?? Camera.H264.Fps, rateControl?.BitrateLimit,
+        var stream = StreamOfEncoder(context, configuration.token);
+        if (stream.Codec == StreamCodec.H264)
+            ApplyH264Settings(context, stream, configuration.Encoding ?? "", resolution.Width, resolution.Height,
+                rateControl?.FrameRateLimit ?? H264Of(Camera, stream).Fps, rateControl?.BitrateLimit,
                 configuration.GovLengthSpecified ? configuration.GovLength : null);
         else
-            ApplyJpegSettings(context, configuration.Encoding ?? "", resolution.Width, resolution.Height,
-                rateControl?.FrameRateLimit ?? Camera.Video.Fps, configuration.Quality);
+            ApplyJpegSettings(context, stream, configuration.Encoding ?? "", resolution.Width, resolution.Height,
+                rateControl?.FrameRateLimit ?? VideoOf(Camera, stream).Fps, configuration.Quality);
         return new SetVideoEncoderConfigurationResponse();
     }
 
     public GetStreamUriResponse GetStreamUri(GetStreamUriRequest request)
     {
-        var codec = CodecOfProfile(context, request.ProfileToken);
+        var stream = StreamOfProfile(context, request.ProfileToken);
         if (!SupportedStreamProtocols.Contains(request.Protocol, StringComparer.OrdinalIgnoreCase))
             throw OnvifFault.InvalidArgValue($"Stream protocol '{request.Protocol}' is not supported; use {string.Join(" or ", SupportedStreamProtocols)}.");
-        return new GetStreamUriResponse { Uri = StreamUriOf(context, codec) };
+        return new GetStreamUriResponse { Uri = StreamUriOf(context, stream) };
     }
 
     public GetSnapshotUriResponse GetSnapshotUri(GetSnapshotUriRequest request)
     {
-        CodecOfProfile(context, request.ProfileToken);
+        CheckProfile(context, request.ProfileToken);
         return new GetSnapshotUriResponse { Uri = context.SnapshotUri };
     }
 
@@ -165,48 +166,65 @@ public sealed class Media2Handlers(OnvifRequestContext context)
         return new GetOSDOptionsResponse { OSDOptions = NoOsdOptions() };
     }
 
-    private VideoEncoder2Configuration VideoEncoderConfiguration(VideoCodec codec) =>
-        codec == VideoCodec.H264 ? H264EncoderConfiguration() : JpegEncoderConfiguration();
-
-    private VideoEncoder2Configuration JpegEncoderConfiguration() => new()
+    private PTZConfiguration? PtzConfiguration()
     {
-        token = JpegEncoderToken,
-        Name = "VideoEncoder",
-        UseCount = 1,
-        Encoding = "JPEG",
-        Resolution = new VideoResolution2 { Width = Camera.Video.Width, Height = Camera.Video.Height },
-        Quality = Camera.Video.Quality,
-        RateControl = new VideoRateControl2
+        if (!context.HasPtz) return null;
+        var configuration = CameraPtz.Configuration(Camera.Ptz!);
+        configuration.UseCount = VisibleStreams(context).Count;
+        return configuration;
+    }
+
+    private VideoEncoder2Configuration VideoEncoderConfiguration(StreamModel stream) =>
+        stream.Codec == StreamCodec.H264 ? H264EncoderConfiguration(stream) : JpegEncoderConfiguration(stream);
+
+    private VideoEncoder2Configuration JpegEncoderConfiguration(StreamModel stream)
+    {
+        var video = VideoOf(Camera, stream);
+        return new VideoEncoder2Configuration
         {
-            FrameRateLimit = Camera.Video.Fps,
-            BitrateLimit = EstimatedBitrateKbps(Camera.Video),
-            ConstantBitRate = false, ConstantBitRateSpecified = true,
-        },
-        Multicast = NoMulticast(),
-    };
+            token = EncoderTokenOf(stream),
+            Name = "VideoEncoder",
+            UseCount = 1,
+            Encoding = "JPEG",
+            Resolution = new VideoResolution2 { Width = video.Width, Height = video.Height },
+            Quality = video.Quality,
+            RateControl = new VideoRateControl2
+            {
+                FrameRateLimit = video.Fps,
+                BitrateLimit = EstimatedBitrateKbps(video),
+                ConstantBitRate = false, ConstantBitRateSpecified = true,
+            },
+            Multicast = NoMulticast(),
+        };
+    }
 
-    private VideoEncoder2Configuration H264EncoderConfiguration() => new()
+    private VideoEncoder2Configuration H264EncoderConfiguration(StreamModel stream)
     {
-        token = H264EncoderToken,
-        Name = "VideoEncoderH264",
-        UseCount = 1,
-        Encoding = "H264",
-        Resolution = new VideoResolution2 { Width = Camera.H264.Width, Height = Camera.H264.Height },
-        Quality = H264Quality,
-        RateControl = new VideoRateControl2
+        var h264 = H264Of(Camera, stream);
+        return new VideoEncoder2Configuration
         {
-            FrameRateLimit = Camera.H264.Fps,
-            BitrateLimit = Camera.H264.BitrateKbps,
-            ConstantBitRate = true, ConstantBitRateSpecified = true,
-        },
-        GovLength = Camera.H264.GovLength, GovLengthSpecified = true,
-        Profile = "Baseline",
-        Multicast = NoMulticast(),
-    };
+            token = EncoderTokenOf(stream),
+            Name = "VideoEncoderH264",
+            UseCount = 1,
+            Encoding = "H264",
+            Resolution = new VideoResolution2 { Width = h264.Width, Height = h264.Height },
+            Quality = H264Quality,
+            RateControl = new VideoRateControl2
+            {
+                FrameRateLimit = h264.Fps,
+                BitrateLimit = h264.BitrateKbps,
+                ConstantBitRate = true, ConstantBitRateSpecified = true,
+            },
+            GovLength = h264.GovLength, GovLengthSpecified = true,
+            Profile = "Baseline",
+            Multicast = NoMulticast(),
+        };
+    }
 
-    private VideoEncoder2ConfigurationOptions JpegOptions()
+    private VideoEncoder2ConfigurationOptions JpegOptions(StreamModel stream)
     {
-        var resolutions = Resolutions(Camera.Video.Width, Camera.Video.Height);
+        var video = VideoOf(Camera, stream);
+        var resolutions = Resolutions(video.Width, video.Height);
         var largest = resolutions.MaxBy(r => r.Width * r.Height);
         return new VideoEncoder2ConfigurationOptions
         {
@@ -223,17 +241,21 @@ public sealed class Media2Handlers(OnvifRequestContext context)
     }
 
     // The quality range is the same as JPEG's so a client can send back what it read; H.264 ignores it.
-    private VideoEncoder2ConfigurationOptions H264Options() => new()
+    private VideoEncoder2ConfigurationOptions H264Options(StreamModel stream)
     {
-        Encoding = "H264",
-        QualityRange = new FloatRange { Min = MinQuality, Max = MaxQuality },
-        ResolutionsAvailable = ResolutionsOf(Resolutions(Camera.H264.Width, Camera.H264.Height)),
-        BitrateRange = new IntRange { Min = MinBitrateKbps, Max = MaxBitrateKbps },
-        GovLengthRange = [MinGovLength, MaxGovLength],
-        FrameRatesSupported = FrameRates,
-        ProfilesSupported = ["Baseline"],
-        ConstantBitRateSupported = true, ConstantBitRateSupportedSpecified = true,
-    };
+        var h264 = H264Of(Camera, stream);
+        return new VideoEncoder2ConfigurationOptions
+        {
+            Encoding = "H264",
+            QualityRange = new FloatRange { Min = MinQuality, Max = MaxQuality },
+            ResolutionsAvailable = ResolutionsOf(Resolutions(h264.Width, h264.Height)),
+            BitrateRange = new IntRange { Min = MinBitrateKbps, Max = MaxBitrateKbps },
+            GovLengthRange = [MinGovLength, MaxGovLength],
+            FrameRatesSupported = FrameRates,
+            ProfilesSupported = ["Baseline"],
+            ConstantBitRateSupported = true, ConstantBitRateSupportedSpecified = true,
+        };
+    }
 
     private static VideoResolution2[] ResolutionsOf(IReadOnlyList<(int Width, int Height)> resolutions) =>
         resolutions.Select(r => new VideoResolution2 { Width = r.Width, Height = r.Height }).ToArray();

@@ -21,11 +21,22 @@
 - **Documentation**: the README is now the complete English documentation; the outdated
   `docs/PLAN.md` was removed (git history keeps it), and the README gained screenshots of the world
   manager, the contents tree and the car's plate.
+- **Streams are ONVIF profiles, and can be added and removed.** A camera starts with `Profile_1`
+  (JPEG) and `Profile_2` (H.264); the camera panel adds and removes streams, names them and edits
+  each one's RTSP path and encoder settings. Encoder tokens follow the profile tokens, deleted
+  streams answer `NoProfile`, and H.264 streams are hidden when ffmpeg is absent. The RTSP paths are
+  unique across the world.
+- **Editable camera addresses.** A camera can bind its ONVIF listener and RTSP port to one address
+  and use an RTSP port of its own (`rtspPort`, 0 keeps the global `--rtsp-port`); WS-Discovery
+  advertises the bound address. Validation refuses an invalid address, a bound camera without an
+  explicit RTSP port, and a wildcard and a specific listener on the same port.
+- **Changed:** a new camera keeps an hour of recording by default (`recordingRetentionHours` was 30
+  days); existing worlds keep the value they store.
 - Profile G: every camera records on its own "SD card" and offers it through the Recording, Search
   and Replay services, with ONVIF replay over RTSP (`rtsp://<host>:8554/<camera id>/replay`: clock
   ranges, `Rate-Control: no`, the replay RTP header extension). The past is drawn again rather than
-  stored, PTZ heads where they pointed then; a recording reaches back `recordingRetentionHours` (30
-  days by default). `PUT /api/cameras/{id}/network` cuts a camera off the network while it goes on
+  stored, PTZ heads where they pointed then; a recording reaches back `recordingRetentionHours` (1
+  hour by default). `PUT /api/cameras/{id}/network` cuts a camera off the network while it goes on
   recording, and `PUT /api/cameras/{id}/recording` stops and starts its recording, for testing how a
   VMS recovers what it missed.
 - **Fixed:** the last frame an H.264 encoder produced was lost when it stopped.

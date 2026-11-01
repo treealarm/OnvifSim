@@ -2,6 +2,7 @@ using System.Xml;
 using OnvifSim.Onvif.Soap;
 using OnvifSim.Onvif.Wsdl;
 using OnvifSim.Onvif.Wsdl.Recording;
+using OnvifSim.World;
 using static OnvifSim.Onvif.Services.CameraRecording;
 
 namespace OnvifSim.Onvif.Services;
@@ -118,23 +119,28 @@ public sealed class RecordingHandlers(OnvifRequestContext context)
 
     private string Mode() => context.Recordings.IsRecording(context.Camera.Id) ? Active : Idle;
 
-    // Records the camera's own video source, through the profile its recording is encoded like.
-    private RecordingJobConfiguration JobConfiguration() => new()
+    // Records the camera's own video source, through the stream its recording is encoded like.
+    private RecordingJobConfiguration JobConfiguration()
     {
-        RecordingToken = RecordingToken,
-        Mode = Mode(),
-        Priority = 1,
-        Source =
-        [
-            new RecordingJobSource
-            {
-                SourceToken = new SourceReference
+        var stream = CameraStreamsModel.RecordingStream(context.Camera, context.HasH264)
+                     ?? CameraStreamsModel.Effective(context.Camera).First();
+        return new RecordingJobConfiguration
+        {
+            RecordingToken = RecordingToken,
+            Mode = Mode(),
+            Priority = 1,
+            Source =
+            [
+                new RecordingJobSource
                 {
-                    Token = context.HasH264 ? CameraMedia.H264ProfileToken : CameraMedia.JpegProfileToken,
-                    Type = "http://www.onvif.org/ver10/schema/Profile",
+                    SourceToken = new SourceReference
+                    {
+                        Token = stream.Token,
+                        Type = "http://www.onvif.org/ver10/schema/Profile",
+                    },
+                    Tracks = [new RecordingJobTrack { SourceTag = "V", Destination = VideoTrackToken }],
                 },
-                Tracks = [new RecordingJobTrack { SourceTag = "V", Destination = VideoTrackToken }],
-            },
-        ],
-    };
+            ],
+        };
+    }
 }

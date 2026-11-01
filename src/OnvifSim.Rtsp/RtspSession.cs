@@ -8,7 +8,7 @@ namespace OnvifSim.Rtsp;
 // One RTSP session: a stream set up for one client, with the tracks the client set up (any of the
 // stream's tracks), all over TCP or all over UDP. While playing it sends every track as an RTP stream of
 // its own.
-internal sealed class RtspSession(IReadOnlyList<string> path, ILogger logger)
+internal sealed class RtspSession(IReadOnlyList<string> path, int localPort, string listenerKey, ILogger logger)
 {
     // Announced in the Session header; UDP sessions that hear nothing from their client for this long
     // are closed. TCP sessions live as long as their connection.
@@ -33,6 +33,9 @@ internal sealed class RtspSession(IReadOnlyList<string> path, ILogger logger)
     public string Id { get; } = Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(8));
     // The path of the stream's media, as IRtspMediaSource.Find takes it.
     public IReadOnlyList<string> Path => path;
+    // The listener port the session came in on; a stream is served only there.
+    public int LocalPort => localPort;
+    public string ListenerKey => listenerKey;
     public string PathText { get; } = string.Join('/', path);
 
     public IReadOnlyList<Track> Tracks

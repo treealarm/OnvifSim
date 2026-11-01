@@ -79,7 +79,7 @@ public class CachingFrameRendererTests
         using var dir = new TempDir();
         var store = new WorldStore(dir.Path);
         var scene = new SceneState(store);
-        var feeds = new FeedManager(scene, new PtzSimulator(store, TimeProvider.System, NullLogger<PtzSimulator>.Instance), H264Support.Unavailable, _time, NullLoggerFactory.Instance);
+        var feeds = new FeedManager(scene, new PtzSimulator(store, TimeProvider.System, NullLogger<PtzSimulator>.Instance), H264Support.Unavailable, _time, store, NullLoggerFactory.Instance);
         Assert.NotEqual(feeds.Snapshot("cam1"), feeds.Snapshot("cam2"));
         Assert.Same(feeds.Snapshot("cam1"), feeds.Snapshot("cam1"));
     }

@@ -35,9 +35,12 @@ public sealed class CachingFrameRenderer(TimeProvider time, Func<CameraModel, Pt
 
     // The camera's JPEG at its video settings. ptz is where the camera's head points now, which may be
     // ahead of what the world stores.
-    public byte[] Render(SceneState.Snapshot snapshot, CameraModel camera, PtzPosition ptz)
+    public byte[] Render(SceneState.Snapshot snapshot, CameraModel camera, PtzPosition ptz) =>
+        Render(snapshot, camera, ptz, camera.Video);
+
+    // The same for one of the camera's streams, whose size and quality are its own.
+    public byte[] Render(SceneState.Snapshot snapshot, CameraModel camera, PtzPosition ptz, VideoModel video)
     {
-        var video = camera.Video;
         lock (_gate)
         {
             var key = Draw(snapshot, camera, ptz, video.Width, video.Height, time.GetUtcNow());

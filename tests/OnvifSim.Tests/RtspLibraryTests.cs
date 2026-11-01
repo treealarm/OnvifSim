@@ -14,11 +14,11 @@ public class RtspLibraryTests
     // with the password "secret".
     private sealed class TextSource : IRtspMediaSource
     {
-        public RtspMedia? Find(IReadOnlyList<string> path) => path is ["live", "text"]
+        public RtspMedia? Find(IReadOnlyList<string> path, int localPort) => path is ["live", "text"]
             ? new RtspMedia("Text", [new RtspTrack("words", "application", 98, "text", PlayAsync)])
             : null;
 
-        public bool IsAuthorized(RtspRequest request, IReadOnlyList<string> path) =>
+        public bool IsAuthorized(RtspRequest request, IReadOnlyList<string> path, int localPort) =>
             request.Header("Authorization") == "Basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes("any:secret"));
 
         public IEnumerable<string> Challenges() => ["Basic realm=\"test\""];

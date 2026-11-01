@@ -34,17 +34,25 @@ public sealed class PtzHandlers(OnvifRequestContext context)
     public GetNodeResponse GetNode(GetNodeRequest request) =>
         request.NodeToken == NodeToken ? new GetNodeResponse { PTZNode = Node() } : throw OnvifFault.NoEntity(request.NodeToken);
 
-    public GetConfigurationsResponse GetConfigurations(GetConfigurationsRequest request) => new() { PTZConfiguration = [Configuration(Ptz)] };
+    public GetConfigurationsResponse GetConfigurations(GetConfigurationsRequest request) => new() { PTZConfiguration = [ConfiguredPtz()] };
 
     public GetConfigurationResponse GetConfiguration(GetConfigurationRequest request) =>
         request.PTZConfigurationToken == ConfigurationToken
-            ? new GetConfigurationResponse { PTZConfiguration = Configuration(Ptz) }
+            ? new GetConfigurationResponse { PTZConfiguration = ConfiguredPtz() }
             : throw OnvifFault.NoConfig(request.PTZConfigurationToken);
 
     public GetCompatibleConfigurationsResponse GetCompatibleConfigurations(GetCompatibleConfigurationsRequest request)
     {
         RequireProfile(request.ProfileToken);
-        return new GetCompatibleConfigurationsResponse { PTZConfiguration = [Configuration(Ptz)] };
+        return new GetCompatibleConfigurationsResponse { PTZConfiguration = [ConfiguredPtz()] };
+    }
+
+    // Every profile of the camera carries this configuration, so its UseCount is the profile count.
+    private PTZConfiguration ConfiguredPtz()
+    {
+        var configuration = CameraPtz.Configuration(Ptz);
+        configuration.UseCount = CameraMedia.VisibleStreams(context).Count;
+        return configuration;
     }
 
     public GetConfigurationOptionsResponse GetConfigurationOptions(GetConfigurationOptionsRequest request)
@@ -269,7 +277,7 @@ public sealed class PtzHandlers(OnvifRequestContext context)
     }
 
     // Every profile of a PTZ camera carries its PTZ configuration.
-    private void RequireProfile(string? token) => CameraMedia.CodecOfProfile(context, token);
+    private void RequireProfile(string? token) => CameraMedia.StreamOfProfile(context, token);
 
     private static void CheckSpace(string? space, string supported)
     {

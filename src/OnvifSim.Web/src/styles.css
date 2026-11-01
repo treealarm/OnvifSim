@@ -321,6 +321,33 @@ dialog::backdrop {
   color: var(--danger);
 }
 
+.stream-card {
+  margin: 8px 0;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+}
+
+.stream-head {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.stream-head span {
+  flex: 1;
+}
+
+.stream-add {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
 .section {
   margin: 12px 0;
   padding-top: 10px;

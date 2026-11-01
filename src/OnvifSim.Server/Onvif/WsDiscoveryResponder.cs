@@ -37,8 +37,9 @@ public sealed class WsDiscoveryResponder(SimOptions options, SceneState scene, O
     private readonly long _instanceId = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
     private long _messageNumber;
     private Socket? _socket;
-    // Cameras announced with Hello, and the port each was announced with.
-    private readonly Dictionary<string, int> _announced = new(StringComparer.OrdinalIgnoreCase);
+    // Cameras announced with Hello, with the bind address (null: every interface) and port each was
+    // announced with.
+    private readonly Dictionary<string, (string? Address, int Port)> _announced = new(StringComparer.OrdinalIgnoreCase);
 
     public override Task StartAsync(CancellationToken cancellationToken)
     {
@@ -118,7 +119,7 @@ public sealed class WsDiscoveryResponder(SimOptions options, SceneState scene, O
         var messageId = document.Root!.Element(Soap + "Header")?.Element(Wsa + "MessageID")?.Value.Trim();
         if (!AsksForCameras(probe)) return;
 
-        var address = AdvertisedAddress(sender.Address);
+        var routeAddress = AdvertisedAddress(sender.Address);
         var requestedScopes = SplitList(probe.Element(Disc + "Scopes")?.Value);
         int answered = 0;
         foreach (var camera in scene.Current.World.Cameras)
@@ -126,6 +127,7 @@ public sealed class WsDiscoveryResponder(SimOptions options, SceneState scene, O
             if (host.PortOf(camera.Id) is not { } port || !network.IsOnline(camera.Id)) continue;
             var scopes = CameraIdentity.Scopes(camera);
             if (!requestedScopes.All(r => scopes.Any(s => s.StartsWith(r, StringComparison.OrdinalIgnoreCase)))) continue;
+            var address = host.AddressOf(camera.Id) ?? routeAddress;
             var match = Envelope(
                 Header("http://schemas.xmlsoap.org/ws/2005/04/discovery/ProbeMatches", AnonymousRole, messageId),
                 new XElement(Disc + "ProbeMatches", new XElement(Disc + "ProbeMatch", Description(camera, address, port))));
@@ -148,9 +150,9 @@ public sealed class WsDiscoveryResponder(SimOptions options, SceneState scene, O
     {
         if (_socket == null) return;
         var serving = scene.Current.World.Cameras
-            .Select(c => (Camera: c, Port: host.PortOf(c.Id)))
+            .Select(c => (Camera: c, Port: host.PortOf(c.Id), Address: host.AddressOf(c.Id)))
             .Where(c => c.Port != null)
-            .ToDictionary(c => c.Camera.Id, c => (c.Camera, Port: c.Port!.Value), StringComparer.OrdinalIgnoreCase);
+            .ToDictionary(c => c.Camera.Id, c => (c.Camera, Address: c.Address, Port: c.Port!.Value), StringComparer.OrdinalIgnoreCase);
         lock (_announced)
         {
             foreach (var gone in _announced.Keys.Where(id => !serving.ContainsKey(id)).ToList())
@@ -158,14 +160,14 @@ public sealed class WsDiscoveryResponder(SimOptions options, SceneState scene, O
                 SendToGroup(Bye(gone));
                 _announced.Remove(gone);
             }
-            foreach (var (id, (camera, port)) in serving)
+            foreach (var (id, (camera, bindAddress, port)) in serving)
             {
-                if (_announced.TryGetValue(id, out int announcedPort) && announcedPort == port) continue;
+                if (_announced.TryGetValue(id, out var announced) && announced == (bindAddress, port)) continue;
                 foreach (var address in MulticastInterfaces())
                     SendToGroup(Envelope(
                         Header("http://schemas.xmlsoap.org/ws/2005/04/discovery/Hello", DiscoveryUrn, null),
-                        new XElement(Disc + "Hello", Description(camera, AdvertisedAddress(address), port))), address);
-                _announced[id] = port;
+                        new XElement(Disc + "Hello", Description(camera, bindAddress ?? AdvertisedAddress(address), port))), address);
+                _announced[id] = (bindAddress, port);
             }
         }
     }
@@ -179,9 +181,12 @@ public sealed class WsDiscoveryResponder(SimOptions options, SceneState scene, O
         EndpointReference(camera.Id),
         new XElement(Disc + "Types", "dn:NetworkVideoTransmitter tds:Device"),
         new XElement(Disc + "Scopes", string.Join(" ", CameraIdentity.Scopes(camera))),
-        new XElement(Disc + "XAddrs", $"http://{address}:{port}/onvif/device_service"),
+        new XElement(Disc + "XAddrs", $"http://{Authority(address, port)}/onvif/device_service"),
         new XElement(Disc + "MetadataVersion", 1),
     ];
+
+    // An IPv6 address needs brackets in a URL; IPv4 and names do not.
+    private static string Authority(string address, int port) => address.Contains(':') ? $"[{address}]:{port}" : $"{address}:{port}";
 
     private static XElement EndpointReference(string cameraId) =>
         new(Wsa + "EndpointReference", new XElement(Wsa + "Address", CameraIdentity.EndpointReference(cameraId)));

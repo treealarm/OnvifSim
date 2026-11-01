@@ -13,7 +13,7 @@ namespace OnvifSim.Streaming.H264;
 // Unlike JPEG frames, access units depend on the ones before them, so a subscriber must not lose one
 // in the middle of a group of pictures: a new subscriber starts at the next key frame, and one too slow
 // to keep its queue from filling up skips to the next key frame rather than decode garbage.
-public sealed class H264Feed(string cameraId, SceneState scene, PtzSimulator ptz, CachingFrameRenderer renderer, string ffmpegPath, ILogger logger)
+public sealed class H264Feed(string cameraId, string streamToken, SceneState scene, PtzSimulator ptz, CachingFrameRenderer renderer, string ffmpegPath, ILogger logger)
 {
     // About two seconds at 30 fps; a reader that falls further behind skips ahead.
     private const int SubscriberQueueLength = 64;
@@ -24,6 +24,7 @@ public sealed class H264Feed(string cameraId, SceneState scene, PtzSimulator ptz
     private (H264Model Settings, byte[] Sps, byte[] Pps)? _parameterSets;
 
     public string CameraId => cameraId;
+    public string StreamToken => streamToken;
 
     // SPS and PPS of the last key frame encoded at these settings, for the SDP; null until one exists.
     public (byte[] Sps, byte[] Pps)? ParameterSetsFor(H264Model settings)
@@ -64,7 +65,7 @@ public sealed class H264Feed(string cameraId, SceneState scene, PtzSimulator ptz
 
     private async Task RunAsync(CancellationToken token)
     {
-        logger.LogInformation("Camera {Camera}: H.264 stream started", cameraId);
+        logger.LogInformation("Camera {Camera}: H.264 stream {Stream} started", cameraId, streamToken);
         FfmpegH264Encoder? encoder = null;
         long next = Stopwatch.GetTimestamp();
         try
@@ -74,8 +75,10 @@ public sealed class H264Feed(string cameraId, SceneState scene, PtzSimulator ptz
                 var snap = scene.Current;
                 var cam = snap.World.Cameras.FirstOrDefault(c => string.Equals(c.Id, cameraId, StringComparison.OrdinalIgnoreCase));
                 if (cam == null) break;
+                var stream = CameraStreamsModel.Find(cam, streamToken);
+                if (stream == null || stream.Codec != StreamCodec.H264) break;
 
-                var settings = cam.H264;
+                var settings = CameraStreamsModel.H264Of(cam, stream);
                 if (encoder == null || encoder.Settings != settings || encoder.HasExited)
                 {
                     if (encoder != null) await encoder.DisposeAsync();
@@ -95,7 +98,7 @@ public sealed class H264Feed(string cameraId, SceneState scene, PtzSimulator ptz
         catch (Exception ex) when (ex is IOException or InvalidOperationException or System.ComponentModel.Win32Exception)
         {
             // ffmpeg could not be started or died: the pipe broke under the write.
-            logger.LogError(ex, "Camera {Camera}: H.264 encoder failed", cameraId);
+            logger.LogError(ex, "Camera {Camera}: H.264 stream {Stream} encoder failed", cameraId, streamToken);
         }
         finally
         {
@@ -104,7 +107,7 @@ public sealed class H264Feed(string cameraId, SceneState scene, PtzSimulator ptz
         // Cancelled means the last subscriber left, and a new one may already have started the next run;
         // only a stream that ended by itself has subscribers to let go.
         if (!token.IsCancellationRequested) CompleteAll();
-        logger.LogInformation("Camera {Camera}: H.264 stream stopped", cameraId);
+        logger.LogInformation("Camera {Camera}: H.264 stream {Stream} stopped", cameraId, streamToken);
     }
 
     // Runs on the encoder's output reader, one access unit at a time. TryWrite fails only on a full

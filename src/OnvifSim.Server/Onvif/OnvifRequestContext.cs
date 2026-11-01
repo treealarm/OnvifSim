@@ -43,11 +43,14 @@ public sealed class OnvifRequestContext(
     public XmlElement? ServiceCapabilities(string serviceNamespace) => dispatcher.ServiceCapabilities(serviceNamespace, this);
 
     public string XAddr(string servicePath) => $"http://{Authority}/onvif/{servicePath}";
-    // The camera's JPEG stream; its H.264 stream is below it (CameraMedia.StreamUriOf).
-    public string StreamUri => $"rtsp://{HostName}:{rtspPort}/{Uri.EscapeDataString(camera.Id)}";
+    // A stream's RTSP address on the camera's own RTSP port; its path is the stream's, not its id.
+    public string StreamUriOf(string path) => $"rtsp://{HostName}:{rtspPort}/{EscapePath(path)}";
     public string SnapshotUri => $"http://{Authority}/onvif/snapshot.jpg";
     // The camera's recording, as Replay.GetReplayUri hands it out (Streaming.ReplayStreams).
-    public string ReplayUri => $"{StreamUri}/replay";
+    public string ReplayUri => StreamUriOf(CameraStreamsModel.ReplayPath(camera));
+
+    private static string EscapePath(string path) =>
+        string.Join('/', path.Split('/', StringSplitOptions.RemoveEmptyEntries).Select(Uri.EscapeDataString));
 
     private static string FormatHost(IPAddress address) =>
         address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6 ? $"[{address}]" : address.ToString();

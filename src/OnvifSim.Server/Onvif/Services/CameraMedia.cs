@@ -1,23 +1,18 @@
 using OnvifSim.Onvif.Soap;
 using OnvifSim.Onvif.Wsdl;
-using OnvifSim.Streaming;
 using OnvifSim.World;
 
 namespace OnvifSim.Onvif.Services;
 
 // The media configuration every simulated camera exposes through Media1 and Media2 alike: one video
-// source and one fixed profile per encoder. Profile_1 with the JPEG encoder is always there; Profile_2
-// with the H.264 encoder is there when ffmpeg is. The encoder settings are the camera's VideoModel and
-// H264Model in the active world file, so a change made over ONVIF is what the streams, the snapshot and the editor
-// show. Both profiles share one metadata configuration (the camera's MetadataModel: what the metadata
-// track of their streams carries) and one video analytics configuration, the people detector, which
-// has no modules or rules to configure.
+// source and one profile per stream. A camera's streams are its ONVIF profiles: Profile_1 is its first,
+// Profile_2 its second, and the encoder token is derived from the profile token. Without ffmpeg the
+// H.264 streams stay in the world but are not offered, as a camera without an encoder would. Every
+// profile shares one metadata configuration (the camera's MetadataModel: what the metadata track of the
+// streams carries) and one video analytics configuration, the people detector, which has no modules or
+// rules to configure.
 public static class CameraMedia
 {
-    public const string JpegProfileToken = "Profile_1";
-    public const string H264ProfileToken = "Profile_2";
-    public const string JpegEncoderToken = "VideoEncoder_1";
-    public const string H264EncoderToken = "VideoEncoder_2";
     public const string VideoSourceToken = "VideoSource_1";
     public const string VideoSourceConfigurationToken = "VideoSourceConfig_1";
     public const string MetadataConfigurationToken = "Metadata_1";
@@ -44,44 +39,55 @@ public static class CameraMedia
     private static readonly (int Width, int Height)[] StandardResolutions =
         [(320, 240), (640, 360), (640, 480), (1280, 720), (1920, 1080)];
 
-    public static IReadOnlyList<VideoCodec> Codecs(OnvifRequestContext context) =>
-        context.HasH264 ? [VideoCodec.Jpeg, VideoCodec.H264] : [VideoCodec.Jpeg];
+    public static IReadOnlyList<StreamModel> VisibleStreams(OnvifRequestContext context) =>
+        CameraStreamsModel.Effective(context.Camera)
+            .Where(stream => CameraStreamsModel.IsVisible(stream, context.HasH264))
+            .ToList();
 
-    public static string ProfileTokenOf(VideoCodec codec) => codec == VideoCodec.H264 ? H264ProfileToken : JpegProfileToken;
+    public static string EncoderTokenOf(StreamModel stream) => CameraStreamsModel.EncoderTokenOf(stream);
 
-    public static string ProfileNameOf(VideoCodec codec) => codec == VideoCodec.H264 ? "H264Stream" : "MainStream";
-
-    public static string EncoderTokenOf(VideoCodec codec) => codec == VideoCodec.H264 ? H264EncoderToken : JpegEncoderToken;
-
-    // The codec of a profile the camera has; NoProfile for any other token.
-    public static VideoCodec CodecOfProfile(OnvifRequestContext context, string? token)
+    // The stream a profile token names; NoProfile for any other token or one hidden without ffmpeg.
+    public static StreamModel StreamOfProfile(OnvifRequestContext context, string? token)
     {
-        foreach (var codec in Codecs(context))
-            if (ProfileTokenOf(codec) == token) return codec;
-        throw OnvifFault.NoProfile(token ?? "");
+        var stream = CameraStreamsModel.Find(context.Camera, token);
+        return stream != null && CameraStreamsModel.IsVisible(stream, context.HasH264)
+            ? stream
+            : throw OnvifFault.NoProfile(token ?? "");
     }
 
-    // The codec of an encoder configuration the camera has; NoConfig for any other token.
-    public static VideoCodec CodecOfEncoder(OnvifRequestContext context, string? token)
+    // The stream an encoder configuration token names; NoConfig for any other token or one hidden
+    // without ffmpeg.
+    public static StreamModel StreamOfEncoder(OnvifRequestContext context, string? token)
     {
-        foreach (var codec in Codecs(context))
-            if (EncoderTokenOf(codec) == token) return codec;
+        foreach (var stream in VisibleStreams(context))
+            if (string.Equals(EncoderTokenOf(stream), token, StringComparison.OrdinalIgnoreCase))
+                return stream;
         throw OnvifFault.NoConfig(token ?? "");
     }
 
-    // The encoders a request with optional configuration and profile tokens is about: the one named, or
-    // the one of the profile named, or all of them.
-    public static IReadOnlyList<VideoCodec> SelectCodecs(OnvifRequestContext context, string? encoderToken, string? profileToken)
+    // The streams a request with optional encoder and profile tokens is about: the one named, or the
+    // one of the profile named, or all of them.
+    public static IReadOnlyList<StreamModel> SelectStreams(OnvifRequestContext context, string? encoderToken, string? profileToken)
     {
-        VideoCodec? byProfile = string.IsNullOrEmpty(profileToken) ? null : CodecOfProfile(context, profileToken);
-        if (!string.IsNullOrEmpty(encoderToken)) return [CodecOfEncoder(context, encoderToken)];
-        return byProfile is { } codec ? [codec] : Codecs(context);
+        StreamModel? byProfile = string.IsNullOrEmpty(profileToken) ? null : StreamOfProfile(context, profileToken);
+        if (!string.IsNullOrEmpty(encoderToken)) return [StreamOfEncoder(context, encoderToken)];
+        return byProfile is { } stream ? [stream] : VisibleStreams(context);
+    }
+
+    // One options structure per codec when no token narrows the request: neither Media1 nor Media2 can
+    // tell two streams of the same codec apart without one.
+    public static IReadOnlyList<StreamModel> OptionStreams(OnvifRequestContext context, string? encoderToken, string? profileToken)
+    {
+        var selected = SelectStreams(context, encoderToken, profileToken);
+        return string.IsNullOrEmpty(encoderToken) && string.IsNullOrEmpty(profileToken)
+            ? selected.GroupBy(stream => stream.Codec).Select(group => group.First()).ToList()
+            : selected;
     }
 
     // An optional profile token: absent, or one of the camera's profiles.
     public static void CheckProfile(OnvifRequestContext context, string? token)
     {
-        if (!string.IsNullOrEmpty(token)) CodecOfProfile(context, token);
+        if (!string.IsNullOrEmpty(token)) StreamOfProfile(context, token);
     }
 
     public static void CheckVideoSourceConfiguration(string? token)
@@ -89,8 +95,16 @@ public static class CameraMedia
         if (!string.IsNullOrEmpty(token) && token != VideoSourceConfigurationToken) throw OnvifFault.NoConfig(token);
     }
 
-    public static string StreamUriOf(OnvifRequestContext context, VideoCodec codec) =>
-        codec == VideoCodec.H264 ? context.StreamUri + "/h264" : context.StreamUri;
+    public static string StreamUriOf(OnvifRequestContext context, StreamModel stream) => context.StreamUriOf(stream.Path);
+
+    public static VideoModel VideoOf(CameraModel camera, StreamModel stream) => CameraStreamsModel.VideoOf(camera, stream);
+
+    public static H264Model H264Of(CameraModel camera, StreamModel stream) => CameraStreamsModel.H264Of(camera, stream);
+
+    public static (int Width, int Height) ResolutionOf(CameraModel camera, StreamModel stream) =>
+        stream.Codec == StreamCodec.H264
+            ? (H264Of(camera, stream).Width, H264Of(camera, stream).Height)
+            : (VideoOf(camera, stream).Width, VideoOf(camera, stream).Height);
 
     // The standard sizes, plus the encoder's own if the active world file sets another one.
     public static IReadOnlyList<(int Width, int Height)> Resolutions(int width, int height) =>
@@ -100,22 +114,29 @@ public static class CameraMedia
     public static int EstimatedBitrateKbps(VideoModel video) =>
         Math.Max(MinBitrateKbps, (int)(video.Width * (long)video.Height * video.Fps * 3 / 4 / 1000));
 
-    // The one video source, used by every profile.
-    public static VideoSourceConfiguration VideoSourceConfiguration(OnvifRequestContext context) => new()
+    // The one video source, used by every profile. Its bounds cover the largest stream.
+    public static VideoSourceConfiguration VideoSourceConfiguration(OnvifRequestContext context)
     {
-        token = VideoSourceConfigurationToken,
-        Name = "VideoSourceConfig",
-        UseCount = Codecs(context).Count,
-        SourceToken = VideoSourceToken,
-        Bounds = new IntRectangle { x = 0, y = 0, width = context.Camera.Video.Width, height = context.Camera.Video.Height },
-        // A turned picture says so, as a camera whose installer set it does; ONVIF cannot change it here.
-        Extension = context.Camera.Video.Rotate == 0
-            ? null
-            : new VideoSourceConfigurationExtension
-            {
-                Rotate = new Rotate { Mode = RotateMode.ON, Degree = context.Camera.Video.Rotate, DegreeSpecified = true },
-            },
-    };
+        var streams = VisibleStreams(context);
+        var resolutions = streams.Select(stream => ResolutionOf(context.Camera, stream)).ToList();
+        int width = resolutions.Count == 0 ? context.Camera.Video.Width : resolutions.Max(r => r.Width);
+        int height = resolutions.Count == 0 ? context.Camera.Video.Height : resolutions.Max(r => r.Height);
+        return new VideoSourceConfiguration
+        {
+            token = VideoSourceConfigurationToken,
+            Name = "VideoSourceConfig",
+            UseCount = streams.Count,
+            SourceToken = VideoSourceToken,
+            Bounds = new IntRectangle { x = 0, y = 0, width = width, height = height },
+            // A turned picture says so, as a camera whose installer set it does; ONVIF cannot change it here.
+            Extension = context.Camera.Video.Rotate == 0
+                ? null
+                : new VideoSourceConfigurationExtension
+                {
+                    Rotate = new Rotate { Mode = RotateMode.ON, Degree = context.Camera.Video.Rotate, DegreeSpecified = true },
+                },
+        };
+    }
 
     public static MetadataConfiguration MetadataConfiguration(OnvifRequestContext context)
     {
@@ -124,7 +145,7 @@ public static class CameraMedia
         {
             token = MetadataConfigurationToken,
             Name = "Metadata",
-            UseCount = Codecs(context).Count,
+            UseCount = VisibleStreams(context).Count,
             Analytics = metadata.Analytics, AnalyticsSpecified = true,
             // Absent means no PTZ data in the stream, which clients read more reliably than a filter of falses.
             PTZStatus = context.HasPtz && metadata.PtzStatus ? new PTZFilter { Status = true, Position = true } : null,
@@ -167,7 +188,7 @@ public static class CameraMedia
     {
         token = AnalyticsConfigurationToken,
         Name = "PeopleDetector",
-        UseCount = Codecs(context).Count,
+        UseCount = VisibleStreams(context).Count,
         AnalyticsEngineConfiguration = new AnalyticsEngineConfiguration { AnalyticsModule = [] },
         RuleEngineConfiguration = new RuleEngineConfiguration { Rule = [] },
     };
@@ -194,12 +215,12 @@ public static class CameraMedia
         PositionOption = ["UpperLeft"],
     };
 
-    // SetVideoEncoderConfiguration of the JPEG encoder, either Media version. Out-of-range values are
+    // SetVideoEncoderConfiguration of a JPEG stream, either Media version. Out-of-range values are
     // refused with ConfigModify, as the options told the client what is allowed.
-    public static void ApplyJpegSettings(OnvifRequestContext context, string encoding, int width, int height, float frameRate, float quality)
+    public static void ApplyJpegSettings(OnvifRequestContext context, StreamModel stream, string encoding, int width, int height, float frameRate, float quality)
     {
-        CheckEncoding(encoding, "JPEG", JpegEncoderToken);
-        var current = context.Camera.Video;
+        CheckEncoding(encoding, "JPEG", EncoderTokenOf(stream));
+        var current = VideoOf(context.Camera, stream);
         CheckResolution(width, height, Resolutions(current.Width, current.Height));
         int fps = CheckedFrameRate(frameRate);
         int jpegQuality = (int)MathF.Round(quality);
@@ -208,17 +229,20 @@ public static class CameraMedia
 
         context.Store.Update(world =>
         {
-            var video = world.Cameras.Single(c => c.Id == context.Camera.Id).Video;
+            var camera = world.Cameras.Single(c => c.Id == context.Camera.Id);
+            var target = CameraStreamsModel.Find(camera, stream.Token) ?? throw OnvifFault.NoConfig(EncoderTokenOf(stream));
+            // A legacy stream's Video is the camera's own, so this writes where it always did.
+            var video = target.Video ??= new VideoModel { Rotate = camera.Video.Rotate };
             (video.Width, video.Height, video.Fps, video.Quality) = (width, height, fps, jpegQuality);
         });
     }
 
-    // SetVideoEncoderConfiguration of the H.264 encoder; a running stream picks the change up by
+    // SetVideoEncoderConfiguration of an H.264 stream; a running stream picks the change up by
     // restarting its encoder. Absent bitrate or GOV length keep their current values.
-    public static void ApplyH264Settings(OnvifRequestContext context, string encoding, int width, int height, float frameRate, int? bitrateKbps, int? govLength)
+    public static void ApplyH264Settings(OnvifRequestContext context, StreamModel stream, string encoding, int width, int height, float frameRate, int? bitrateKbps, int? govLength)
     {
-        CheckEncoding(encoding, "H264", H264EncoderToken);
-        var current = context.Camera.H264;
+        CheckEncoding(encoding, "H264", EncoderTokenOf(stream));
+        var current = H264Of(context.Camera, stream);
         CheckResolution(width, height, Resolutions(current.Width, current.Height));
         int fps = CheckedFrameRate(frameRate);
         int bitrate = bitrateKbps ?? current.BitrateKbps;
@@ -228,11 +252,17 @@ public static class CameraMedia
         if (gov is < MinGovLength or > MaxGovLength)
             throw OnvifFault.ConfigModify($"GOV length {gov} is outside {MinGovLength}..{MaxGovLength}.");
 
+        var updated = new H264Model { Width = width, Height = height, Fps = fps, BitrateKbps = bitrate, GovLength = gov };
         context.Store.Update(world =>
-            world.Cameras.Single(c => c.Id == context.Camera.Id).H264 = new H264Model
+        {
+            var camera = world.Cameras.Single(c => c.Id == context.Camera.Id);
+            if (camera.Streams == null) camera.H264 = updated;
+            else
             {
-                Width = width, Height = height, Fps = fps, BitrateKbps = bitrate, GovLength = gov,
-            });
+                var target = CameraStreamsModel.Find(camera, stream.Token) ?? throw OnvifFault.NoConfig(EncoderTokenOf(stream));
+                target.H264 = updated;
+            }
+        });
     }
 
     private static void CheckEncoding(string encoding, string expected, string token)
