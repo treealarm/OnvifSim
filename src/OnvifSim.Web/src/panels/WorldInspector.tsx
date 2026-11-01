@@ -28,6 +28,8 @@ export function WorldInspector({ world }: { world: World }) {
       </Section>
       <Section title="Terrain">
         <NumberField label="Size, m" value={world.terrain.size} min={10} max={10000} step={10} onChange={(size) => updateTerrain({ ...world.terrain, size })} />
+        <ColorField label="Ground" value={world.terrain.color} onChange={(color) => updateTerrain({ ...world.terrain, color })} />
+        <p className="muted">Steep slopes still turn to rock, with lighter patches breaking up the colour.</p>
       </Section>
       <p className="muted">
         {world.objects.length} objects, {world.roads.length} roads, {world.walkers.length} people, {world.cameras.length} cameras.

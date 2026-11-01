@@ -28,7 +28,7 @@ export function TerrainView({ terrain }: { terrain: Terrain }) {
     if (!current || tool.kind !== 'brush') return;
     const brush: BrushDab = { kind: tool.brush, x, z, radius: brushRadius, strength: brushStrength, flattenTo: current.flattenTo };
     applyBrush(terrain, current.heights, brush);
-    setHeights(geometry, current.heights);
+    setHeights(geometry, current.heights, terrain.color);
   }
 
   function endStroke() {
@@ -90,8 +90,13 @@ function round(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
-const grass = new Color(92 / 255, 128 / 255, 60 / 255).convertSRGBToLinear();
 const rock = new Color(118 / 255, 112 / 255, 104 / 255).convertSRGBToLinear();
+
+// "#rrggbb" in the linear space the material lights in; as ColorUtil.Parse does on the server.
+function grassColor(hex: string): Color {
+  const value = /^#[0-9a-f]{6}$/i.test(hex) ? parseInt(hex.slice(1), 16) : 0x5c803c;
+  return new Color(((value >> 16) & 255) / 255, ((value >> 8) & 255) / 255, (value & 255) / 255).convertSRGBToLinear();
+}
 
 // The same grid the server renders (SceneBuilder.TerrainChunk), coloured like it: grass, rock where steep.
 function terrainGeometry(terrain: Terrain): BufferGeometry {
@@ -120,11 +125,11 @@ function terrainGeometry(terrain: Terrain): BufferGeometry {
   geometry.setAttribute('position', new BufferAttribute(positions, 3));
   geometry.setAttribute('color', new BufferAttribute(new Float32Array(row * row * 3), 3));
   geometry.setIndex(new BufferAttribute(indices, 1));
-  setHeights(geometry, terrain.heights);
+  setHeights(geometry, terrain.heights, terrain.color);
   return geometry;
 }
 
-function setHeights(geometry: BufferGeometry, heights: Float32Array) {
+function setHeights(geometry: BufferGeometry, heights: Float32Array, colorHex: string) {
   const position = geometry.getAttribute('position');
   for (let i = 0; i < heights.length; i++) position.setY(i, heights[i]);
   position.needsUpdate = true;
@@ -132,6 +137,7 @@ function setHeights(geometry: BufferGeometry, heights: Float32Array) {
   geometry.computeBoundingSphere();
   const normal = geometry.getAttribute('normal');
   const color = geometry.getAttribute('color');
+  const grass = grassColor(colorHex);
   const shade = new Color();
   for (let i = 0; i < heights.length; i++) {
     const rockiness = Math.min(1, Math.max(0, (0.92 - normal.getY(i)) * 6));

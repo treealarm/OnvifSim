@@ -12,6 +12,8 @@ export interface Terrain {
   resolution: number;
   // (resolution + 1)^2 samples, row-major from -X,-Z.
   heights: Float32Array;
+  // Grass colour; steep slopes still turn to rock.
+  color: string;
 }
 
 export interface Environment {
@@ -274,7 +276,7 @@ export function encodeTerrain(terrain: Terrain) {
   const bytes = new Uint8Array(terrain.heights.buffer, terrain.heights.byteOffset, terrain.heights.byteLength);
   let binary = '';
   for (const b of bytes) binary += String.fromCharCode(b);
-  return { size: terrain.size, resolution: terrain.resolution, heights: btoa(binary) };
+  return { size: terrain.size, resolution: terrain.resolution, heights: btoa(binary), color: terrain.color };
 }
 
 // Height of the ground under (x, z), bilinear over the cell, clamped to the edge: as Terrain.cs does.

@@ -259,8 +259,8 @@ is marked with a dot, so the viewport keeps doing exactly what it did until anot
   object ids, exactly as the metadata stream sends them; the panel turns analytics and the PTZ
   position in the metadata on and off, and a person's or car's own panel can leave it out of every
   camera's analytics ("Seen by analytics"), so it only appears in the picture.
-- **World**: sun, sky colours, fog, terrain size, and what the camera pictures show of the other
-  cameras: their bodies, and optionally the wire frame of where they look.
+- **World**: sun, sky colours, fog, terrain size and ground colour, and what the camera pictures show
+  of the other cameras: their bodies, and optionally the wire frame of where they look.
 - **Worlds**: the header menu creates, opens, trashes and restores worlds; see [Worlds](#worlds).
 
 ONVIF clients' changes (a new resolution, a preset, where a PTZ camera stopped) show up in the editor

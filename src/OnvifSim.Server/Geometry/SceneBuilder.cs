@@ -23,7 +23,7 @@ public static class SceneBuilder
         var chunks = new List<SceneChunk>();
         for (int cz = 0; cz < terrain.Resolution; cz += TerrainChunkCells)
             for (int cx = 0; cx < terrain.Resolution; cx += TerrainChunkCells)
-                chunks.Add(Chunk($"terrain_{cx}_{cz}", TerrainChunk(terrain, cx, cz)));
+                chunks.Add(Chunk($"terrain_{cx}_{cz}", TerrainChunk(terrain, world.Terrain.Color, cx, cz)));
 
         foreach (var obj in world.Objects)
         {
@@ -162,12 +162,15 @@ public static class SceneBuilder
     }
 
     private static readonly Vector3 Grass = ColorUtil.Rgb(92, 128, 60);
-    private static readonly Vector3 DryGrass = ColorUtil.Rgb(128, 136, 74);
     private static readonly Vector3 Rock = ColorUtil.Rgb(118, 112, 104);
 
-    private static Mesh TerrainChunk(Terrain t, int cx0, int cz0)
+    private static Mesh TerrainChunk(Terrain t, string? color, int cx0, int cz0)
     {
         var m = new Mesh();
+        var grass = ColorUtil.Parse(color, Grass);
+        // The dry patches are the chosen colour shifted towards straw, so any grass colour keeps its
+        // variation; at the default colour this is the old (128, 136, 74).
+        var dryGrass = Vector3.Min(grass * new Vector3(1.39f, 1.06f, 1.23f), Vector3.One);
         int cx1 = Math.Min(cx0 + TerrainChunkCells, t.Resolution), cz1 = Math.Min(cz0 + TerrainChunkCells, t.Resolution);
         int stride = cx1 - cx0 + 1;
         for (int iz = cz0; iz <= cz1; iz++)
@@ -176,9 +179,9 @@ public static class SceneBuilder
                 var n = t.NormalAt(ix, iz);
                 // Steep slopes turn to rock; a cheap hash breaks up the grass so distance is readable.
                 float noise = Hash(ix, iz);
-                var grass = Vector3.Lerp(Grass, DryGrass, noise * 0.6f);
+                var patch = Vector3.Lerp(grass, dryGrass, noise * 0.6f);
                 float rockiness = Math.Clamp((0.92f - n.Y) * 6, 0, 1);
-                m.AddVertex(new(t.VertexX(ix), t[ix, iz], t.VertexZ(iz)), n, Vector3.Lerp(grass, Rock, rockiness));
+                m.AddVertex(new(t.VertexX(ix), t[ix, iz], t.VertexZ(iz)), n, Vector3.Lerp(patch, Rock, rockiness));
             }
         for (int iz = 0; iz < cz1 - cz0; iz++)
             for (int ix = 0; ix < cx1 - cx0; ix++)

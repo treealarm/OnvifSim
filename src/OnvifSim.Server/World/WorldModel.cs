@@ -25,6 +25,8 @@ public sealed class TerrainModel
     public int Resolution { get; set; } = 128;
     [JsonConverter(typeof(FloatArrayBase64Converter))]
     public float[] Heights { get; set; } = [];
+    // Grass colour; steep slopes still turn to rock and a little variation keeps the ground readable.
+    public string Color { get; set; } = "#5c803c";
 }
 
 public sealed class EnvironmentModel

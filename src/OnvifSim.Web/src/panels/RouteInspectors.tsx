@@ -12,12 +12,13 @@ export function RoadInspector({ road }: { road: Road }) {
       <Section title="Road">
         <NumberField label="Width, m" value={road.width} min={0.5} max={50} step={0.5} onChange={(width) => change({ width })} />
         <ColorField label="Surface" value={road.color ?? '#55575a'} onChange={(color) => change({ color })} />
-        <CheckboxField label="Closed loop" checked={road.closed} onChange={(closed) => change({ closed })} />
-        <p className="muted">Joins the last point to the first, so the road goes round as a ring.</p>
       </Section>
       <Points
         points={road.points}
         minimum={2}
+        closed={road.closed}
+        closedHint="Joins the last point to the first, so the road goes round as a ring."
+        onClosed={(closed) => change({ closed })}
         onChange={(points) => change({ points })}
         onExtend={() => startDrawing('road', road.id)}
       />
@@ -37,8 +38,6 @@ export function WalkerInspector({ walker }: { walker: Walker }) {
       </h2>
       <Section title="Walk">
         <NumberField label="Speed, m/s" value={walker.speed} min={0} max={10} step={0.1} onChange={(speed) => change({ speed })} />
-        <CheckboxField label="Closed loop" checked={walker.return === 'loop'} onChange={(closed) => change({ return: closed ? 'loop' : 'reverse' })} />
-        <p className="muted">Closed, they go round the route; open, they turn round at the last point and come back.</p>
         <NumberField label="Height, m" value={walker.height} min={0.5} max={3} step={0.05} onChange={(height) => change({ height })} />
         <ColorField label="Top" value={walker.color ?? '#3b6ea8'} onChange={(color) => change({ color })} />
         <ColorField label="Trousers" value={walker.color2 ?? '#3a3a44'} onChange={(color2) => change({ color2 })} />
@@ -47,6 +46,9 @@ export function WalkerInspector({ walker }: { walker: Walker }) {
       <Points
         points={walker.route}
         minimum={1}
+        closed={walker.return === 'loop'}
+        closedHint="Closed, they go round the route; open, they turn round at the last point and come back."
+        onClosed={(closed) => change({ return: closed ? 'loop' : 'reverse' })}
         onChange={(route) => change({ route })}
         onExtend={() => startDrawing('walker', walker.id)}
       />
@@ -66,8 +68,6 @@ export function VehicleInspector({ vehicle }: { vehicle: Vehicle }) {
       </h2>
       <Section title="Drive">
         <NumberField label="Speed, m/s" value={vehicle.speed} min={0} max={50} step={0.5} onChange={(speed) => change({ speed })} />
-        <CheckboxField label="Closed loop" checked={vehicle.return === 'loop'} onChange={(closed) => change({ return: closed ? 'loop' : 'reverse' })} />
-        <p className="muted">Closed, it drives round the route; open, it turns round at the last point and comes back.</p>
         <CheckboxField label="Seen by analytics" checked={vehicle.detectable} onChange={(detectable) => change({ detectable })} />
       </Section>
       <Section title="Body">
@@ -84,6 +84,9 @@ export function VehicleInspector({ vehicle }: { vehicle: Vehicle }) {
       <Points
         points={vehicle.route}
         minimum={1}
+        closed={vehicle.return === 'loop'}
+        closedHint="Closed, it drives round the route; open, it turns round at the last point and comes back."
+        onClosed={(closed) => change({ return: closed ? 'loop' : 'reverse' })}
         onChange={(route) => change({ route })}
         onExtend={() => startDrawing('vehicle', vehicle.id)}
       />
@@ -98,15 +101,21 @@ interface PointsProps {
   points: GroundPoint[];
   // Points the road or route cannot do without.
   minimum: number;
+  // Whether the last point joins the first; belongs here because it is the route's own shape.
+  closed: boolean;
+  closedHint: string;
+  onClosed: (closed: boolean) => void;
   onChange: (points: GroundPoint[]) => void;
   onExtend: () => void;
 }
 
 // The points in order, editable; in the viewport they are the handles to drag.
-function Points({ points, minimum, onChange, onExtend }: PointsProps) {
+function Points({ points, minimum, closed, closedHint, onClosed, onChange, onExtend }: PointsProps) {
   const changePoint = (index: number, patch: Partial<GroundPoint>) => onChange(points.map((p, i) => (i === index ? { ...p, ...patch } : p)));
   return (
     <Section title="Points">
+      <CheckboxField label="Closed loop" checked={closed} onChange={onClosed} />
+      <p className="muted">{closedHint}</p>
       <ol className="points">
         {points.map((point, index) => (
           // Points have no identity of their own; their place in the line is what they are.
