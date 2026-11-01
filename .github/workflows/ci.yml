@@ -80,28 +80,46 @@ jobs:
 
       - name: Install, start and uninstall
         shell: pwsh
+        timeout-minutes: 10
         run: |
           $installed = Join-Path $env:ProgramFiles 'TreeAlarm\OnvifSim\OnvifSim.exe'
           $shortcut = Join-Path $env:ProgramData 'Microsoft\Windows\Start Menu\Programs\OnvifSim.lnk'
           $msiLog = Join-Path $env:RUNNER_TEMP msi.log
+          # A hung msiexec must fail the job, not hold it until the six-hour default timeout.
           function Invoke-Msiexec($action) {
-            $p = Start-Process msiexec -ArgumentList $action, (Resolve-Path OnvifSim.msi), '/qn', '/l*v', $msiLog -Wait -PassThru
+            Write-Host "msiexec $action"
+            $p = Start-Process msiexec -ArgumentList $action, (Resolve-Path OnvifSim.msi), '/qn', '/l*v', $msiLog -PassThru
+            if (-not $p.WaitForExit(180000)) {
+              if (-not $p.HasExited) { $p.Kill() }
+              Get-Content $msiLog -Tail 40
+              throw "msiexec $action did not finish in three minutes"
+            }
             if ($p.ExitCode -ne 0) { Get-Content $msiLog -Tail 40; throw "msiexec $action exited with $($p.ExitCode)" }
+            Write-Host "msiexec $action finished"
           }
 
           Invoke-Msiexec '/i'
           if (-not (Test-Path $installed)) { throw "No $installed" }
           if (-not (Test-Path $shortcut)) { throw "No Start menu entry at $shortcut" }
 
-          $log = Join-Path $env:RUNNER_TEMP server.log
+          $serverLog = Join-Path $env:RUNNER_TEMP server.log
+          $serverErr = Join-Path $env:RUNNER_TEMP server.err
           $server = Start-Process $installed -PassThru -NoNewWindow `
-            -ArgumentList '--no-browser', '--data', (Join-Path $env:RUNNER_TEMP data) -RedirectStandardOutput $log
+            -ArgumentList '--no-browser', '--data', (Join-Path $env:RUNNER_TEMP data) `
+            -RedirectStandardOutput $serverLog -RedirectStandardError $serverErr
+          Write-Host "Started the installed simulator as $($server.Id)"
           $up = $false
           foreach ($i in 1..30) {
-            try { Invoke-WebRequest http://localhost:18180/api/world -UseBasicParsing | Out-Null; $up = $true; break } catch { Start-Sleep 1 }
+            try {
+              Invoke-WebRequest http://localhost:18180/api/world -UseBasicParsing -TimeoutSec 5 | Out-Null
+              $up = $true
+              break
+            } catch { Start-Sleep 1 }
           }
-          Stop-Process $server
-          Get-Content $log
+          Write-Host "Server answered: $up"
+          Stop-Process $server -Force -ErrorAction SilentlyContinue
+          Get-Content $serverLog
+          if (Test-Path $serverErr) { Get-Content $serverErr }
           if (-not $up) { throw "The installed OnvifSim did not answer on port 18180" }
 
           Invoke-Msiexec '/x'
