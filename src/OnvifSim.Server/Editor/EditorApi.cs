@@ -23,7 +23,7 @@ namespace OnvifSim.Editor;
 // meanwhile. Every change is validated first; an invalid one is refused with 400 and the reason.
 public static class EditorApi
 {
-    private static readonly JsonSerializerOptions CompactJson = new(WorldStore.Json) { WriteIndented = false };
+    internal static readonly JsonSerializerOptions CompactJson = new(WorldStore.Json) { WriteIndented = false };
     // How often the event stream looks for changes: often enough for a moving PTZ head to look smooth.
     private static readonly TimeSpan EventInterval = TimeSpan.FromMilliseconds(100);
     // A joystick move lasts this long unless the editor renews it, so a camera stops soon after a tab
@@ -33,6 +33,7 @@ public static class EditorApi
     public static void MapEditorApi(this WebApplication app)
     {
         MapWorld(app);
+        WorldLibraryApi.MapWorldLibrary(app);
         MapCameraStreams(app);
         MapPtz(app);
         MapAnalytics(app);
@@ -44,8 +45,8 @@ public static class EditorApi
 
         // The response enumerates the events with the request's own cancellation; shutdown ends them too.
         app.MapGet("/api/events", (WorldStore store, PtzSimulator ptz, OnvifHost onvif, RtspServer rtsp, FeedManager feeds,
-                IHostApplicationLifetime lifetime) =>
-            TypedResults.ServerSentEvents(Events(store, ptz, onvif, rtsp, feeds, lifetime.ApplicationStopping)));
+                RecordingLog recordings, IHostApplicationLifetime lifetime) =>
+            TypedResults.ServerSentEvents(Events(store, ptz, onvif, rtsp, feeds, recordings, lifetime.ApplicationStopping)));
     }
 
     private static void MapWorld(WebApplication app)
@@ -356,7 +357,7 @@ public static class EditorApi
         return Results.NoContent();
     }
 
-    // Deleting what is not there is a 404 that leaves world.json alone.
+    // Deleting what is not there is a 404 that leaves the active world file alone.
     private static IResult Remove<T>(WorldStore store, SimOptions options, Func<WorldModel, List<T>> items, Predicate<T> match) =>
         items(store.Current).Exists(match)
             ? Change(store, options, world => items(world).RemoveAll(match))
@@ -378,19 +379,39 @@ public static class EditorApi
     // streams on offer ("status") and where the PTZ heads point while they move ("ptz"). Each comes
     // first on connecting, then only when it changed.
     private static async IAsyncEnumerable<SseItem<string>> Events(WorldStore store, PtzSimulator ptz, OnvifHost onvif, RtspServer rtsp,
-        FeedManager feeds, CancellationToken stopping, [EnumeratorCancellation] CancellationToken requestAborted = default)
+        FeedManager feeds, RecordingLog recordings, CancellationToken stopping, [EnumeratorCancellation] CancellationToken requestAborted = default)
     {
         using var stop = CancellationTokenSource.CreateLinkedTokenSource(requestAborted, stopping);
         using var timer = new PeriodicTimer(EventInterval);
         WorldModel? sentWorld = null;
-        string? sentStatus = null, sentHeads = null;
+        string? sentWorlds = null, sentStatus = null, sentHeads = null;
+        // A switch from before the client connected is already reflected in world and worlds; only the
+        // ones that happen while it watches are sent as events.
+        long sentSwitchVersion = store.LastSwitch?.Version ?? 0;
         do
         {
-            var world = store.Current;
+            var (world, activeName, lastSwitch) = store.Snapshot();
+            if (lastSwitch != null && lastSwitch.Version > sentSwitchVersion)
+            {
+                sentSwitchVersion = lastSwitch.Version;
+                yield return new SseItem<string>(JsonSerializer.Serialize(new
+                {
+                    active = activeName,
+                    previous = lastSwitch.Previous,
+                    clearRecordings = lastSwitch.ClearRecordings,
+                    switchVersion = lastSwitch.Version,
+                }, CompactJson), "world-switched");
+            }
             if (!ReferenceEquals(world, sentWorld))
             {
                 sentWorld = world;
                 yield return new SseItem<string>(JsonSerializer.Serialize(world, CompactJson), "world");
+            }
+            var worlds = JsonSerializer.Serialize(WorldLibraryApi.ListingOf(store, recordings), CompactJson);
+            if (worlds != sentWorlds)
+            {
+                sentWorlds = worlds;
+                yield return new SseItem<string>(worlds, "worlds");
             }
             var status = JsonSerializer.Serialize(new
             {

@@ -28,8 +28,17 @@ export interface Environment {
   frustumLength: number;
 }
 
-export const objectTypes = ['tree.pine', 'tree.oak', 'house', 'rock', 'box'] as const;
+export const objectTypes = ['tree.pine', 'tree.oak', 'house', 'rock', 'box', 'car'] as const;
 export type ObjectType = (typeof objectTypes)[number];
+
+export const objectTypeNames: Record<ObjectType, string> = {
+  'tree.pine': 'Pine',
+  'tree.oak': 'Oak',
+  house: 'House',
+  rock: 'Rock',
+  box: 'Box',
+  car: 'Car',
+};
 
 export interface WorldObject {
   id: string;
@@ -40,6 +49,8 @@ export interface WorldObject {
   color: string | null;
   color2: string | null;
   seed: number;
+  // A car's licence plate: absent or null keeps the default, an empty string draws a blank plate.
+  plate?: string | null;
 }
 
 // A spot on the ground; the height comes from the terrain.
@@ -142,6 +153,22 @@ export interface ServerStatus {
   h264: boolean;
   // Null for a camera whose port could not be opened.
   onvifPorts: Partial<Record<string, number | null>>;
+}
+
+// The worlds in the data directory, as GET /api/worlds and the "worlds" event carry them.
+export interface WorldsInfo {
+  active: string;
+  worlds: string[];
+  trash: string[];
+  recordings: { hasRecordings: boolean; cameraCount: number };
+}
+
+// A switch the server has already made, sent before the new world.
+export interface WorldSwitchSignal {
+  active: string;
+  previous: string;
+  clearRecordings: boolean;
+  switchVersion: number;
 }
 
 // Where a PTZ head points right now, which may be ahead of the world while it moves.

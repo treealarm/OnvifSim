@@ -1,20 +1,37 @@
 import { BufferAttribute, BufferGeometry } from 'three';
-import { encodeTerrain, type CameraModel, type Environment, type PtzPosition, type PtzSettings, type Road, type Terrain, type Walker, type WorldObject } from './model';
+import {
+  encodeTerrain,
+  type CameraModel,
+  type Environment,
+  type PtzPosition,
+  type PtzSettings,
+  type Road,
+  type Terrain,
+  type Walker,
+  type WorldObject,
+  type WorldsInfo,
+} from './model';
 
 // What PUT takes: anything left out gets the server's default.
 export type ObjectDraft = Partial<WorldObject> & Pick<WorldObject, 'id'>;
 export type CameraDraft = Omit<Partial<CameraModel>, 'ptz'> & Pick<CameraModel, 'id'> & { ptz?: Partial<PtzSettings> | null };
 
-// The server's editor API (Editor/EditorApi.cs). Every call throws ApiError with the server's reason
-// when the change is refused.
-
+// The server's editor API (Editor/EditorApi.cs and WorldLibraryApi.cs). Every call throws ApiError with
+// the server's reason when the change is refused; code is set where the client branches on it.
 export class ApiError extends Error {
   constructor(
     message: string,
     readonly status: number,
+    readonly code?: string,
   ) {
     super(message);
   }
+}
+
+interface ProblemDetails {
+  detail?: string;
+  title?: string;
+  code?: string;
 }
 
 async function send(method: string, path: string, body?: unknown): Promise<Response> {
@@ -23,17 +40,21 @@ async function send(method: string, path: string, body?: unknown): Promise<Respo
     headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  if (!response.ok) throw new ApiError(await reasonOf(response), response.status);
+  if (!response.ok) throw await errorOf(response);
   return response;
 }
 
-async function reasonOf(response: Response): Promise<string> {
+async function errorOf(response: Response): Promise<ApiError> {
   try {
-    const problem = (await response.json()) as { detail?: string; title?: string };
-    return problem.detail ?? problem.title ?? response.statusText;
+    const problem = (await response.json()) as ProblemDetails;
+    return new ApiError(problem.detail ?? problem.title ?? response.statusText, response.status, problem.code);
   } catch {
-    return `${response.status} ${response.statusText}`;
+    return new ApiError(`${response.status} ${response.statusText}`, response.status);
   }
+}
+
+async function worldsOf(response: Response): Promise<WorldsInfo> {
+  return (await response.json()) as WorldsInfo;
 }
 
 export const api = {
@@ -61,6 +82,18 @@ export const api = {
     const data = (await response.json()) as Record<string, MeshData>;
     return new Map(Object.entries(data).map(([id, mesh]) => [id, toGeometry(mesh)]));
   },
+
+  // The world library: one active world, the others kept in the data directory.
+  listWorlds: () => send('GET', '/api/worlds').then(worldsOf),
+  createWorld: (name: string, clearRecordings?: boolean) =>
+    send('POST', '/api/worlds', { name, clearRecordings }).then(worldsOf),
+  activateWorld: (name: string, clearRecordings?: boolean) =>
+    send('POST', `/api/worlds/${encodeURIComponent(name)}/activate`, { clearRecordings }).then(worldsOf),
+  trashWorld: (name: string, clearRecordings?: boolean) =>
+    send('POST', `/api/worlds/${encodeURIComponent(name)}/trash`, { clearRecordings }).then(worldsOf),
+  restoreWorld: (name: string, destinationName?: string) =>
+    send('POST', `/api/trash/${encodeURIComponent(name)}/restore`, { name: destinationName }).then(worldsOf),
+  emptyTrash: () => send('DELETE', '/api/trash').then(worldsOf),
 };
 
 interface MeshData {

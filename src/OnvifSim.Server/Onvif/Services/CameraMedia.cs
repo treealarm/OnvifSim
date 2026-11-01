@@ -8,7 +8,7 @@ namespace OnvifSim.Onvif.Services;
 // The media configuration every simulated camera exposes through Media1 and Media2 alike: one video
 // source and one fixed profile per encoder. Profile_1 with the JPEG encoder is always there; Profile_2
 // with the H.264 encoder is there when ffmpeg is. The encoder settings are the camera's VideoModel and
-// H264Model in world.json, so a change made over ONVIF is what the streams, the snapshot and the editor
+// H264Model in the active world file, so a change made over ONVIF is what the streams, the snapshot and the editor
 // show. Both profiles share one metadata configuration (the camera's MetadataModel: what the metadata
 // track of their streams carries) and one video analytics configuration, the people detector, which
 // has no modules or rules to configure.
@@ -92,7 +92,7 @@ public static class CameraMedia
     public static string StreamUriOf(OnvifRequestContext context, VideoCodec codec) =>
         codec == VideoCodec.H264 ? context.StreamUri + "/h264" : context.StreamUri;
 
-    // The standard sizes, plus the encoder's own if world.json sets another one.
+    // The standard sizes, plus the encoder's own if the active world file sets another one.
     public static IReadOnlyList<(int Width, int Height)> Resolutions(int width, int height) =>
         StandardResolutions.Contains((width, height)) ? StandardResolutions : [.. StandardResolutions, (width, height)];
 

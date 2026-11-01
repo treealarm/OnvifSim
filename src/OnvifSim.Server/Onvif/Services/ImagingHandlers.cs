@@ -7,7 +7,7 @@ using static OnvifSim.Onvif.Services.CameraMedia;
 namespace OnvifSim.Onvif.Services;
 
 // Imaging (ver20), the minimum: brightness, contrast and colour saturation of the one video source,
-// applied to the rendered picture and saved to world.json. Focus is fixed, so there is nothing to move.
+// applied to the rendered picture and saved to the active world file. Focus is fixed, so there is nothing to move.
 [OnvifService(typeof(ImagingPort), "imaging_service", 21, 12)]
 public sealed class ImagingHandlers(OnvifRequestContext context)
 {

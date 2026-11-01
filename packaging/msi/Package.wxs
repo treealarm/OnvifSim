@@ -2,7 +2,7 @@
      xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
   <!--
     Per-machine install into Program Files, with a Start menu entry that starts the simulator and
-    opens the editor. The world is kept per user under %LOCALAPPDATA%\OnvifSim, not here.
+    opens the editor. Worlds are kept per user under %LOCALAPPDATA%\OnvifSim, not here.
   -->
   <Package
     Name="OnvifSim"

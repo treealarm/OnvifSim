@@ -51,6 +51,7 @@ public sealed class RecordingLog : IDisposable
         lock (_gate) Reconcile(store.Current, time.GetUtcNow());
         Save();
         store.Changed += OnWorldChanged;
+        store.Switched += OnWorldSwitched;
         _saveTimer = time.CreateTimer(_ => Save(), null, SaveInterval, SaveInterval);
     }
 
@@ -77,6 +78,25 @@ public sealed class RecordingLog : IDisposable
         lock (_gate) return _cameras.TryGetValue(cameraId, out var entry) && entry.Enabled;
     }
 
+    // Whether switching away from this world would lose footage: any camera with an open span or a
+    // closed one still inside its retention.
+    public (bool HasRecordings, int CameraCount) Summary()
+    {
+        lock (_gate)
+        {
+            int count = _cameras.Values.Count(entry => entry.OpenSince != null || entry.Closed.Count > 0);
+            return (count > 0, count);
+        }
+    }
+
+    // Drops every camera's footage, as a switch that asked to clear the SD cards does. The world that
+    // follows starts recording its own cameras from now on (Reconcile on Changed).
+    public void Clear()
+    {
+        lock (_gate) _cameras.Clear();
+        Save();
+    }
+
     // Starts or stops the camera's recording; doing what is already being done changes nothing.
     public void SetRecording(string cameraId, bool recording)
     {
@@ -95,6 +115,7 @@ public sealed class RecordingLog : IDisposable
     public void Dispose()
     {
         _store.Changed -= OnWorldChanged;
+        _store.Switched -= OnWorldSwitched;
         _saveTimer.Dispose();
         Save();
     }
@@ -102,6 +123,12 @@ public sealed class RecordingLog : IDisposable
     private void OnWorldChanged(WorldModel world)
     {
         lock (_gate) Reconcile(world, _time.GetUtcNow());
+    }
+
+    private void OnWorldSwitched(WorldSwitch switched)
+    {
+        // The store already points at the new world; Changed follows and starts its cameras recording.
+        if (switched.ClearRecordings) Clear();
     }
 
     // A camera new to the world starts recording; one gone from it takes its recording with it.

@@ -34,7 +34,8 @@ published, unless you prefer to stay anonymous.
 In scope, for example:
 
 - malformed SOAP, RTSP, WS-Discovery or editor requests causing code execution, reading or writing
-  files outside the data directory, or a crash that corrupts `world.json`;
+  files outside the data directory, or a crash that corrupts a world file (world names are
+  sanitized so they cannot escape `worlds/`);
 - the camera credentials check (WS-UsernameToken, HTTP Digest and Basic, RTSP) letting a client in
   without the right password;
 - OnvifSim connecting anywhere other than described in [PRIVACY.md](PRIVACY.md#network-communication);

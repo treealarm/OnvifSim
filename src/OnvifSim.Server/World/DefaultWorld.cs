@@ -4,6 +4,9 @@ namespace OnvifSim.World;
 // so every endpoint has something to show before anyone opens the editor.
 public static class DefaultWorld
 {
+    // A world with nothing in it: flat ground, no cameras, no objects. What "New world" opens.
+    public static WorldModel CreateEmpty() => new();
+
     public static WorldModel Create()
     {
         var world = new WorldModel();
@@ -59,6 +62,11 @@ public static class DefaultWorld
         }
         // A bright target box, handy for checking where a PTZ camera points.
         Add("box", 0, -45, new(3, 3, 3), 0, "#e8452c");
+
+        // A parked car in the foreground of the village camera, facing it, so a fresh install shows the
+        // car and its plate feature. Far enough not to hide the walkers behind it.
+        Add("car", 10, 42, new(1.8f, 1.45f, 4.4f), 180, "#b03a30", "#f0f0ea");
+        world.Objects[^1].Plate = "A123BC";
 
         // A road through the village between the two rows of houses, and people walking along it: one
         // down the middle, one on the south side the other way, one the whole length of the village.

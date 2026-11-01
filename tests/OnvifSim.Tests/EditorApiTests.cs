@@ -278,13 +278,14 @@ public class EditorApiTests(SimFactory factory) : IClassFixture<SimFactory>
 
         var events = new Dictionary<string, JsonElement>();
         string? name = null;
-        while (events.Count < 3 && await reader.ReadLineAsync(cts.Token) is { } line)
+        while (events.Count < 4 && await reader.ReadLineAsync(cts.Token) is { } line)
         {
             if (line.StartsWith("event: ")) name = line["event: ".Length..];
             else if (line.StartsWith("data: ") && name != null) events[name] = JsonDocument.Parse(line["data: ".Length..]).RootElement;
         }
 
         Assert.Equal(Store.Current.Cameras.Count, events["world"].GetProperty("cameras").GetArrayLength());
+        Assert.Equal(Store.ActiveName, events["worlds"].GetProperty("active").GetString());
         Assert.Equal(factory.Services.GetRequiredService<OnvifHost>().PortOf("cam1"), events["status"].GetProperty("onvifPorts").GetProperty("cam1").GetInt32());
         Assert.True(events["ptz"].TryGetProperty("cam2", out var head));
         Assert.False(head.GetProperty("moving").GetBoolean());
@@ -314,6 +315,19 @@ public class WorldValidationTests
     {
         var world = DefaultWorld.Create();
         world.Cameras.Single(c => c.Id == "cam2").Ptz = null;
+        Assert.Throws<InvalidWorldException>(() => WorldValidation.Check(world, onvifBasePort: 8001));
+    }
+
+    [Fact]
+    public void ACarPlate_IsHeldToWhatTheFontCanDraw()
+    {
+        var world = DefaultWorld.Create();
+        world.Objects.Add(new WorldObject { Id = "car1", Type = "car", Scale = new(1.8f, 1.45f, 4.4f), Plate = "A123BC" });
+        WorldValidation.Check(world, onvifBasePort: 8001);
+
+        world.Objects[^1].Plate = "ABCDEFGHI";
+        Assert.Throws<InvalidWorldException>(() => WorldValidation.Check(world, onvifBasePort: 8001));
+        world.Objects[^1].Plate = "A123BC!";
         Assert.Throws<InvalidWorldException>(() => WorldValidation.Check(world, onvifBasePort: 8001));
     }
 }

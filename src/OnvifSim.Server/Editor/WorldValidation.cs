@@ -6,8 +6,6 @@ using OnvifSim.World;
 
 namespace OnvifSim.Editor;
 
-public sealed class InvalidWorldException(string message) : Exception(message);
-
 // Checks a world before it replaces the current one, so a change from the editor (or a hand-written
 // PUT) cannot hand the renderer, the encoders or the listeners something they cannot work with. The
 // video ranges are the ones the Media service holds ONVIF clients to.
@@ -65,6 +63,9 @@ public static partial class WorldValidation
         Require(IsFinite(obj.Position) && float.IsFinite(obj.RotationY), $"Object {obj.Id}: position and rotation must be finite.");
         Require(obj.Scale is { X: > 0 and <= MaxObjectSize, Y: > 0 and <= MaxObjectSize, Z: > 0 and <= MaxObjectSize },
             $"Object {obj.Id}: every size must be above 0 and at most {MaxObjectSize} m.");
+        if (obj.Type == "car" && obj.Plate != null)
+            Require(obj.Plate.Length <= 8 && obj.Plate.All(c => char.IsAsciiLetterOrDigit(c) || c is ' ' or '-'),
+                $"Object {obj.Id}: the plate must be at most 8 Latin letters, digits, spaces or hyphens.");
     }
 
     private static void CheckRoad(RoadModel road)

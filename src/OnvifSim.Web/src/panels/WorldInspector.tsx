@@ -1,5 +1,5 @@
 import type { Environment, World } from '../model';
-import { select, updateEnvironment, updateTerrain } from '../store';
+import { updateEnvironment, updateTerrain } from '../store';
 import { CheckboxField, ColorField, NumberField, Section } from './fields';
 
 // What shows when nothing is selected: settings of the world as a whole.
@@ -10,22 +10,9 @@ export function WorldInspector({ world }: { world: World }) {
     <>
       <h2>World</h2>
       <p className="muted">
-        Pick something from the toolbar and click the ground to place it; click an object or a camera to edit it.
+        Pick something from the toolbar and click the ground to place it; click an object or a camera, or a row in
+        Contents, to edit it.
       </p>
-      <Section title="Cameras">
-        <ul className="camera-list">
-          {world.cameras.map((camera) => (
-            <li key={camera.id}>
-              <button type="button" onClick={() => select({ kind: 'camera', id: camera.id })}>
-                {camera.name || camera.id}
-              </button>{' '}
-              <span className="muted">
-                {camera.id}, {camera.kind === 'ptz' ? 'PTZ' : 'fixed'}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </Section>
       <Section title="Sun and sky">
         <NumberField label="Sun from (° from north)" value={environment.sunAzimuth} min={0} max={360} slider onChange={(sunAzimuth) => change({ sunAzimuth })} />
         <NumberField label="Sun height" value={environment.sunElevation} min={0} max={90} slider onChange={(sunElevation) => change({ sunElevation })} />

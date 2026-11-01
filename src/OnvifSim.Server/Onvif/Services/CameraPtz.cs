@@ -64,7 +64,7 @@ public static class CameraPtz
         PanTiltLimits = new PanTiltLimits { Range = Range2D(PanTiltPositionSpace, -1, 1) },
         ZoomLimits = new ZoomLimits { Range = Range1D(ZoomPositionSpace, 0, 1) },
         // ONVIF's Reverse is one switch for both axes, so only a camera with both reversed reports it. The
-        // capability stays off: the direction is the installer's (world.json), not SetConfiguration's.
+        // capability stays off: the direction is the installer's (the active world file), not SetConfiguration's.
         Extension = ptz.PanReverse && ptz.TiltReverse
             ? new PTZConfigurationExtension { PTControlDirection = new PTControlDirection { Reverse = new Reverse { Mode = ReverseMode.ON } } }
             : null,

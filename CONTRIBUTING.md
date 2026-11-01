@@ -31,4 +31,11 @@ ffplay, VLC or GStreamer for RTSP.
 - ONVIF types come from the official WSDL: run `src/OnvifSim.Server/Onvif/Wsdl/generate.sh` rather
   than editing `OnvifContracts.cs`.
 
+## Documentation
+
+The README is the program's documentation. A change to an endpoint, an event, a world field, a
+default or the editor's behaviour updates the matching README section and `CHANGELOG.md` in the same
+pull request. Everything written for the project — code, comments, commits and documentation — is in
+English.
+
 By contributing you agree that your work is released under the [MIT license](LICENSE).

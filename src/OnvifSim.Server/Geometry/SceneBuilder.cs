@@ -170,7 +170,7 @@ public static class SceneBuilder
     }
 
     // The object types ObjectMesh knows.
-    public static readonly string[] ObjectTypes = ["tree.pine", "tree.oak", "house", "rock", "box"];
+    public static readonly string[] ObjectTypes = ["tree.pine", "tree.oak", "house", "rock", "box", "car"];
 
     public static Mesh ObjectMesh(WorldObject o)
     {
@@ -231,6 +231,11 @@ public static class SceneBuilder
             case "box":
                 Primitives.Box(m, s.X, s.Y, s.Z, ColorUtil.Parse(o.Color, ColorUtil.Rgb(200, 200, 200)));
                 break;
+            case "car":
+                return CarMesh.Build(s.X, s.Y, s.Z,
+                    ColorUtil.Parse(o.Color, ColorUtil.Rgb(58, 110, 165)),
+                    ColorUtil.Parse(o.Color2, ColorUtil.Rgb(240, 240, 234)),
+                    o.Plate);
         }
         return m;
     }

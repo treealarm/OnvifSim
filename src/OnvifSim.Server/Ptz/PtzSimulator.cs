@@ -10,7 +10,7 @@ public readonly record struct PtzState(PtzPosition Position, bool PanTiltMoving,
 
 // Drives the PTZ heads. Every axis moves at a constant speed, so where a head is at any moment follows
 // from the clock instead of a ticking loop: the stream reads the position once per frame, GetStatus when
-// asked, and an idle camera costs nothing. When a move ends the position is written to world.json, so a
+// asked, and an idle camera costs nothing. When a move ends the position is written to the active world file, so a
 // restart and the editor see where the camera stopped.
 public sealed class PtzSimulator : IDisposable
 {
@@ -21,7 +21,7 @@ public sealed class PtzSimulator : IDisposable
     private readonly TimeProvider _time;
     private readonly ILogger _logger;
     private readonly Lock _gate = new();
-    // Heads that have been commanded; any other camera is where world.json says. A head is kept after
+    // Heads that have been commanded; any other camera is where the active world file says. A head is kept after
     // its move ends, so a request that still holds an older world sees the live position, not the one
     // stored before the move.
     private readonly Dictionary<string, Head> _heads = new(StringComparer.OrdinalIgnoreCase);
@@ -29,6 +29,8 @@ public sealed class PtzSimulator : IDisposable
     // command and every move by the editor, with the wall-clock time it began. In memory only, so the
     // past before a restart shows the head where it was at the first command after it.
     private readonly Dictionary<string, List<Waypoint>> _history = new(StringComparer.OrdinalIgnoreCase);
+    // Bumped by a switch. A save scheduled before it belongs to the world being left and is dropped.
+    private long _epoch;
 
     public PtzSimulator(WorldStore store, TimeProvider time, ILogger<PtzSimulator> logger)
     {
@@ -36,6 +38,7 @@ public sealed class PtzSimulator : IDisposable
         _time = time;
         _logger = logger;
         store.Changed += OnWorldChanged;
+        store.Switched += OnWorldSwitched;
     }
 
     // Where the camera's head points now; a fixed camera has no head and gets the zero position.
@@ -139,6 +142,7 @@ public sealed class PtzSimulator : IDisposable
     public void Dispose()
     {
         _store.Changed -= OnWorldChanged;
+        _store.Switched -= OnWorldSwitched;
         lock (_gate)
         {
             foreach (var head in _heads.Values) head.Timer?.Dispose();
@@ -154,6 +158,7 @@ public sealed class PtzSimulator : IDisposable
         var limits = LimitsOf(camera);
         long now = _time.GetTimestamp();
         long generation;
+        long epoch;
         bool stopped;
         lock (_gate)
         {
@@ -165,21 +170,24 @@ public sealed class PtzSimulator : IDisposable
             change(head, limits, head.PositionAt(now, limits, _time.TimestampFrequency), now);
             Remember(camera, head, now);
             generation = ++head.Generation;
+            epoch = _epoch;
             head.Timer?.Dispose();
             long end = head.EndOfMove;
             stopped = end <= now;
             head.Timer = stopped
                 ? null
-                : _time.CreateTimer(_ => SaveIfStopped(camera.Id, limits, generation), null, ElapsedTime(now, end), Timeout.InfiniteTimeSpan);
+                : _time.CreateTimer(_ => SaveIfStopped(camera.Id, limits, generation, epoch), null, ElapsedTime(now, end), Timeout.InfiniteTimeSpan);
         }
-        if (stopped) SaveIfStopped(camera.Id, limits, generation);
+        if (stopped) SaveIfStopped(camera.Id, limits, generation, epoch);
     }
 
-    private void SaveIfStopped(string cameraId, PtzModel limits, long generation)
+    private void SaveIfStopped(string cameraId, PtzModel limits, long generation, long epoch)
     {
         PtzPosition position;
         lock (_gate)
         {
+            // The world was switched while this move was running; its end belongs to the old world.
+            if (epoch != _epoch) return;
             // A newer command superseded the move this was scheduled for; it saves when it ends.
             if (!_heads.TryGetValue(cameraId, out var head) || head.Generation != generation) return;
             long now = _time.GetTimestamp();
@@ -189,7 +197,7 @@ public sealed class PtzSimulator : IDisposable
             {
                 head.Timer?.Dispose();
                 var rest = TimeSpan.FromTicks(Math.Max(ElapsedTime(now, head.EndOfMove).Ticks, MinimumWait.Ticks));
-                head.Timer = _time.CreateTimer(_ => SaveIfStopped(cameraId, limits, generation), null, rest, Timeout.InfiniteTimeSpan);
+                head.Timer = _time.CreateTimer(_ => SaveIfStopped(cameraId, limits, generation, epoch), null, rest, Timeout.InfiniteTimeSpan);
                 return;
             }
             position = head.PositionAt(now, limits, _time.TimestampFrequency);
@@ -213,8 +221,7 @@ public sealed class PtzSimulator : IDisposable
     // A head at rest follows a world whose stored position differs from where the head is: the editor
     // (or anyone else) moved the camera. The simulator's own saves store exactly the head's position and
     // change nothing. Heads still moving keep going and save when they stop.
-    private void OnWorldChanged(WorldModel world)
-    {
+    private void OnWorldChanged(WorldModel world)    {
         long now = _time.GetTimestamp();
         lock (_gate)
         {
@@ -234,6 +241,19 @@ public sealed class PtzSimulator : IDisposable
                     Remember(world.Cameras.First(c => string.Equals(c.Id, id, StringComparison.OrdinalIgnoreCase)), _heads[id], now);
                 }
             }
+        }
+    }
+
+    // A switch is a new scene: every head belongs to the world being left. Its timers are stopped and
+    // its motion forgotten, so no position can be written into the world that has just opened.
+    private void OnWorldSwitched(WorldSwitch switched)
+    {
+        lock (_gate)
+        {
+            foreach (var head in _heads.Values) head.Timer?.Dispose();
+            _heads.Clear();
+            _history.Clear();
+            _epoch++;
         }
     }
 

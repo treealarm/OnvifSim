@@ -9,7 +9,7 @@ using static OnvifSim.Onvif.Services.CameraPtz;
 namespace OnvifSim.Onvif.Services;
 
 // PTZ (ver20) of a PTZ camera: absolute, relative and continuous moves in the generic spaces, status,
-// presets and a home position. Moves run in the PtzSimulator; presets and home are saved to world.json.
+// presets and a home position. Moves run in the PtzSimulator; presets and home are saved to the active world file.
 [OnvifService(typeof(PTZ), "ptz_service", 21, 12, RequiresPtz = true)]
 public sealed class PtzHandlers(OnvifRequestContext context)
 {

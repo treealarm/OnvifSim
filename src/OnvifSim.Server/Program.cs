@@ -13,7 +13,8 @@ using OnvifSim.Streaming.H264;
 using OnvifSim.World;
 
 var options = SimOptions.Parse(args);
-var store = new WorldStore(options.DataDirectory);
+// Validation is the editor's rule book, but a world opened from the library must pass it too.
+var store = new WorldStore(options.DataDirectory, world => WorldValidation.Check(world, options.OnvifBasePort));
 
 if (options.Bench)
 {
@@ -65,8 +66,16 @@ var app = builder.Build();
 // A camera that loses its network loses its streams too: they stop, as packets would. The recording
 // log is created here rather than on first use, so that cameras record from the start.
 var rtspServer = app.Services.GetRequiredService<RtspServer>();
-app.Services.GetRequiredService<CameraNetwork>().WentOffline += cameraId =>
+var network = app.Services.GetRequiredService<CameraNetwork>();
+network.WentOffline += cameraId =>
     _ = rtspServer.CloseSessionsAsync(path => string.Equals(path[0], cameraId, StringComparison.OrdinalIgnoreCase));
+// A new world starts with every camera online, and a replay belongs to the world it was recorded in.
+store.Switched += _ => network.Reset();
+store.Switched += switched =>
+{
+    _ = rtspServer.CloseSessionsAsync(path =>
+        path is [_, var last] && string.Equals(last, ReplayStreams.PathSegment, StringComparison.OrdinalIgnoreCase));
+};
 app.Services.GetRequiredService<RecordingLog>();
 
 app.UseDefaultFiles();

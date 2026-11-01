@@ -1,9 +1,11 @@
 import { useEffect } from 'react';
 import { CameraInspector } from './panels/CameraInspector';
 import { ObjectInspector } from './panels/ObjectInspector';
+import { ObjectTree } from './panels/ObjectTree';
 import { RoadInspector, WalkerInspector } from './panels/RouteInspectors';
 import { Toolbar } from './panels/Toolbar';
 import { WorldInspector } from './panels/WorldInspector';
+import { WorldMenu } from './panels/WorldMenu';
 import { cancelDrawing, connect, finishDrawing, redo, removeSelected, select, undo, useEditor } from './store';
 import { Viewport } from './viewport/Viewport';
 
@@ -22,6 +24,7 @@ export function App() {
     <div className="app">
       <header>
         <h1>OnvifSim</h1>
+        <WorldMenu />
         <Toolbar />
         <span className={connected ? 'connection online' : 'connection offline'} role="status">
           {connected ? 'connected' : 'reconnecting…'}
@@ -38,6 +41,7 @@ export function App() {
       {world ? (
         <main>
           <Viewport world={world} />
+          <ObjectTree world={world} />
           <aside className="inspector">
             <Inspector />
           </aside>

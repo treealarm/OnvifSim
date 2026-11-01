@@ -19,7 +19,8 @@ public class WorldStoreTests
     {
         using var dir = new TempDir();
         var first = new WorldStore(dir.Path).Current;
-        Assert.True(File.Exists(System.IO.Path.Combine(dir.Path, "world.json")));
+        Assert.True(File.Exists(System.IO.Path.Combine(dir.Path, "worlds", "default.json")));
+        Assert.True(File.Exists(System.IO.Path.Combine(dir.Path, "active-world.json")));
         var second = new WorldStore(dir.Path).Current;
         Assert.Equal(first.Terrain.Heights, second.Terrain.Heights);
         Assert.Equal(first.Objects.Count, second.Objects.Count);

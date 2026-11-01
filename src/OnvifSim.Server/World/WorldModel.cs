@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace OnvifSim.World;
 
-// The whole simulated world as stored in world.json. Coordinates follow three.js so the editor needs
+// The whole simulated world as stored in a world file. Coordinates follow three.js so the editor needs
 // no conversion: X east, Y up, Z south (north is -Z), metres. Object and camera Y is the height above
 // the terrain surface, not an absolute altitude, so sculpting the ground carries everything with it.
 public sealed class WorldModel
@@ -58,6 +58,9 @@ public sealed class WorldObject
     public string? Color { get; set; }
     public string? Color2 { get; set; }
     public int Seed { get; set; }
+    // A car's licence plate text: null keeps the car's default, an empty string leaves the plate blank.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Plate { get; set; }
 }
 
 // A road or a footpath: a strip of the given width laid on the ground along a line of points.

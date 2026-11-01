@@ -12,16 +12,17 @@ Last updated: 2026-10-13.
   The developers never receive any data from it.
 - It **only answers**: it serves the editor, ONVIF, RTSP and WS-Discovery to whoever connects to it,
   and connects to nothing on the internet.
-- Everything it keeps is the **world file on your own disk**.
+- Everything it keeps is **world files and a recording log on your own disk**.
 
 ## What it keeps
 
 | Data | Where | Notes |
 |---|---|---|
-| The world: terrain, objects, roads, people, cameras and their settings | `world.json` in the data directory: `%LOCALAPPDATA%\OnvifSim` on Windows, `~/.local/share/OnvifSim` on Linux, `/data` in Docker, `/var/snap/onvifsim/common` in the snap, or wherever `--data` points | Written when you edit the world, and when an ONVIF client changes a camera (encoder settings, presets, where a PTZ camera stopped) |
-| The simulated cameras' user names and passwords | The same `world.json`, **in plain text** | They protect simulated cameras only; do not reuse real passwords there |
+| The worlds: terrain, objects, roads, people, cars, cameras and their settings | `worlds/<name>.json` in the data directory: `%LOCALAPPDATA%\OnvifSim` on Windows, `~/.local/share/OnvifSim` on Linux, `/data` in Docker, `/var/snap/onvifsim/common` in the snap, or wherever `--data` points. `active-world.json` names the one a restart opens; worlds moved to the trash stay in `trash/` until the trash is emptied | Written when you edit the active world, and when an ONVIF client changes a camera (encoder settings, presets, where a PTZ camera stopped) |
+| The simulated cameras' user names and passwords | The same world files, **in plain text** | They protect simulated cameras only; do not reuse real passwords there |
+| The cameras' own recordings: which stretches of time each one recorded | `recordings.json` in the data directory | Only time spans, never frames: a replay draws the world again |
 
-Pictures are rendered on demand and streamed; nothing is recorded.
+Pictures are rendered on demand and streamed; no picture is stored.
 
 ## Network communication
 

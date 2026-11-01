@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 namespace OnvifSim.World;
 
 // Heightmaps are tens of thousands of floats; as base64 of little-endian float32 they stay compact in
-// world.json and the editor decodes them straight into a Float32Array. Every platform .NET 10 runs on
+// the active world file and the editor decodes them straight into a Float32Array. Every platform .NET 10 runs on
 // is little-endian, so the bytes are the in-memory floats.
 public sealed class FloatArrayBase64Converter : JsonConverter<float[]>
 {

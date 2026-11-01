@@ -18,8 +18,10 @@ it gets PTZ commands, just like real hardware. Point ONVIF Device Manager, an NV
 ONVIF client at it; no cameras needed.
 
 What the cameras show is not a test pattern or a looped video: they look at a 3D world you build in
-the browser (terrain, trees, houses, roads, people walking their routes), so a PTZ camera really
-turns towards what you asked for, and a person walks out of one camera's view into the next.
+the browser (terrain, trees, houses, roads, cars with readable licence plates, people walking their
+routes), so a PTZ camera really turns towards what you asked for, and a person walks out of one
+camera's view into the next. Prepare as many worlds as the tests need, switch between them from the
+editor, and put away the ones you no longer use without losing them.
 
 <p align="center">
   <img src="docs/images/editor.gif" alt="The editor: a PTZ camera turned with the joystick and zoomed in, its picture beside the 3D view" width="90%">
@@ -59,12 +61,16 @@ turns towards what you asked for, and a person walks out of one camera's view in
 - An optional pan/tilt degree grid over the picture shows where the camera is pointing.
 
 **A world you edit in the browser**
-- Place trees, houses, rocks, cameras; sculpt the terrain; draw roads and routes for people who walk
-  them over and over.
+- Place trees, houses, rocks, boxes, cars with editable licence plates and fixed or PTZ cameras;
+  sculpt the terrain; draw roads and routes for people who walk them over and over.
+- Prepare any number of named worlds in the data directory and switch between them in the header,
+  without restarting; move a world to the trash and restore it, or empty the trash for good.
 - See each camera's picture beside the 3D view, with the people its analytics reports boxed, and drive
   PTZ cameras with a joystick.
+- Find every object, camera, road and person in the contents tree and select it there — the reliable
+  way to reach a person only a few pixels tall in the 3D view.
 - Every edit is live, on all streams within a moment; undo and redo; no Save button.
-- The world is one JSON file you can keep in git; an HTTP API changes it from scripts and tests.
+- Worlds are JSON files you can keep in git; an HTTP API changes them from scripts and tests.
 
 **Runs anywhere**
 - Windows installer (MSI), portable zips for Windows and Linux (x64, arm64), a Docker image (amd64,
@@ -89,7 +95,7 @@ what the cameras show depends on where they are and where they point.
 | PTZ | Moves the picture: the head turns at its set speed and the stream shows it turning; AbsoluteMove ends exactly where asked, which a test can check on the picture |
 | Several cameras | One world seen from different places: overlapping views, a person walking from one camera's view into the next |
 | Repeatable | The picture is a function of the world and the clock: the same world file gives the same frames, in CI too |
-| Setup | One program, one Docker image or one installer; the world is a JSON file you can keep in git |
+| Setup | One program, one Docker image or one installer; worlds are JSON files you can keep in git, and the editor switches between them while the cameras keep running |
 
 > Tested against real clients: OnvifLib and its Probe and GUI, onvif-zeep, ffmpeg, VLC, GStreamer
 > and go2rtc. What changes from release to release is in the
@@ -101,16 +107,16 @@ what the cameras show depends on where they are and where they point.
   the Start menu; starting it opens the editor in the browser.
 - **Windows, Linux (x64, arm64)**: the portable zips from Releases; unzip and run `OnvifSim`.
 - **Docker**: see [below](#docker).
-- **Snap** (or Ubuntu's App Center): `sudo snap install onvifsim` runs it as a service, with the world
-  in `/var/snap/onvifsim/common`; OnvifSim in the applications menu opens the editor.
+- **Snap** (or Ubuntu's App Center): `sudo snap install onvifsim` runs it as a service, with the
+  worlds in `/var/snap/onvifsim/common`; OnvifSim in the applications menu opens the editor.
 
-Every package carries ffmpeg for the H.264 streams. The world is kept in `%LOCALAPPDATA%\OnvifSim`
-or `~/.local/share/OnvifSim`; on first start a default world is written there. The editor is at
-http://localhost:18180/.
+Every package carries ffmpeg for the H.264 streams. Worlds are kept in `%LOCALAPPDATA%\OnvifSim`
+or `~/.local/share/OnvifSim`; on first start the default village is written there, with a car in
+view of the fixed camera so every feature is in sight. The editor is at http://localhost:18180/.
 
 | Option | |
 |---|---|
-| `--data <dir>` | where `world.json` is kept |
+| `--data <dir>` | where the worlds, their trash and the recordings are kept |
 | `--port <port>` | the editor and API (18180) |
 | `--no-browser` | do not open the editor on start (it opens only where there is a desktop anyway) |
 | `--ffmpeg <path\|none>` | the ffmpeg for H.264; by default the bundled one, then the one on PATH |
@@ -123,6 +129,51 @@ builds and serves everything except the editor):
 dotnet run -c Release --project src/OnvifSim.Server -- --data ./data
 ```
 
+## Worlds
+
+One world is active; any number of others are kept beside it and opened from the editor without a
+restart.
+
+```text
+<data>/
+  active-world.json       the world a restart opens
+  worlds/<name>.json      every world
+  trash/<name>.json       worlds moved out of the list
+  recordings.json         the cameras' own recordings (see Profile G below)
+```
+
+- **New world** in the header creates an empty one — flat ground, no cameras — and opens it.
+- **Switch** by choosing a world in the list. Edits in the outgoing world are saved first, and the
+  new world starts with an empty undo history.
+- **Trash**, **Restore** and **Empty trash**: a trashed world keeps its file and can be brought back;
+  emptying the trash deletes those files permanently. The active world may be trashed too — the next
+  world opens, or a fresh empty `default` if none is left.
+- Names may contain spaces and any letters, Cyrillic included. Path separators, control characters
+  and Windows device names are refused; names are compared without regard to case.
+- If the world being left has camera recordings, the editor asks whether to **clear the cameras' SD
+  cards** or keep them. Keeping carries footage for the same camera ids into the new world; clearing
+  starts every card again.
+- An installation from before worlds had names keeps its `world.json`; it becomes
+  `worlds/default.json` on the first start.
+
+The library over HTTP, for scripts and tests:
+
+| Method and path | |
+|---|---|
+| `GET /api/worlds` | the active world, all worlds, the trash, and whether the active world has recordings |
+| `POST /api/worlds` `{ "name", "clearRecordings" }` | create an empty world and open it |
+| `POST /api/worlds/{name}/activate` `{ "clearRecordings" }` | open a world |
+| `POST /api/worlds/{name}/trash` `{ "clearRecordings" }` | move a world to the trash |
+| `POST /api/trash/{name}/restore` `{ "name" }` | bring a trashed world back, optionally renamed |
+| `DELETE /api/trash` | delete every trashed world permanently |
+
+When a recordings choice is needed and the body leaves `clearRecordings` out, the server answers 409
+with `"code": "recordings"`, so a client has to choose before a switch happens.
+
+<p align="center">
+  <img src="docs/images/worlds.png" alt="The world manager: the list of worlds, a field for a new world and the trash" width="90%">
+</p>
+
 ## Docker
 
 ```bash
@@ -131,7 +182,7 @@ docker compose -f docker-compose.ports.yml up -d    # Docker Desktop (Windows, m
 ```
 
 The image `ghcr.io/treealarm/onvifsim` (amd64 and arm64) has ffmpeg, so H.264 is on, and keeps the
-world in the `/data` volume. With host networking the cameras are on the LAN as they would be on real
+worlds in the `/data` volume. With host networking the cameras are on the LAN as they would be on real
 hardware: discovery, ONVIF ports 8001…, RTSP 8554. Docker Desktop cannot put a container on the LAN,
 so `docker-compose.ports.yml` maps the ports one by one (cameras 8001–8016) and turns discovery off;
 connect to `http://<host>:8001/onvif/device_service` and so on. Behind NAT or in a VM, set
@@ -140,28 +191,55 @@ connect to `http://<host>:8001/onvif/device_service` and so on. Behind NAT or in
 ## Editor
 
 The browser editor shows the world in 3D and changes it live; there is no Save button, every edit
-reaches the cameras and `world.json` within a moment. Undo and Redo (Ctrl+Z, Ctrl+Shift+Z or
-Ctrl+Y) step back and forth through the last 100 edits; turning a PTZ camera is not an edit.
+reaches the cameras and the active world's file within a moment. Undo and Redo (Ctrl+Z,
+Ctrl+Shift+Z or Ctrl+Y) step back and forth through the last 100 edits; turning a PTZ camera is not
+an edit. Switching worlds clears the history, and undo starts again in the new world.
 
-- **Place** trees, houses, rocks, boxes and fixed or PTZ cameras: pick one on the toolbar and click
-  the ground. Click anything to select it; drag the gizmo to move it (G) or turn it (R), or type
-  exact values in the panel. Delete removes the selection, Escape drops it.
-- **Sculpt** the terrain with the Raise, Lower, Smooth and Flatten brushes.
-- **Roads and people**: pick Road or Person, click the ground point by point and finish with a
-  double-click or Enter. A person walks their route over and over, round in a loop or there and
-  back, at the speed you set, and every camera sees them walking: where they are follows from the
-  clock, so all streams and snapshots agree. Drag the points of a selected road or route to reshape it.
+The toolbar has two rows: **Select**, **Add**, **Draw** and **Terrain** choose which tools the second
+row offers; Undo and Redo stay at its left. Choosing a tab only changes the palette — the active tool
+is marked with a dot, so the viewport keeps doing exactly what it did until another tool is picked.
+
+- **Select, Move, Rotate**: click anything in the viewport or in the contents tree to select it; drag
+  the gizmo to move it (G) or turn it (R), or type exact values in the panel. Delete removes the
+  selection, Escape drops it.
+- **Add** trees, houses, rocks, boxes, cars and fixed or PTZ cameras: pick one and click the ground.
+- **Draw** roads and people: click the ground point by point and finish with a double-click or Enter.
+  A person walks their route over and over, round in a loop or there and back, at the speed you set,
+  and every camera sees them walking: where they are follows from the clock, so all streams and
+  snapshots agree. Drag the points of a selected road or route to reshape it.
+- **Terrain** brushes: Raise, Lower, Smooth and Flatten, with radius and strength.
+- **Contents** lists every camera, object, road and person in the world on the right. Clicking a row
+  selects it exactly as clicking it in 3D does — the reliable way to reach a person only a few pixels
+  tall. The **World environment** row shows the sun, sky, fog and terrain settings.
+
+<p align="center">
+  <img src="docs/images/editor-tree.png" alt="The editor: the 3D view, the contents tree with cameras, objects, roads and people, and the inspector" width="90%">
+</p>
+
 - **Cameras** show what they see (the server's own picture, the same as RTSP), their ONVIF and RTSP
   addresses and every setting: mount, field of view, PTZ limits and speeds, both streams, image
   adjustments, users and port, and a colour of their own, which their body and the wire frame of
-  where they look take in the editor and in the other cameras' pictures. A PTZ camera gets a joystick (drag it, or focus it and hold the arrow
-  keys), zoom buttons and pan/tilt/zoom boxes that drive the same PTZ head as ONVIF clients.
+  where they look take in the editor and in the other cameras' pictures. A PTZ camera gets a joystick
+  (drag it, or focus it and hold the arrow keys), zoom buttons and pan/tilt/zoom boxes that drive the
+  same PTZ head as ONVIF clients.
+- **Cars** have a plate text field: Latin letters, digits, spaces and hyphens, up to 8 characters. The
+  plate is part of the mesh, so it appears in every camera picture as well as in the editor. As with
+  real cameras, the characters are readable at close range or through a narrow lens; a wide camera at
+  village distance shows the car, not the text.
+
+<p align="center">
+  <img src="docs/images/car-plate.png" alt="The editor with the car selected: its body and plate settings, including the plate text" width="90%">
+  <br>
+  <img src="docs/images/camera-car.jpg" alt="The village camera's picture: a red car in the foreground with its licence plate" width="70%">
+</p>
+
 - **Analytics**: the camera's picture boxes the people its analytics reports, with their object ids,
   exactly as the metadata stream sends them; the panel turns people detection and the PTZ position in
   the metadata on and off, and a person's own panel can leave them out of every camera's analytics
   ("Seen by analytics"), so they only appear in the picture.
 - **World**: sun, sky colours, fog, terrain size, and what the camera pictures show of the other
   cameras: their bodies, and optionally the wire frame of where they look.
+- **Worlds**: the header menu creates, opens, trashes and restores worlds; see [Worlds](#worlds).
 
 ONVIF clients' changes (a new resolution, a preset, where a PTZ camera stopped) show up in the editor
 too. `npm run dev` in `src/OnvifSim.Web` serves the editor with hot reload against a simulator on
@@ -169,11 +247,12 @@ port 18180; `npm run e2e` runs the browser test.
 
 | Endpoint | |
 |---|---|
-| `GET /api/world`, `PUT /api/world` | the world as JSON |
+| `GET /api/world`, `PUT /api/world` | the active world as JSON |
+| `GET /api/worlds`, `POST /api/worlds`, `POST /api/worlds/{name}/activate`, `POST /api/worlds/{name}/trash`, `POST /api/trash/{name}/restore`, `DELETE /api/trash` | the world library; see [Worlds](#worlds) |
 | `PUT`, `DELETE /api/objects/{id}`, `/api/roads/{id}`, `/api/walkers/{id}`, `/api/cameras/{id}` | add, replace or remove one object, road, walker or camera |
 | `PUT /api/terrain`, `PUT /api/environment` | the terrain or the sun, sky and fog |
 | `POST /api/cameras/{id}/ptz/move`, `goto`, `stop`, `home` | drive a PTZ head |
-| `GET /api/events` | server-sent events: the world, ports and PTZ positions as they change |
+| `GET /api/events` | server-sent events: `world` (the active world), `worlds` (the library), `world-switched`, `status` (ports, H.264) and `ptz` (head positions) |
 | `GET /api/cameras` | camera list |
 | `GET /api/cameras/{id}/snapshot.jpg` | one rendered frame |
 | `GET /api/cameras/{id}/mjpeg` | live Motion JPEG (open it in a browser) |
@@ -198,9 +277,9 @@ ffplay -rtsp_transport tcp rtsp://admin:admin@localhost:8554/cam2   # RTP interl
 ```
 
 RTP goes over UDP or interleaved in the RTSP connection, whichever the client asks for. Credentials
-are the camera's `users` in `world.json` (Digest or Basic; the default world has `admin`/`admin`); a
+are the camera's `users` in the active world file (Digest or Basic; the default world has `admin`/`admin`); a
 camera with no users accepts anyone. Resolution, frame rate and JPEG quality are per camera
-(`video` in `world.json`, 640×360 at 10 fps by default).
+(`video` in the active world file, 640×360 at 10 fps by default).
 
 ffmpeg-based players need about 20 frames to start (they measure the frame rate first): ~2 s at the
 default 10 fps, ~7 s at 3 fps. VLC and GStreamer show the first frame at once.
@@ -223,7 +302,7 @@ want the track simply do not set it up; ffmpeg shows it as a data stream (`-map 
 
 When an ffmpeg with libx264 is on `PATH` (or named with `--ffmpeg <path>`, `ONVIFSIM_FFMPEG`), every
 camera also streams H.264 (RTP, RFC 6184) at `rtsp://<host>:8554/<camera id>/h264`, with settings of
-its own (`h264` in `world.json`: 640×360, 10 fps, 1024 kbit/s, a key frame every 10 frames by
+its own (`h264` in the active world file: 640×360, 10 fps, 1024 kbit/s, a key frame every 10 frames by
 default). One ffmpeg process per camera runs while someone watches; a new viewer starts at the next
 key frame. Without ffmpeg (or with `--ffmpeg none`) cameras stream JPEG only.
 
@@ -246,7 +325,7 @@ server closes the connection. H.264 when ffmpeg is there, JPEG otherwise.
 ## ONVIF
 
 Every camera is a device of its own, on its own port: `http://<host>:8001/onvif/device_service` for
-the first camera, 8002 for the second and so on (`onvifPort` in `world.json` pins one). Each answers
+the first camera, 8002 for the second and so on (`onvifPort` in the active world file pins one). Each answers
 WS-Discovery, so ONVIF Device Manager, an NVR or `OnvifLib.Probe --discovery` lists them all.
 
 - **Device**: device information, clock, `GetServices`/`GetCapabilities`, scopes, users, a read-only
@@ -254,13 +333,13 @@ WS-Discovery, so ONVIF Device Manager, an NVR or `OnvifLib.Probe --discovery` li
 - **Media** (ver10) and **Media2** (ver20): `Profile_1` with the JPEG stream and, when H.264 is on,
   `Profile_2` with the H.264 one, each with its RTSP and snapshot URIs.
   `SetVideoEncoderConfiguration` changes resolution, frame rate, JPEG quality, H.264 bitrate and GOV
-  length within the offered options and is saved to `world.json`. Both profiles share the metadata
+  length within the offered options and is saved to the active world file. Both profiles share the metadata
   configuration `Metadata_1` (`SetMetadataConfiguration` turns analytics and the PTZ status on and
-  off, saved as `metadata` in `world.json`) and the analytics configuration `VideoAnalytics_1`.
+  off, saved as `metadata` in the active world file) and the analytics configuration `VideoAnalytics_1`.
 - **PTZ** (ver20, PTZ cameras only): AbsoluteMove, RelativeMove, ContinuousMove, Stop and
   GetStatus in the generic spaces, presets and a home position. The head moves at the camera's top
-  speeds (`ptz` in `world.json`), the stream shows it turning, and where it stops, its presets and
-  its home are saved to `world.json`.
+  speeds (`ptz` in the active world file), the stream shows it turning, and where it stops, its presets and
+  its home are saved to the active world file.
 - **Imaging** (ver20): brightness, contrast and colour saturation, applied to the picture and saved.
 - **Events** (ver10): pull point subscriptions (`CreatePullPointSubscription`, `PullMessages`,
   `SetSynchronizationPoint`, `Renew`, `Unsubscribe`, topic filters in the ConcreteSet dialect). A
@@ -272,13 +351,13 @@ WS-Discovery, so ONVIF Device Manager, an NVR or `OnvifLib.Probe --discovery` li
 - **Recording, Search, Replay** (Profile G): the camera's own recording, as on a camera with an SD
   card. Every camera records from the moment it is in the world, with one recording (`Recording_1`,
   one video track) and one job (`RecordingJob_1`); `SetRecordingJobMode` Idle and Active stop and
-  start it, and its `MaximumRetentionTime` (`recordingRetentionHours` in `world.json`, 30 days by
+  start it, and its `MaximumRetentionTime` (`recordingRetentionHours` in the active world file, 30 days by
   default) is how far back the card reaches before it records over the oldest footage.
   `FindRecordings` (with the usual `TrackType`/`DataFrom`/`DataTo` filter) returns everything at
   once, `GetRecordingInformation`, `GetRecordingSummary` and `GetReplayUri` the rest; recordings and
   tracks cannot be created or deleted. No frame is stored: the world is a function of time, so replay
   draws the past again, PTZ heads where they pointed then. When the camera recorded is kept in
-  `recordings.json` beside `world.json`; while the simulator is not running the cameras do not
+  `recordings.json` beside the worlds directory; while the simulator is not running the cameras do not
   record. Edits to the world are not historised: a replay shows the past in today's world.
   `PUT /api/cameras/{id}/network` cuts a camera off (its ONVIF port drops requests, its streams stop,
   discovery leaves it out) while it goes on recording: the case a VMS recovers footage for.
@@ -296,9 +375,9 @@ reachable from outside, e.g. in a container.
 side behaves as one does. `video.rotate` turns the picture (reported as the video source's
 `Rotate`), and `ptz.panReverse` / `ptz.tiltReverse` make ONVIF count an axis the other way round
 (`PTControlDirection` `Reverse`), as installers set cameras that hang upside down. ONVIF cannot
-change either; they are the installer's, in `world.json`.
+change either; they are the installer's, in the active world file.
 
-The **degree grid** (`angleGrid` in `world.json`, a checkbox in the editor) draws pan/tilt lines over
+The **degree grid** (`angleGrid` in the active world file, a checkbox in the editor) draws pan/tilt lines over
 a camera's picture, relative to the mount (pan 0, tilt 0 is where the camera points at rest), with
 labels every 15° that get finer as the camera zooms in. The default world turns it on for the PTZ
 camera.
@@ -322,6 +401,16 @@ One .NET 10 process, no native dependencies: the world is rendered by a built-in
 (a 640×360 frame takes about 5 ms), encoded to JPEG in-process, and a camera only renders while
 someone is watching it, and then only when its picture changes: a still camera with nobody walking
 in view sends the same frame again. H.264 is the one optional extra: raw frames piped through an ffmpeg process.
+Licence plates are geometry too: the characters come from a 5×7 bitmap font and become small flat
+quads on the plate, which is why the CPU renderer and the browser editor show the same text without
+textures.
+
+The world library lives in `WorldStore`. It keeps `worlds/`, the active marker and the trash, and
+switches all go through it. A switch fires `Switched` before `Changed`: the services that must not
+carry state from one scene into another (PTZ head motion, the cameras' offline flags, the recording
+log when the user chose to clear it) reset first, then the scene is rebuilt and the ONVIF listeners
+follow the new cameras. The editor receives `world-switched` before the new `world`, so its undo
+history and pending edits cannot leak into the scene that has just opened.
 
 The RTSP server and the RTP payload formats (JPEG, H.264, ONVIF metadata) are a library of their
 own, [src/OnvifSim.Rtsp](src/OnvifSim.Rtsp), which knows nothing of the simulator: the cameras reach

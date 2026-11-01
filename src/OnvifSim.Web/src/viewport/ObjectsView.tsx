@@ -14,7 +14,7 @@ const geometries = new Map<string, BufferGeometry>();
 const requested = new Set<string>();
 
 function meshKey(obj: WorldObject): string {
-  return JSON.stringify([obj.type, obj.scale.x, obj.scale.y, obj.scale.z, obj.color, obj.color2, obj.seed]);
+  return JSON.stringify([obj.type, obj.scale.x, obj.scale.y, obj.scale.z, obj.color, obj.color2, obj.seed, obj.plate ?? '']);
 }
 
 function useObjectGeometries(objects: WorldObject[]): Map<string, BufferGeometry> {

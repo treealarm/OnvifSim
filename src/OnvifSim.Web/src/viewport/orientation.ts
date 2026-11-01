@@ -4,7 +4,7 @@ import type { CameraModel } from '../model';
 const degrees = 180 / Math.PI;
 
 // The turn around the vertical axis a gizmo left an object at, degrees clockwise seen from above
-// (0..360): how world.json counts an object's rotation and a camera's heading. Read from a direction
+// (0..360): how the active world file counts an object's rotation and a camera's heading. Read from a direction
 // rather than from Euler angles, which flip to x = z = 180 past 90 degrees.
 export function yawDegrees(rotation: Quaternion): number {
   const east = new Vector3(1, 0, 0).applyQuaternion(rotation);

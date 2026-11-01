@@ -1,7 +1,7 @@
 import { Line } from '@react-three/drei';
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
-import { BufferAttribute, BufferGeometry, type Group } from 'three';
+import { BufferAttribute, BufferGeometry, type Group, type Mesh } from 'three';
 import { heightAt, walkerPoseAt, type GroundPoint, type Road, type Terrain, type Walker } from '../model';
 import { select, useEditor, type Selection } from '../store';
 
@@ -50,6 +50,9 @@ function RoadView({ road, terrain, selected }: { road: Road; terrain: Terrain; s
 
 function WalkerView({ walker, terrain, selected }: { walker: Walker; terrain: Terrain; selected: boolean }) {
   const figure = useRef<Group>(null);
+  const proxy = useRef<Mesh>(null);
+  const camera = useThree((s) => s.camera);
+  const size = useThree((s) => s.size);
   const h = walker.height;
   useFrame(() => {
     const body = figure.current;
@@ -57,12 +60,28 @@ function WalkerView({ walker, terrain, selected }: { walker: Walker; terrain: Te
     const pose = walkerPoseAt(walker, Date.now());
     body.position.set(pose.x, heightAt(terrain, pose.x, pose.z), pose.z);
     body.rotation.y = (-pose.heading * Math.PI) / 180;
+
+    // The figure is a few pixels tall from the editor's usual distance, too small to hit. An invisible
+    // box keeps a target about 14 px across, whatever the distance: three's raycaster ignores visibility,
+    // and the group's own click handler receives the hit.
+    const target = proxy.current;
+    if (!target) return;
+    const fov = 'fov' in camera ? camera.fov : 50;
+    const worldPerPixel = (2 * camera.position.distanceTo(body.position) * Math.tan((fov * Math.PI) / 360)) / size.height;
+    const width = Math.max(1.2, 14 * worldPerPixel);
+    const height = Math.max(h * 1.4, width * 1.4);
+    target.scale.set(width, height, width);
+    target.position.y = height / 2;
   });
   const route = walker.route;
   const closed = walker.return === 'loop' && route.length > 2 ? [...route, route[0]] : route;
   return (
     <>
       <group ref={figure} onClick={selectOnClick({ kind: 'walker', id: walker.id })}>
+        <mesh ref={proxy} visible={false}>
+          <boxGeometry args={[1, 1, 1]} />
+          <meshBasicMaterial />
+        </mesh>
         <mesh position-y={h * 0.24}>
           <boxGeometry args={[h * 0.18, h * 0.48, h * 0.12]} />
           <meshLambertMaterial color={walker.color2 ?? '#3a3a44'} emissive={selected ? '#333322' : '#000000'} />

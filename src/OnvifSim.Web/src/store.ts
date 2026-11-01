@@ -16,12 +16,16 @@ import {
   type Walker,
   type World,
   type WorldObject,
+  type WorldsInfo,
+  type WorldSwitchSignal,
 } from './model';
 
 export type Selection = { kind: 'object' | 'camera' | 'road' | 'walker'; id: string };
 export type Placeable = ObjectType | 'camera.fixed' | 'camera.ptz';
 export type BrushKind = 'raise' | 'lower' | 'smooth' | 'flatten';
 export type Drawable = 'road' | 'walker';
+// Which tool palette the toolbar shows. Choosing a palette does not change the active tool.
+export type ToolGroup = 'select' | 'add' | 'draw' | 'terrain';
 // Drawing a road or a walker's route point by point; extending adds the points to the end of an
 // existing one instead of making a new one.
 export interface DrawTool {
@@ -37,10 +41,16 @@ interface EditorState {
   // The server's world with the edits it has not confirmed yet laid over it.
   world: World | null;
   status: ServerStatus | null;
+  // The world library: one active world and the ones kept beside it.
+  worlds: string[];
+  trash: string[];
+  activeWorld: string | null;
+  recordings: { hasRecordings: boolean; cameraCount: number };
   // Missing for a camera without a PTZ head.
   heads: Partial<Record<string, Head>>;
   selection: Selection | null;
   tool: Tool;
+  toolGroup: ToolGroup;
   gizmo: 'move' | 'rotate';
   brushRadius: number;
   brushStrength: number;
@@ -55,9 +65,14 @@ export const useEditor = create<EditorState>()(() => ({
   connected: false,
   world: null,
   status: null,
+  worlds: [],
+  trash: [],
+  activeWorld: null,
+  recordings: { hasRecordings: false, cameraCount: 0 },
   heads: {},
   selection: null,
   tool: { kind: 'select' },
+  toolGroup: 'select',
   gizmo: 'move',
   brushRadius: 12,
   brushStrength: 0.5,
@@ -70,11 +85,31 @@ export const useEditor = create<EditorState>()(() => ({
 const set = useEditor.setState;
 
 export function select(selection: Selection | null) {
-  set({ selection, tool: { kind: 'select' } });
+  set({ selection, tool: { kind: 'select' }, toolGroup: 'select' });
+}
+
+// Which palette a tool belongs to; the toolbar marks that group so switching tabs never hides what the
+// viewport will do.
+export function toolGroupOf(tool: Tool): ToolGroup {
+  switch (tool.kind) {
+    case 'select':
+      return 'select';
+    case 'place':
+      return 'add';
+    case 'draw':
+      return 'draw';
+    case 'brush':
+      return 'terrain';
+  }
 }
 
 export function setTool(tool: Tool) {
-  set({ tool });
+  set({ tool, toolGroup: toolGroupOf(tool) });
+}
+
+// The palette tab only chooses which tools are shown; the active tool stays whatever it was.
+export function setToolGroup(toolGroup: ToolGroup) {
+  set({ toolGroup });
 }
 
 export function showError(error: unknown) {
@@ -97,7 +132,7 @@ interface PendingEdit {
 
 const pending = new Map<string, PendingEdit>();
 const timers = new Map<string, ReturnType<typeof setTimeout>>();
-const sending = new Set<string>();
+const inFlight = new Map<string, Promise<boolean>>();
 let serverWorld: World | null = null;
 
 function withPending(world: World): World {
@@ -113,6 +148,8 @@ export function connect(): () => void {
   // EventSource reconnects by itself, and the server starts every connection with the full state.
   events.onerror = () => set({ connected: false });
   events.addEventListener('world', (e) => receiveWorld(decodeWorld(e.data)));
+  events.addEventListener('worlds', (e) => receiveWorlds(JSON.parse(e.data) as WorldsInfo));
+  events.addEventListener('world-switched', (e) => receiveSwitch(JSON.parse(e.data) as WorldSwitchSignal));
   events.addEventListener('status', (e) => set({ status: JSON.parse(e.data) as ServerStatus }));
   events.addEventListener('ptz', (e) => set({ heads: JSON.parse(e.data) as Partial<Record<string, Head>> }));
   return () => events.close();
@@ -126,6 +163,39 @@ function receiveWorld(world: World) {
   for (const [key, edit] of pending) if (edit.state === 'sent') pending.delete(key);
 }
 
+// The library changed: a switch, a create, a trash or a restore. A switch from another tab arrives
+// here too when its world-switched event is missed on a reconnect, hence the active-name check.
+function receiveWorlds(info: WorldsInfo) {
+  const previous = useEditor.getState().activeWorld;
+  if (previous !== null && previous !== info.active) resetForWorldSwitch();
+  set({ worlds: info.worlds, trash: info.trash, activeWorld: info.active, recordings: info.recordings });
+}
+
+// The server has already switched. Everything that belonged to the world being left goes: its pending
+// edits, its undo history and the selection. The next world event brings the new world.
+function receiveSwitch(signal: WorldSwitchSignal) {
+  resetForWorldSwitch();
+  set({ activeWorld: signal.active });
+}
+
+function resetForWorldSwitch() {
+  for (const timer of timers.values()) clearTimeout(timer);
+  timers.clear();
+  pending.clear();
+  undoStack.length = 0;
+  redoStack.length = 0;
+  set({
+    selection: null,
+    tool: { kind: 'select' },
+    toolGroup: 'select',
+    draggedPoint: null,
+    undoSteps: 0,
+    redoSteps: 0,
+    heads: {},
+    error: null,
+  });
+}
+
 function edit(key: string, apply: (world: World) => World, send: () => Promise<unknown>, delayMs = sendDelayMs) {
   pending.set(key, { apply, send, state: 'waiting' });
   set((s) => ({ world: s.world && apply(s.world) }));
@@ -133,24 +203,51 @@ function edit(key: string, apply: (world: World) => World, send: () => Promise<u
   timers.set(key, setTimeout(() => void flush(key), delayMs));
 }
 
-async function flush(key: string) {
-  const entry = pending.get(key);
-  // One request per key at a time, so the server applies edits in the order they were made; a newer
-  // edit waits for the one in flight.
-  if (!entry || entry.state !== 'waiting' || sending.has(key)) return;
-  sending.add(key);
-  entry.state = 'sending';
-  try {
-    await entry.send();
-    if (pending.get(key) === entry) entry.state = 'sent';
-  } catch (error) {
-    if (pending.get(key) === entry) pending.delete(key);
-    showError(error);
-    if (serverWorld) set({ world: withPending(serverWorld) });
-  } finally {
-    sending.delete(key);
+// Sends one part's pending edit, then any edit that arrived while it was in flight. One request per key
+// at a time, so the server applies edits in the order they were made.
+async function flush(key: string): Promise<boolean> {
+  const running = inFlight.get(key);
+  if (running) {
+    await running;
+    return flush(key);
   }
-  await flush(key);
+  const entry = pending.get(key);
+  if (!entry || entry.state !== 'waiting') return true;
+  entry.state = 'sending';
+  const task = (async () => {
+    try {
+      await entry.send();
+      if (pending.get(key) === entry) entry.state = 'sent';
+      return true;
+    } catch (error) {
+      if (pending.get(key) === entry) pending.delete(key);
+      showError(error);
+      if (serverWorld) set({ world: withPending(serverWorld) });
+      return false;
+    }
+  })();
+  inFlight.set(key, task);
+  let saved: boolean;
+  try {
+    saved = await task;
+  } finally {
+    inFlight.delete(key);
+  }
+  return saved && flush(key);
+}
+
+// Sends everything waiting now and waits for the requests in flight, for an action that must not race
+// with an edit (switching worlds, changing a camera's kind). False when any edit was refused.
+export async function settleEdits(): Promise<boolean> {
+  for (const timer of timers.values()) clearTimeout(timer);
+  timers.clear();
+  while (true) {
+    const keys = [...new Set([...pending.keys(), ...inFlight.keys()])];
+    if (keys.length === 0) return true;
+    const saved = await Promise.all(keys.map((key) => flush(key)));
+    if (saved.some((ok) => !ok)) return false;
+    if (![...pending.values()].some((entry) => entry.state !== 'sent')) return true;
+  }
 }
 
 // ---- Edits and their history ----
@@ -337,6 +434,38 @@ export async function changeCameraKind(camera: CameraModel, kind: CameraKind) {
   }
 }
 
+// ---- The world library ----
+//
+// Every action settles the pending edits first, so an edit of the world being left cannot land after
+// the server has switched. The server asks for a recordings choice with a 409; the ApiError carries it.
+
+function assertSettled(saved: boolean) {
+  if (!saved) throw new Error('Pending edits could not be saved; nothing was switched.');
+}
+
+export async function createAndOpenWorld(name: string, clearRecordings?: boolean) {
+  assertSettled(await settleEdits());
+  receiveWorlds(await api.createWorld(name, clearRecordings));
+}
+
+export async function switchWorld(name: string, clearRecordings?: boolean) {
+  assertSettled(await settleEdits());
+  receiveWorlds(await api.activateWorld(name, clearRecordings));
+}
+
+export async function trashWorld(name: string, clearRecordings?: boolean) {
+  if (name === useEditor.getState().activeWorld) assertSettled(await settleEdits());
+  receiveWorlds(await api.trashWorld(name, clearRecordings));
+}
+
+export async function restoreWorld(name: string, destinationName?: string) {
+  receiveWorlds(await api.restoreWorld(name, destinationName));
+}
+
+export async function emptyTrash() {
+  receiveWorlds(await api.emptyTrash());
+}
+
 // Sizes a new object starts with: about what the default world has.
 export const defaultScale: Record<ObjectType, Vec3> = {
   'tree.pine': { x: 4.5, y: 13, z: 4.5 },
@@ -344,6 +473,7 @@ export const defaultScale: Record<ObjectType, Vec3> = {
   house: { x: 10, y: 5, z: 10 },
   rock: { x: 2.6, y: 2, z: 2 },
   box: { x: 3, y: 3, z: 3 },
+  car: { x: 1.8, y: 1.45, z: 4.4 },
 };
 
 // Adds an object or a camera on the ground at (x, z) and selects it. Only what differs from the
@@ -368,7 +498,14 @@ export async function place(what: Placeable, x: number, z: number) {
       select({ kind: 'camera', id });
     } else {
       const id = nextId('o', world.objects.map((o) => o.id));
-      await api.putObject({ id, type: what, position: { x, y: 0, z }, scale: defaultScale[what], seed: randomSeed() });
+      await api.putObject({
+        id,
+        type: what,
+        position: { x, y: 0, z },
+        scale: defaultScale[what],
+        seed: randomSeed(),
+        ...(what === 'car' ? { plate: 'A123BC' } : {}),
+      });
       remember({ kind: 'object', id, value: null }, false);
       select({ kind: 'object', id });
     }
@@ -380,7 +517,7 @@ export async function place(what: Placeable, x: number, z: number) {
 // ---- Drawing roads and routes ----
 
 export function startDrawing(what: Drawable, extending?: string) {
-  set({ tool: { kind: 'draw', what, points: [], extending } });
+  set({ tool: { kind: 'draw', what, points: [], extending }, toolGroup: 'draw' });
 }
 
 export function addDrawingPoint(point: GroundPoint) {
@@ -393,14 +530,14 @@ export function addDrawingPoint(point: GroundPoint) {
 }
 
 export function cancelDrawing() {
-  set({ tool: { kind: 'select' } });
+  set({ tool: { kind: 'select' }, toolGroup: 'select' });
 }
 
 // A road needs two points, a walker one (standing there); fewer just ends the drawing.
 export async function finishDrawing() {
   const { tool, world } = useEditor.getState();
   if (tool.kind !== 'draw' || !world) return;
-  set({ tool: { kind: 'select' } });
+  set({ tool: { kind: 'select' }, toolGroup: 'select' });
   const { what, points, extending } = tool;
   if (points.length === 0) return;
   if (extending) {

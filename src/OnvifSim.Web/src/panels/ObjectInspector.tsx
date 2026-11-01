@@ -1,14 +1,6 @@
-import { objectTypes, type ObjectType, type Vec3, type WorldObject } from '../model';
+import { objectTypeNames, objectTypes, type ObjectType, type Vec3, type WorldObject } from '../model';
 import { defaultScale, removeSelected, updateObject } from '../store';
-import { ColorField, NumberField, Section, SelectField } from './fields';
-
-const typeNames: Record<ObjectType, string> = {
-  'tree.pine': 'Pine',
-  'tree.oak': 'Oak',
-  house: 'House',
-  rock: 'Rock',
-  box: 'Box',
-};
+import { ColorField, NumberField, Section, SelectField, TextField } from './fields';
 
 // What Color and Color2 paint for each type, and the colours the server uses when they are not set
 // (SceneBuilder.ObjectMesh).
@@ -27,9 +19,21 @@ const colorSlots: Record<ObjectType, { label: string; fallback: string }[]> = {
   ],
   rock: [{ label: 'Colour', fallback: '#807c76' }],
   box: [{ label: 'Colour', fallback: '#c8c8c8' }],
+  car: [
+    { label: 'Paint', fallback: '#3a6ea5' },
+    { label: 'Plate background', fallback: '#f0f0ea' },
+  ],
 };
 
-const typeOptions = objectTypes.map((type) => ({ value: type, label: typeNames[type] }));
+// The font on the plate has no lower case and only Latin letters, digits, spaces and hyphens.
+function plateText(text: string): string {
+  return text
+    .toUpperCase()
+    .replace(/[^A-Z0-9 -]/g, '')
+    .slice(0, 8);
+}
+
+const typeOptions = objectTypes.map((type) => ({ value: type, label: objectTypeNames[type] }));
 
 export function ObjectInspector({ obj }: { obj: WorldObject }) {
   const change = (patch: Partial<WorldObject>) => updateObject({ ...obj, ...patch });
@@ -40,10 +44,17 @@ export function ObjectInspector({ obj }: { obj: WorldObject }) {
   return (
     <>
       <h2>
-        {typeNames[obj.type]} <span className="muted">{obj.id}</span>
+        {objectTypeNames[obj.type]} <span className="muted">{obj.id}</span>
       </h2>
       <Section title="Placement">
-        <SelectField label="Type" value={obj.type} options={typeOptions} onChange={(type) => change({ type, scale: defaultScale[type], color: null, color2: null })} />
+        <SelectField
+          label="Type"
+          value={obj.type}
+          options={typeOptions}
+          onChange={(type) =>
+            change({ type, scale: defaultScale[type], color: null, color2: null, plate: type === 'car' ? null : undefined })
+          }
+        />
         <NumberField label="X (east)" value={obj.position.x} step={0.5} onChange={(x) => changePosition({ x })} />
         <NumberField label="Z (south)" value={obj.position.z} step={0.5} onChange={(z) => changePosition({ z })} />
         <NumberField label="Above ground" value={obj.position.y} step={0.1} onChange={(y) => changePosition({ y })} />
@@ -62,6 +73,12 @@ export function ObjectInspector({ obj }: { obj: WorldObject }) {
           </button>
         </div>
       </Section>
+      {obj.type === 'car' && (
+        <Section title="License plate">
+          <TextField label="Plate text" value={obj.plate ?? 'A123BC'} onChange={(text) => change({ plate: plateText(text) })} />
+          <p className="muted">Latin letters, digits, spaces and hyphens, up to 8 characters. Clearing the field leaves it blank.</p>
+        </Section>
+      )}
       <button type="button" className="danger" onClick={removeSelected}>
         Delete object
       </button>

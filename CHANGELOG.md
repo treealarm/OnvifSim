@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+- **Worlds you prepare and switch between.** The data directory now holds any number of named worlds
+  (`worlds/<name>.json`), an `active-world.json` marker and a `trash/`. The editor's world manager
+  creates an empty world, opens another one without a restart, moves worlds to the trash, restores
+  them and empties the trash; an existing `world.json` becomes `worlds/default.json` on the first
+  start. Switching clears the editor's undo history and asks whether to clear or keep the cameras'
+  recordings; the server requires that choice when the outgoing world has recordings. The library is
+  also available over HTTP (`/api/worlds`, `/api/trash`) and as `worlds` and `world-switched` events
+  on `/api/events`.
+- **A contents tree** on the right lists every camera, object, road and person and selects them with
+  a click. A person now also has a larger invisible pick target in the 3D view, so they can be
+  clicked there too.
+- **A grouped toolbar**: Select, Add, Draw and Terrain choose which tools the second row offers; the
+  active tool is marked with a dot, so changing the palette does not change what the viewport does.
+- **Cars with licence plates**, for testing LPR clients: a new `car` object draws a low-poly car with
+  real glyph geometry on its plates (5×7 bitmap font, no textures), and the inspector edits the plate
+  text. The default village now includes a car in view of its fixed camera.
+- **Documentation**: the README is now the complete English documentation; the outdated
+  `docs/PLAN.md` was removed (git history keeps it), and the README gained screenshots of the world
+  manager, the contents tree and the car's plate.
 - Profile G: every camera records on its own "SD card" and offers it through the Recording, Search
   and Replay services, with ONVIF replay over RTSP (`rtsp://<host>:8554/<camera id>/replay`: clock
   ranges, `Rate-Control: no`, the replay RTP header extension). The past is drawn again rather than

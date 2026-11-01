@@ -30,4 +30,10 @@ public sealed class CameraNetwork
         }
         WentOffline?.Invoke(cameraId);
     }
+
+    // A new world starts with every camera online; offline state belongs to the world being left.
+    public void Reset()
+    {
+        lock (_gate) _offline.Clear();
+    }
 }

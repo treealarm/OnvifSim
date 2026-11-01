@@ -14,7 +14,7 @@ sudo snap logs onvifsim -f        # the server's log
 sudo snap restart onvifsim
 ```
 
-The world is kept in `/var/snap/onvifsim/common/world.json`; the service runs as root, so edit it
+The worlds are kept under `/var/snap/onvifsim/common/worlds/` (the active one is named in `active-world.json`); the service runs as root, so edit them
 there with sudo, or (better) in the editor.
 
 ## Files
