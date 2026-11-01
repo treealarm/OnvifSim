@@ -1,5 +1,5 @@
 import { objectTypeNames, objectTypes, plateText, type ObjectType, type Vec3, type WorldObject } from '../model';
-import { defaultScale, removeSelected, updateObject } from '../store';
+import { defaultScale, driveCar, removeSelected, updateObject } from '../store';
 import { ColorField, NumberField, Section, SelectField, TextField } from './fields';
 
 // What Color and Color2 paint for each type, and the colours the server uses when they are not set
@@ -69,6 +69,17 @@ export function ObjectInspector({ obj }: { obj: WorldObject }) {
         <Section title="License plate">
           <TextField label="Plate text" value={obj.plate ?? 'A123BC'} onChange={(text) => change({ plate: plateText(text) })} />
           <p className="muted">Latin letters, digits, spaces and hyphens, up to 8 characters. Clearing the field leaves it blank.</p>
+        </Section>
+      )}
+      {obj.type === 'car' && (
+        <Section title="Motion">
+          <button type="button" onClick={() => driveCar(obj)}>
+            Make it drive
+          </button>
+          <p className="muted">
+            Replaces this parked car with a moving one on a straight route along its heading, keeping its paint, size and
+            plate. Edit the route and speed in its panel; Undo parks it again.
+          </p>
         </Section>
       )}
       <button type="button" className="danger" onClick={removeSelected}>

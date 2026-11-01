@@ -264,6 +264,9 @@ type Part =
   | { kind: 'road'; id: string; value: Road | null }
   | { kind: 'walker'; id: string; value: Walker | null }
   | { kind: 'vehicle'; id: string; value: Vehicle | null }
+  // One parked car becoming a moving one, or the way back. Both ends are kept so the step undoes as
+  // a whole: a car conversion is one action, not a creation and a deletion.
+  | { kind: 'driving-car'; object: WorldObject; vehicle: Vehicle; moving: boolean }
   | { kind: 'terrain'; value: Terrain }
   | { kind: 'environment'; value: Environment };
 
@@ -281,7 +284,9 @@ const undoStack: HistoryEntry[] = [];
 const redoStack: HistoryEntry[] = [];
 
 function keyOf(part: Part): string {
-  return part.kind === 'terrain' || part.kind === 'environment' ? part.kind : `${part.kind}:${part.id}`;
+  if (part.kind === 'terrain' || part.kind === 'environment') return part.kind;
+  if (part.kind === 'driving-car') return `driving-car:${part.object.id}:${part.vehicle.id}`;
+  return `${part.kind}:${part.id}`;
 }
 
 // The same part as it is in the world now.
@@ -297,6 +302,12 @@ function currentOf(world: World, part: Part): Part {
       return { ...part, value: world.walkers.find((w) => w.id === part.id) ?? null };
     case 'vehicle':
       return { ...part, value: world.vehicles.find((v) => v.id === part.id) ?? null };
+    case 'driving-car': {
+      const object = world.objects.find((o) => o.id === part.object.id);
+      if (object) return { ...part, object, moving: false };
+      const vehicle = world.vehicles.find((v) => v.id === part.vehicle.id);
+      return vehicle ? { ...part, vehicle, moving: true } : { ...part, moving: false };
+    }
     case 'terrain':
       return { kind: 'terrain', value: world.terrain };
     case 'environment':
@@ -321,6 +332,13 @@ function applyPart(world: World, part: Part): World {
       return { ...world, walkers: upsert(world.walkers, part.id, part.value) };
     case 'vehicle':
       return { ...world, vehicles: upsert(world.vehicles, part.id, part.value) };
+    case 'driving-car': {
+      const objects = world.objects.filter((o) => o.id !== part.object.id);
+      const vehicles = world.vehicles.filter((v) => v.id !== part.vehicle.id);
+      return part.moving
+        ? { ...world, objects, vehicles: [...vehicles, part.vehicle] }
+        : { ...world, objects: [...objects, part.object], vehicles };
+    }
     case 'terrain':
       return { ...world, terrain: part.value };
     case 'environment':
@@ -340,6 +358,13 @@ async function sendPart(part: Part): Promise<unknown> {
       return part.value ? api.putWalker(part.value) : ignoreMissing(api.deleteWalker(part.id));
     case 'vehicle':
       return part.value ? api.putVehicle(part.value) : ignoreMissing(api.deleteVehicle(part.id));
+    case 'driving-car':
+      if (part.moving) {
+        await api.putVehicle(part.vehicle);
+        return ignoreMissing(api.deleteObject(part.object.id));
+      }
+      await api.putObject(part.object);
+      return ignoreMissing(api.deleteVehicle(part.vehicle.id));
     case 'terrain':
       return api.putTerrain(part.value);
     case 'environment':
@@ -417,6 +442,32 @@ export function updateWalker(walker: Walker) {
 
 export function updateVehicle(vehicle: Vehicle) {
   change({ kind: 'vehicle', id: vehicle.id, value: vehicle });
+}
+
+// Turns the selected parked car into a moving one on a straight route along the way it faces, keeping
+// its paint, size and plate. One edit, so one Undo brings the parked car back.
+export function driveCar(obj: WorldObject) {
+  const world = useEditor.getState().world;
+  if (!world || obj.type !== 'car') return;
+  const heading = (obj.rotationY * Math.PI) / 180;
+  const vehicle: Vehicle = {
+    id: nextId('v', world.vehicles.map((v) => v.id)),
+    route: [
+      { x: obj.position.x, z: obj.position.z },
+      { x: obj.position.x + Math.sin(heading) * 30, z: obj.position.z - Math.cos(heading) * 30 },
+    ],
+    speed: 8,
+    return: 'reverse',
+    width: obj.scale.x,
+    height: obj.scale.y,
+    length: obj.scale.z,
+    color: obj.color,
+    color2: obj.color2,
+    plate: obj.plate ?? null,
+    detectable: true,
+  };
+  change({ kind: 'driving-car', object: obj, vehicle, moving: true }, { merge: false, delayMs: 0 });
+  select({ kind: 'vehicle', id: vehicle.id });
 }
 
 // Every stroke of a brush is a step of its own, however quickly the next one follows.

@@ -216,6 +216,16 @@ test('a car can be placed and its plate edited', async ({ page, request }) => {
   await page.getByLabel('Plate text', { exact: true }).fill('B777AA');
   await page.getByLabel('Plate text', { exact: true }).blur();
   await expect.poll(async () => (await objectById(request, id))?.plate).toBe('B777AA');
+
+  // The parked car becomes a moving one, keeping its plate; one Undo parks it again.
+  await page.getByRole('button', { name: 'Make it drive', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 2 })).toContainText('Car');
+  await expect.poll(async () => (await world(request)).objects.some((o) => o.id === id)).toBe(false);
+  await expect.poll(async () => (await world(request)).vehicles.find((v) => v.plate === 'B777AA')?.route.length).toBe(2);
+
+  await page.getByRole('button', { name: 'Undo', exact: true }).click();
+  await expect.poll(async () => (await world(request)).objects.some((o) => o.id === id)).toBe(true);
+  await expect.poll(async () => (await world(request)).vehicles.some((v) => v.plate === 'B777AA')).toBe(false);
 });
 
 test('a car drives the route drawn for it', async ({ page, request }) => {

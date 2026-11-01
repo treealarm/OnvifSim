@@ -24,7 +24,9 @@
   follows from the clock like a walker's, so every stream, snapshot and replay agrees. Cameras'
   analytics box it with the class `Vehicle` in the ONVIF metadata track and raise motion while it is
   in view; `vehicles` is a list in the world file, with `/api/vehicles/{id}` and a ground-truth
-  `/api/vehicles/{id}/pose`. The route rule is shared with walkers (`RouteMotion`).
+  `/api/vehicles/{id}/pose`. The route rule is shared with walkers (`RouteMotion`). A parked car's
+  panel has **Make it drive**, which turns it into a moving car on a straight route along its heading
+  and keeps its paint, size and plate; the conversion is one Undo step.
 - **Documentation**: the README is now the complete English documentation; the outdated
   `docs/PLAN.md` was removed (git history keeps it), and the README gained screenshots of the world
   manager, the contents tree, the car's plate and a moving car's route.

@@ -239,10 +239,11 @@ is marked with a dot, so the viewport keeps doing exactly what it did until anot
 - **Cars** have a plate text field: Latin letters, digits, spaces and hyphens, up to 8 characters. The
   plate is part of the mesh, so it appears in every camera picture as well as in the editor. As with
   real cameras, the characters are readable at close range or through a narrow lens; a wide camera at
-  village distance shows the car, not the text. **Car route** under Draw makes a car drive a route:
-  set its speed, whether it loops or goes back, its body size, paint, plate background and plate, and
-  whether cameras' analytics report it. A selected car shows its route, and the points drag like a
-  person's.
+  village distance shows the car, not the text. **Make it drive** in a parked car's panel turns it
+  into a moving car on a straight route along the way it faces, keeping its paint, size and plate;
+  one Undo parks it again. **Car route** under Draw makes a moving car from a route you draw: set its
+  speed, whether it loops or goes back, its body size, paint, plate background and plate, and whether
+  cameras' analytics report it. A selected car shows its route, and the points drag like a person's.
 
 <p align="center">
   <img src="docs/images/car-plate.png" alt="The editor with the car selected: its body and plate settings, including the plate text" width="90%">
