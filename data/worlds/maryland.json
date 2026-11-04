@@ -784,6 +784,7 @@
         }
       ],
       "digitalInputs": [],
+      "lamps": [],
       "onvifPort": 0,
       "rtspPort": 0,
       "users": [
@@ -867,6 +868,18 @@
           }
         }
       ],
+      "lamps": [
+        {
+          "token": "alert",
+          "name": "Room alert lamp",
+          "normallyClosed": false,
+          "position": {
+            "x": 1.5,
+            "y": 0,
+            "z": -1
+          }
+        }
+      ],
       "onvifPort": 0,
       "rtspPort": 0,
       "users": [
@@ -918,6 +931,7 @@
       "ptz": null,
       "relayOutputs": [],
       "digitalInputs": [],
+      "lamps": [],
       "onvifPort": 0,
       "rtspPort": 0,
       "users": [
@@ -990,6 +1004,7 @@
       },
       "relayOutputs": [],
       "digitalInputs": [],
+      "lamps": [],
       "onvifPort": 0,
       "rtspPort": 0,
       "users": [
@@ -1042,6 +1057,7 @@
       "ptz": null,
       "relayOutputs": [],
       "digitalInputs": [],
+      "lamps": [],
       "onvifPort": 0,
       "rtspPort": 0,
       "users": [
@@ -1059,6 +1075,12 @@
       "relayToken": "lamp",
       "inputCameraId": "ptz",
       "inputToken": "input"
+    },
+    {
+      "relayCameraId": "master",
+      "relayToken": "lamp",
+      "lampCameraId": "ptz",
+      "lampToken": "alert"
     }
   ]
 }

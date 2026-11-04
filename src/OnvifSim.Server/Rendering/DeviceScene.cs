@@ -73,6 +73,10 @@ public static class DeviceScene
             yield return Placed($"{camera.Id}/input/{input.Token}",
                 DeviceMesh.Sensor(DeviceIo.InputActive(world, camera.Id, input.Token) == true),
                 DevicePoint(camera, world, terrain, at, input.Position));
+        foreach (var lamp in camera.Lamps)
+            yield return Placed($"{camera.Id}/lamp/{lamp.Token}",
+                DeviceMesh.Lamp(DeviceIo.LampLit(world, camera.Id, lamp.Token)),
+                DevicePoint(camera, world, terrain, at, lamp.Position));
     }
 
     private static SceneChunk Placed(string name, Mesh mesh, Vector3 at)
@@ -83,28 +87,39 @@ public static class DeviceScene
         return new SceneChunk { Name = name, Mesh = placed, Center = center, Radius = radius };
     }
 
-    // From the lamp's shade down to the top of the sensor block, a straight thin line: what a cable run
-    // looks like from a camera, without pretending to know where the cable goes.
+    // From the relay's shade down to the top of the sensor block or the shade of the lamp it drives, a
+    // straight thin line: what a cable run looks like from a camera, without pretending to know where
+    // the cable goes.
     private static RenderScene.Chunk? WireChunk(WorldModel world, WireModel wire, DateTimeOffset at)
     {
         var relayCamera = DeviceIo.FindCamera(world, wire.RelayCameraId);
         var relay = DeviceIo.FindRelay(world, wire.RelayCameraId, wire.RelayToken);
-        var inputCamera = DeviceIo.FindCamera(world, wire.InputCameraId);
-        var input = DeviceIo.FindInput(world, wire.InputCameraId, wire.InputToken);
-        if (relayCamera is null || relay is null || inputCamera is null || input is null) return null;
+        if (relayCamera is null || relay is null) return null;
+        var (sinkCamera, sinkPosition, sinkHeight) = Sink(world, wire);
+        if (sinkCamera is null) return null;
         var terrain = new Terrain(world.Terrain);
         var from = DevicePoint(relayCamera, world, terrain, at, relay.Position) + new Vector3(0, DeviceMesh.LampHeight - 0.2f, 0);
-        var to = DevicePoint(inputCamera, world, terrain, at, input.Position) + new Vector3(0, DeviceMesh.SensorHeight, 0);
+        var to = DevicePoint(sinkCamera, world, terrain, at, sinkPosition) + new Vector3(0, sinkHeight, 0);
         var mesh = new Mesh();
         mesh.AddVertex(from, Vector3.UnitY, WireColor);
         mesh.AddVertex(to, Vector3.UnitY, WireColor);
         return RenderScene.Unlit(mesh, WireAlpha, [0, 1]);
     }
 
+    // The camera, place and height of the device a wire ends at: an input's block or a lamp's shade.
+    private static (CameraModel? Camera, Vec3 Position, float Height) Sink(WorldModel world, WireModel wire)
+    {
+        if (DeviceIo.FindInput(world, wire.InputCameraId ?? "", wire.InputToken ?? "") is { } input)
+            return (DeviceIo.FindCamera(world, wire.InputCameraId), input.Position, DeviceMesh.SensorHeight);
+        if (DeviceIo.FindLamp(world, wire.LampCameraId ?? "", wire.LampToken ?? "") is { } lamp)
+            return (DeviceIo.FindCamera(world, wire.LampCameraId), lamp.Position, DeviceMesh.LampHeight - 0.2f);
+        return (null, default, 0);
+    }
+
     // Whether a wire's ends move: one of its cameras is on a car.
     private static bool Moves(WorldModel world, WireModel wire) =>
         DeviceIo.FindCamera(world, wire.RelayCameraId) is { } relayCamera && DeviceIo.IsMounted(relayCamera) ||
-        DeviceIo.FindCamera(world, wire.InputCameraId) is { } inputCamera && DeviceIo.IsMounted(inputCamera);
+        DeviceIo.FindCamera(world, wire.InputCameraId ?? wire.LampCameraId) is { } sinkCamera && DeviceIo.IsMounted(sinkCamera);
 
     private static float BaseHeading(CameraModel camera, WorldModel world, DateTimeOffset at)
     {

@@ -130,32 +130,35 @@ public static class EditorApi
                 }
                 // An editor too old to know about streams leaves the field out; it must not erase them.
                 if (stored?.Streams != null && camera.Streams == null) camera.Streams = stored.Streams;
-                // Relays and inputs are edited through /io, and their state changes on its own; a saved
-                // panel must not put a stale switch position back.
+                // Relays, inputs and lamps are edited through /io, and their state changes on its own; a
+                // saved panel must not put a stale switch position back.
                 if (stored != null)
                 {
                     camera.RelayOutputs = stored.RelayOutputs;
                     camera.DigitalInputs = stored.DigitalInputs;
+                    camera.Lamps = stored.Lamps;
                 }
                 Upsert(world.Cameras, camera, c => SameId(c.Id, id));
             });
         });
 
-        // A camera's wires go with it; other cameras' wires into its inputs would dangle.
+        // A camera's wires go with it; other cameras' wires into its devices would dangle.
         app.MapDelete("/api/cameras/{id}", (string id, WorldStore store, SimOptions options) =>
             store.Current.Cameras.Any(c => SameId(c.Id, id))
                 ? Change(store, options, world =>
                 {
                     world.Cameras.RemoveAll(c => SameId(c.Id, id));
-                    world.Wires.RemoveAll(w => SameId(w.RelayCameraId, id) || SameId(w.InputCameraId, id));
+                    world.Wires.RemoveAll(w =>
+                        SameId(w.RelayCameraId, id) || SameId(w.InputCameraId, id) || SameId(w.LampCameraId, id));
                 })
                 : Results.NotFound());
     }
 
-    // A camera's relay outputs and digital inputs, and the wires running from its relays.
+    // A camera's relay outputs, digital inputs, lamps and the wires running from its relays.
     public sealed record CameraIoModel(
         List<RelayOutputModel>? RelayOutputs,
         List<DigitalInputModel>? DigitalInputs,
+        List<LampModel>? Lamps,
         List<WireModel>? Wires);
 
     public sealed record RelaySwitch(bool Active);
@@ -172,14 +175,17 @@ public static class EditorApi
                 var camera = world.Cameras.First(c => SameId(c.Id, id));
                 var relays = io.RelayOutputs ?? [];
                 var inputs = io.DigitalInputs ?? [];
+                var lamps = io.Lamps ?? [];
                 // The state belongs to the event stream, not to a saved copy of the panel.
                 foreach (var relay in relays)
                     relay.Active = camera.RelayOutputs.FirstOrDefault(r => DeviceIo.Same(r.Token, relay.Token))?.Active ?? false;
                 camera.RelayOutputs = relays;
                 camera.DigitalInputs = inputs;
-                // This camera's wires are exactly what it sends; a wire into an input that is gone goes too.
+                camera.Lamps = lamps;
+                // This camera's wires are exactly what it sends; a wire into a device that is gone goes too.
                 world.Wires.RemoveAll(w => DeviceIo.Same(w.RelayCameraId, id));
                 world.Wires.RemoveAll(w => DeviceIo.Same(w.InputCameraId, id) && !inputs.Any(i => DeviceIo.Same(i.Token, w.InputToken)));
+                world.Wires.RemoveAll(w => DeviceIo.Same(w.LampCameraId, id) && !lamps.Any(l => DeviceIo.Same(l.Token, w.LampToken)));
                 foreach (var wire in io.Wires ?? [])
                 {
                     wire.RelayCameraId = id;
@@ -456,7 +462,7 @@ public static class EditorApi
         else items[index] = item;
     }
 
-    private static bool SameId(string a, string b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+    private static bool SameId(string? a, string? b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
 
     // What the editor keeps in sync with: the world whenever it changes ("world"), the ONVIF ports and
     // streams on offer ("status") and where the PTZ heads point while they move ("ptz"). Each comes

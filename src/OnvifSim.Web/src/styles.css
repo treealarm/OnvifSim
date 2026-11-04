@@ -324,12 +324,60 @@ dialog::backdrop {
   background: rgb(0 0 0 / 35%);
 }
 
+dialog.wide {
+  width: min(920px, calc(100vw - 32px));
+  max-width: 920px;
+}
+
 .dialog-actions {
   display: flex;
   gap: 8px;
   justify-content: flex-end;
   flex-wrap: wrap;
   margin-top: 14px;
+}
+
+/* The wiring window: sinks on the left, relays on the right. */
+.links {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.links h3 {
+  margin: 4px 0 8px;
+  font-size: 13px;
+}
+
+.links-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 50vh;
+  overflow: auto;
+}
+
+.links-list li {
+  margin: 2px 0;
+}
+
+.links-list button {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  width: 100%;
+  text-align: left;
+}
+
+.links-list button[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.links-list label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 .dialog-error {

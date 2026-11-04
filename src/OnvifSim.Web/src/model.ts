@@ -197,18 +197,32 @@ export interface DigitalInput {
   position: Vec3;
 }
 
-// A wire runs from a relay output of one camera to a digital input of any camera.
+// A lamp a relay drives. It has no ONVIF service of its own: it lights while a linked relay is closed,
+// or, wired normally closed, while none is.
+export interface Lamp {
+  token: string;
+  name: string;
+  normallyClosed: boolean;
+  position: Vec3;
+}
+
+// A wire runs from a relay output of one camera to one sink of any camera: a digital input or a lamp.
+// Exactly one of the two sink pairs is set.
 export interface Wire {
   relayCameraId: string;
   relayToken: string;
-  inputCameraId: string;
-  inputToken: string;
+  inputCameraId?: string | null;
+  inputToken?: string | null;
+  lampCameraId?: string | null;
+  lampToken?: string | null;
 }
 
-// A camera's devices and the wires from its relays, as the editor edits them at once.
+// A camera's devices and the wires from its relays, as the editor edits them at once. The field names
+// are the server's: PUT /api/cameras/{id}/io binds relayOutputs, digitalInputs, lamps and wires.
 export interface CameraIo {
-  relays: RelayOutput[];
-  inputs: DigitalInput[];
+  relayOutputs: RelayOutput[];
+  digitalInputs: DigitalInput[];
+  lamps: Lamp[];
   wires: Wire[];
 }
 
@@ -237,6 +251,8 @@ export interface CameraModel {
   // The camera's relay outputs and digital inputs, with the lamps and sensor blocks that stand for them.
   relayOutputs: RelayOutput[];
   digitalInputs: DigitalInput[];
+  // Lamps the relays drive; each is drawn as a lamp post, lit by its wiring.
+  lamps: Lamp[];
   onvifPort: number;
   // The address the camera listens on; null or absent is every interface.
   bindAddress?: string | null;
@@ -424,26 +440,68 @@ export function sameId(a: string, b: string): boolean {
 // A camera's devices and the wires running from its relays, which the editor saves in one go.
 export function cameraIoOf(world: World, camera: CameraModel): CameraIo {
   return {
-    relays: camera.relayOutputs,
-    inputs: camera.digitalInputs,
+    relayOutputs: camera.relayOutputs,
+    digitalInputs: camera.digitalInputs,
+    lamps: camera.lamps ?? [],
     wires: world.wires.filter((wire) => sameId(wire.relayCameraId, camera.id)),
   };
 }
 
-// The wire driving an input, if any.
-export function wireToInput(world: World, cameraId: string, token: string): Wire | undefined {
-  return world.wires.find((wire) => sameId(wire.inputCameraId, cameraId) && sameId(wire.inputToken, token));
+// The wires driving an input or a lamp; a sink may be driven by several relays.
+export function wiresToInput(world: World, cameraId: string, token: string): Wire[] {
+  return world.wires.filter((wire) => sameId(wire.inputCameraId ?? '', cameraId) && sameId(wire.inputToken ?? '', token));
 }
 
-// Whether an input is on: the state of the relay its wire runs from. Null when no wire drives it, which
-// is not the same as a wire from a relay that happens to be off.
-export function inputActive(world: World, cameraId: string, token: string): boolean | null {
-  const wire = wireToInput(world, cameraId, token);
-  if (!wire) return null;
+export function wiresToLamp(world: World, cameraId: string, token: string): Wire[] {
+  return world.wires.filter((wire) => sameId(wire.lampCameraId ?? '', cameraId) && sameId(wire.lampToken ?? '', token));
+}
+
+// Whether the relay a wire runs from is closed (carrying current, ONVIF active).
+export function relayClosed(world: World, wire: Wire): boolean {
   const relay = world.cameras
     .find((camera) => sameId(camera.id, wire.relayCameraId))
     ?.relayOutputs.find((output) => sameId(output.token, wire.relayToken));
-  return relay ? relay.active : null;
+  return relay?.active === true;
+}
+
+// Whether an input is on. A closed relay contact shunts the input to zero and an open one leaves it
+// pulled up, so a wired input reads inverted: any closed relay gives false, all open gives true. Null
+// when no wire drives it, which is not the same as a wire from a relay that is off.
+export function inputActive(world: World, cameraId: string, token: string): boolean | null {
+  const wires = wiresToInput(world, cameraId, token);
+  return wires.length === 0 ? null : !wires.some((wire) => relayClosed(world, wire));
+}
+
+// Whether a lamp is lit. A normally-open lamp lights while any linked relay is closed; a normally
+// closed one while none is. A lamp with no wire at all is off.
+export function lampLit(world: World, cameraId: string, token: string): boolean {
+  const wires = wiresToLamp(world, cameraId, token);
+  if (wires.length === 0) return false;
+  const closed = wires.some((wire) => relayClosed(world, wire));
+  const lamp = world.cameras
+    .find((camera) => sameId(camera.id, cameraId))
+    ?.lamps?.find((device) => sameId(device.token, token));
+  return closed !== (lamp?.normallyClosed ?? false);
+}
+
+// A wire from a relay to a sink, for the editor's drafts.
+export function wireTo(relayCameraId: string, relayToken: string, sink: Sink): Wire {
+  return sink.kind === 'input'
+    ? { relayCameraId, relayToken, inputCameraId: sink.cameraId, inputToken: sink.token }
+    : { relayCameraId, relayToken, lampCameraId: sink.cameraId, lampToken: sink.token };
+}
+
+// One end of a wire: a digital input or a lamp, with the camera that owns it.
+export interface Sink {
+  kind: 'input' | 'lamp';
+  cameraId: string;
+  token: string;
+}
+
+export function sameSink(a: Wire, b: Sink): boolean {
+  return b.kind === 'input'
+    ? sameId(a.inputCameraId ?? '', b.cameraId) && sameId(a.inputToken ?? '', b.token)
+    : sameId(a.lampCameraId ?? '', b.cameraId) && sameId(a.lampToken ?? '', b.token);
 }
 
 // The font on a plate has no lower case and only Latin letters, digits, spaces and hyphens.

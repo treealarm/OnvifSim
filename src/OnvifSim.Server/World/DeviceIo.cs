@@ -1,32 +1,55 @@
 namespace OnvifSim.World;
 
-// Reading a camera's relay outputs and digital inputs: where a device lives, which relay an input's wire
-// runs from, and whether that wire drives it now. The scene, the editor API and the ONVIF handlers all
-// ask here, so they cannot disagree about what a wire means.
+// Reading a camera's relay outputs, digital inputs and lamps: where a device lives, which relays are
+// wired to it, and what that wiring makes it read now. The scene, the editor API and the ONVIF handlers
+// all ask here, so they cannot disagree about what a wire means.
 public static class DeviceIo
 {
-    public static CameraModel? FindCamera(WorldModel world, string id) =>
-        world.Cameras.FirstOrDefault(c => Same(c.Id, id));
+    public static CameraModel? FindCamera(WorldModel world, string? id) =>
+        id is null ? null : world.Cameras.FirstOrDefault(c => Same(c.Id, id));
 
     public static RelayOutputModel? FindRelay(WorldModel world, string cameraId, string token) =>
         FindCamera(world, cameraId)?.RelayOutputs.FirstOrDefault(r => Same(r.Token, token));
 
-    public static DigitalInputModel? FindInput(WorldModel world, string cameraId, string token) =>
+    public static DigitalInputModel? FindInput(WorldModel world, string? cameraId, string token) =>
         FindCamera(world, cameraId)?.DigitalInputs.FirstOrDefault(i => Same(i.Token, token));
 
-    // The wire that drives an input, if any.
-    public static WireModel? WireOfInput(WorldModel world, string cameraId, string token) =>
-        world.Wires.FirstOrDefault(w => Same(w.InputCameraId, cameraId) && Same(w.InputToken, token));
+    public static LampModel? FindLamp(WorldModel world, string? cameraId, string token) =>
+        FindCamera(world, cameraId)?.Lamps.FirstOrDefault(l => Same(l.Token, token));
 
-    // Whether the input is on: the state of the relay its wire runs from. Null when no wire drives it,
-    // which is not the same as a wire from a relay that happens to be off.
-    public static bool? InputActive(WorldModel world, string cameraId, string token) =>
-        WireOfInput(world, cameraId, token) is { } wire
-            ? FindRelay(world, wire.RelayCameraId, wire.RelayToken)?.Active
-            : null;
+    // The wires into an input or a lamp. An input may be driven by several relays; so may a lamp.
+    public static IEnumerable<WireModel> WiresToInput(WorldModel world, string cameraId, string token) =>
+        world.Wires.Where(w => Same(w.InputCameraId, cameraId) && Same(w.InputToken, token));
+
+    public static IEnumerable<WireModel> WiresToLamp(WorldModel world, string cameraId, string token) =>
+        world.Wires.Where(w => Same(w.LampCameraId, cameraId) && Same(w.LampToken, token));
+
+    // Whether the relay a wire runs from is closed (carrying current, ONVIF active).
+    public static bool RelayClosed(WorldModel world, WireModel wire) =>
+        FindRelay(world, wire.RelayCameraId, wire.RelayToken)?.Active == true;
+
+    // Whether the input is on. A closed relay contact shunts the input to zero and an open one leaves
+    // it pulled up, so a wired input reads inverted: any closed relay gives false, all open gives
+    // true. Null when no wire drives it, which is not the same as a wire from a relay that is off.
+    public static bool? InputActive(WorldModel world, string cameraId, string token)
+    {
+        var wires = WiresToInput(world, cameraId, token).ToList();
+        return wires.Count == 0 ? null : !wires.Any(wire => RelayClosed(world, wire));
+    }
+
+    // Whether a lamp is lit. A normally-open lamp lights while any linked relay is closed; a normally
+    // closed one while none is. A lamp with no wire at all is simply off.
+    public static bool LampLit(WorldModel world, string cameraId, string token)
+    {
+        var wires = WiresToLamp(world, cameraId, token).ToList();
+        if (wires.Count == 0) return false;
+        bool closed = wires.Any(wire => RelayClosed(world, wire));
+        var lamp = FindLamp(world, cameraId, token);
+        return closed != (lamp?.NormallyClosed ?? false);
+    }
 
     // True when the camera's devices move with the world rather than standing still.
     public static bool IsMounted(CameraModel camera) => !string.IsNullOrEmpty(camera.MountedOnVehicleId);
 
-    public static bool Same(string a, string b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+    public static bool Same(string? a, string? b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
 }

@@ -59,6 +59,8 @@ interface EditorState {
   gizmo: 'move' | 'rotate';
   // Hide everything above a horizontal plane, so a room's inside can be seen and edited.
   cutaway: boolean;
+  // The wiring window: every input and lamp on the left, every relay on the right.
+  linksOpen: boolean;
   brushRadius: number;
   brushStrength: number;
   // The point of the selected road or route being dragged over the ground.
@@ -82,6 +84,7 @@ export const useEditor = create<EditorState>()(() => ({
   toolGroup: 'select',
   gizmo: 'move',
   cutaway: false,
+  linksOpen: false,
   brushRadius: 12,
   brushStrength: 0.5,
   draggedPoint: null,
@@ -196,6 +199,7 @@ function resetForWorldSwitch() {
     selection: null,
     tool: { kind: 'select' },
     toolGroup: 'select',
+    linksOpen: false,
     draggedPoint: null,
     undoSteps: 0,
     redoSteps: 0,
@@ -360,17 +364,21 @@ function applyPart(world: World, part: Part): World {
     case 'camera-io': {
       const io = part.value;
       if (!io) return world;
-      const inputs = new Set(io.inputs.map((input) => input.token.toLowerCase()));
+      const inputs = new Set(io.digitalInputs.map((input) => input.token.toLowerCase()));
+      const lamps = new Set(io.lamps.map((lamp) => lamp.token.toLowerCase()));
       return {
         ...world,
         cameras: world.cameras.map((camera) =>
-          sameId(camera.id, part.id) ? { ...camera, relayOutputs: io.relays, digitalInputs: io.inputs } : camera),
-        // This camera's wires are the ones sent; a wire into an input that is gone goes too, as on the server.
+          sameId(camera.id, part.id)
+            ? { ...camera, relayOutputs: io.relayOutputs, digitalInputs: io.digitalInputs, lamps: io.lamps }
+            : camera),
+        // This camera's wires are the ones sent; a wire into a device that is gone goes too, as on the server.
         wires: [
           ...world.wires.filter(
             (wire) =>
               !sameId(wire.relayCameraId, part.id) &&
-              !(sameId(wire.inputCameraId, part.id) && !inputs.has(wire.inputToken.toLowerCase())),
+              !(sameId(wire.inputCameraId ?? '', part.id) && !inputs.has((wire.inputToken ?? '').toLowerCase())) &&
+              !(sameId(wire.lampCameraId ?? '', part.id) && !lamps.has((wire.lampToken ?? '').toLowerCase())),
           ),
           ...io.wires,
         ],

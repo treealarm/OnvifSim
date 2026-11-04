@@ -1,13 +1,19 @@
 import {
   cameraIoOf,
   inputActive,
+  lampLit,
   nextId,
   sameId,
-  wireToInput,
+  wireTo,
+  wiresToInput,
+  wiresToLamp,
   type CameraIo,
   type CameraModel,
   type DigitalInput,
+  type Lamp,
   type RelayOutput,
+  type Sink,
+  type Wire,
 } from '../model';
 import { updateCameraIo, updateRelay, useEditor } from '../store';
 import { BlurTextField, CheckboxField, NumberField, Section, SelectField } from './fields';
@@ -31,79 +37,106 @@ export function DeviceIoSection({ camera }: { camera: CameraModel }) {
   const save = (next: CameraIo) => updateCameraIo(camera, next);
 
   function changeRelay(index: number, patch: Partial<RelayOutput>) {
-    const relays = io.relays.map((relay, i) => (i === index ? { ...relay, ...patch } : relay));
+    const relays = io.relayOutputs.map((relay, i) => (i === index ? { ...relay, ...patch } : relay));
     // Renaming a token takes its wire along, or the wire would name a relay that no longer exists.
     const wires =
       patch.token === undefined
         ? io.wires
         : io.wires.map((wire) =>
-            sameId(wire.relayToken, io.relays[index].token) ? { ...wire, relayToken: patch.token! } : wire,
+            sameId(wire.relayToken, io.relayOutputs[index].token) ? { ...wire, relayToken: patch.token! } : wire,
           );
-    save({ ...io, relays, wires });
+    save({ ...io, relayOutputs: relays, wires });
   }
 
   function addRelay() {
-    const token = nextId('relay', io.relays.map((relay) => relay.token));
+    const token = nextId('relay', io.relayOutputs.map((relay) => relay.token));
     save({
       ...io,
-      relays: [
-        ...io.relays,
+      relayOutputs: [
+        ...io.relayOutputs,
         { token, name: `Relay ${token}`, mode: 'bistable', delaySeconds: 5, idleState: 'open', active: false, position: { x: 2, y: 0, z: 2 } },
       ],
     });
   }
 
   function removeRelay(index: number) {
-    const token = io.relays[index].token;
+    const token = io.relayOutputs[index].token;
     save({
       ...io,
-      relays: io.relays.filter((_, i) => i !== index),
+      relayOutputs: io.relayOutputs.filter((_, i) => i !== index),
       wires: io.wires.filter((wire) => !sameId(wire.relayToken, token)),
     });
   }
 
-  // One wire per relay here; the model allows a relay to drive several inputs, and one written by hand
-  // is left alone unless this relay is wired again.
+  // The quick control in the relay's card, good for one link. A relay wired to several sinks shows
+  // how many and leaves the editing to the Links window, rather than silently dropping the rest.
   function wireRelay(relay: RelayOutput, target: string) {
     const others = io.wires.filter((wire) => !sameId(wire.relayToken, relay.token));
     if (target === '') {
       save({ ...io, wires: others });
       return;
     }
-    const [inputCameraId, inputToken] = splitTarget(target);
-    save({ ...io, wires: [...others, { relayCameraId: camera.id, relayToken: relay.token, inputCameraId, inputToken }] });
+    save({ ...io, wires: [...others, wireTo(camera.id, relay.token, parseTarget(target))] });
   }
 
   function changeInput(index: number, patch: Partial<DigitalInput>) {
-    const inputs = io.inputs.map((input, i) => (i === index ? { ...input, ...patch } : input));
-    save({ ...io, inputs });
+    const inputs = io.digitalInputs.map((input, i) => (i === index ? { ...input, ...patch } : input));
+    save({ ...io, digitalInputs: inputs });
   }
 
   function addInput() {
-    const token = nextId('input', io.inputs.map((input) => input.token));
+    const token = nextId('input', io.digitalInputs.map((input) => input.token));
     save({
       ...io,
-      inputs: [...io.inputs, { token, name: `Input ${token}`, idleState: 'open', position: { x: 2, y: 0, z: 0 } }],
+      digitalInputs: [...io.digitalInputs, { token, name: `Input ${token}`, idleState: 'open', position: { x: 2, y: 0, z: 0 } }],
     });
   }
 
   // A wire from another camera into the input goes with it; the server drops it the same way.
   function removeInput(index: number) {
-    const token = io.inputs[index].token;
+    const token = io.digitalInputs[index].token;
     save({
       ...io,
-      inputs: io.inputs.filter((_, i) => i !== index),
-      wires: io.wires.filter((wire) => !(sameId(wire.inputCameraId, camera.id) && sameId(wire.inputToken, token))),
+      digitalInputs: io.digitalInputs.filter((_, i) => i !== index),
+      wires: io.wires.filter((wire) => !(sameId(wire.inputCameraId ?? '', camera.id) && sameId(wire.inputToken ?? '', token))),
+    });
+  }
+
+  function addLamp() {
+    const token = nextId('lamp', io.lamps.map((lamp) => lamp.token));
+    save({
+      ...io,
+      lamps: [...io.lamps, { token, name: `Lamp ${token}`, normallyClosed: false, position: { x: 2, y: 0, z: 0 } }],
+    });
+  }
+
+  function changeLamp(index: number, patch: Partial<Lamp>) {
+    const lamps = io.lamps.map((lamp, i) => (i === index ? { ...lamp, ...patch } : lamp));
+    const wires =
+      patch.token === undefined
+        ? io.wires
+        : io.wires.map((wire) =>
+            sameId(wire.lampToken ?? '', io.lamps[index].token) ? { ...wire, lampToken: patch.token! } : wire,
+          );
+    save({ ...io, lamps, wires });
+  }
+
+  function removeLamp(index: number) {
+    const token = io.lamps[index].token;
+    save({
+      ...io,
+      lamps: io.lamps.filter((_, i) => i !== index),
+      wires: io.wires.filter((wire) => !(sameId(wire.lampCameraId ?? '', camera.id) && sameId(wire.lampToken ?? '', token))),
     });
   }
 
   return (
     <>
       <Section title="Relay outputs">
-        {io.relays.length === 0 && <p className="muted">No relay outputs.</p>}
-        {io.relays.map((relay, index) => {
-          const wire = io.wires.find((w) => sameId(w.relayToken, relay.token));
-          const target = wire ? joinTarget(wire.inputCameraId, wire.inputToken) : '';
+        {io.relayOutputs.length === 0 && <p className="muted">No relay outputs.</p>}
+        {io.relayOutputs.map((relay, index) => {
+          const links = io.wires.filter((wire) => sameId(wire.relayToken, relay.token));
+          const target = links.length === 1 ? targetOf(links[0]) : '';
           return (
             <div className="io-card" key={relay.token}>
               <div className="io-head">
@@ -142,12 +175,18 @@ export function DeviceIoSection({ camera }: { camera: CameraModel }) {
                 checked={relay.active}
                 onChange={(active) => updateRelay(camera.id, relay.token, active)}
               />
-              <SelectField
-                label="Wired to"
-                value={target}
-                options={wireOptions(world.cameras, relay, io)}
-                onChange={(value) => wireRelay(relay, value)}
-              />
+              {links.length > 1 ? (
+                <p className="muted">
+                  Wired to {links.length} devices — edit the links in Links…
+                </p>
+              ) : (
+                <SelectField
+                  label="Wired to"
+                  value={target}
+                  options={sinkOptions(world.cameras)}
+                  onChange={(value) => wireRelay(relay, value)}
+                />
+              )}
               <DevicePosition offset={relay.position} onChange={(position) => changeRelay(index, { position })} />
             </div>
           );
@@ -158,9 +197,9 @@ export function DeviceIoSection({ camera }: { camera: CameraModel }) {
       </Section>
 
       <Section title="Digital inputs">
-        {io.inputs.length === 0 && <p className="muted">No digital inputs.</p>}
-        {io.inputs.map((input, index) => {
-          const wire = wireToInput(world, camera.id, input.token);
+        {io.digitalInputs.length === 0 && <p className="muted">No digital inputs.</p>}
+        {io.digitalInputs.map((input, index) => {
+          const wires = wiresToInput(world, camera.id, input.token);
           const active = inputActive(world, camera.id, input.token);
           return (
             <div className="io-card" key={input.token}>
@@ -179,9 +218,9 @@ export function DeviceIoSection({ camera }: { camera: CameraModel }) {
                 onChange={(idleState) => changeInput(index, { idleState })}
               />
               <p className={active === true ? 'io-state on' : 'io-state'}>
-                {wire
-                  ? `${wire.relayCameraId}/${wire.relayToken} — ${active ? 'on' : 'off'}`
-                  : 'Not wired: no relay drives it.'}
+                {wires.length === 0
+                  ? 'Not wired: no relay drives it.'
+                  : `${wires.map((wire) => `${wire.relayCameraId}/${wire.relayToken}`).join(', ')} — ${active ? '1' : '0'}`}
               </p>
               <DevicePosition offset={input.position} onChange={(position) => changeInput(index, { position })} />
             </div>
@@ -191,31 +230,68 @@ export function DeviceIoSection({ camera }: { camera: CameraModel }) {
           Add digital input
         </button>
       </Section>
+
+      <Section title="Lamps">
+        {io.lamps.length === 0 && <p className="muted">No lamps.</p>}
+        {io.lamps.map((lamp, index) => {
+          const wires = wiresToLamp(world, camera.id, lamp.token);
+          const lit = lampLit(world, camera.id, lamp.token);
+          return (
+            <div className="io-card" key={lamp.token}>
+              <div className="io-head">
+                <strong>{lamp.name || lamp.token}</strong>
+                <span className="muted">{lamp.token}</span>
+                <button type="button" onClick={() => removeLamp(index)}>
+                  Remove
+                </button>
+              </div>
+              <BlurTextField label="Token" value={lamp.token} onChange={(token) => changeLamp(index, { token })} />
+              <BlurTextField label="Name" value={lamp.name} onChange={(name) => changeLamp(index, { name })} />
+              <CheckboxField
+                label="Normally closed (lit while no relay is closed)"
+                checked={lamp.normallyClosed}
+                onChange={(normallyClosed) => changeLamp(index, { normallyClosed })}
+              />
+              <p className={lit ? 'io-state on' : 'io-state'}>
+                {wires.length === 0
+                  ? 'Not wired: no relay drives it.'
+                  : `${wires.map((wire) => `${wire.relayCameraId}/${wire.relayToken}`).join(', ')} — ${lit ? 'lit' : 'off'}`}
+              </p>
+              <DevicePosition offset={lamp.position} onChange={(position) => changeLamp(index, { position })} />
+            </div>
+          );
+        })}
+        <button type="button" onClick={addLamp}>
+          Add lamp
+        </button>
+      </Section>
     </>
   );
 }
 
-// Where a wire may go: every input no other wire drives, plus the one this relay already drives.
-function wireOptions(cameras: CameraModel[], relay: RelayOutput, io: CameraIo): { value: string; label: string }[] {
-  const taken = new Set(io.wires.filter((w) => !sameId(w.relayToken, relay.token)).map((w) => joinTarget(w.inputCameraId, w.inputToken).toLowerCase()));
+// Where a wire may go: any digital input or lamp of any camera. A sink may take several relays, so
+// nothing is excluded.
+function sinkOptions(cameras: CameraModel[]): { value: string; label: string }[] {
   const options = [{ value: '', label: 'Not wired' }];
-  for (const other of cameras)
-    for (const input of other.digitalInputs) {
-      const value = joinTarget(other.id, input.token);
-      if (taken.has(value.toLowerCase())) continue;
-      options.push({ value, label: `${other.name || other.id} / ${input.name || input.token}` });
-    }
+  for (const other of cameras) {
+    for (const input of other.digitalInputs)
+      options.push({ value: `i:${other.id}/${input.token}`, label: `${other.name || other.id} / ${input.name || input.token} (input)` });
+    for (const lamp of other.lamps ?? [])
+      options.push({ value: `l:${other.id}/${lamp.token}`, label: `${other.name || other.id} / ${lamp.name || lamp.token} (lamp)` });
+  }
   return options;
 }
 
-// Ids and tokens are URL-safe, so a slash cannot appear in either.
-function joinTarget(cameraId: string, token: string): string {
-  return `${cameraId}/${token}`;
+// Ids and tokens are URL-safe, so a slash cannot appear in either; "i:" or "l:" says which sink.
+function targetOf(wire: Wire): string {
+  return wire.lampCameraId
+    ? `l:${wire.lampCameraId}/${wire.lampToken}`
+    : `i:${wire.inputCameraId}/${wire.inputToken}`;
 }
 
-function splitTarget(value: string): [string, string] {
-  const at = value.indexOf('/');
-  return [value.slice(0, at), value.slice(at + 1)];
+function parseTarget(value: string): Sink {
+  const [cameraId, token] = value.slice(2).split('/');
+  return { kind: value.startsWith('l:') ? 'lamp' : 'input', cameraId, token };
 }
 
 // The device's place relative to its camera: to the right and behind it, and above the ground there.

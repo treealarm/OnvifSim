@@ -201,10 +201,20 @@ public static class MarylandWorld
         {
             Token = "input", Name = "Room sensor", Position = new Vec3(-1.5f, 0.2f, 1f),
         });
+        // A lamp the same relay lights: closed, the sensor in Room 102 reads 0 and the lamp is on.
+        ptz.Lamps.Add(new LampModel
+        {
+            Token = "alert", Name = "Room alert lamp", Position = new Vec3(1.5f, 0, -1f),
+        });
         world.Wires.Add(new WireModel
         {
             RelayCameraId = master.Id, RelayToken = "lamp",
             InputCameraId = ptz.Id, InputToken = "input",
+        });
+        world.Wires.Add(new WireModel
+        {
+            RelayCameraId = master.Id, RelayToken = "lamp",
+            LampCameraId = ptz.Id, LampToken = "alert",
         });
     }
 

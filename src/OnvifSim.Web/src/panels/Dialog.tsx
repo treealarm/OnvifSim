@@ -8,12 +8,15 @@ export function Dialog({
   onClose,
   children,
   actions,
+  className,
 }: {
   open: boolean;
   title: string;
   onClose: () => void;
   children: ReactNode;
   actions?: ReactNode;
+  // An extra class on the dialog itself, for one that needs more room than the default.
+  className?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -28,6 +31,7 @@ export function Dialog({
   return (
     <dialog
       ref={ref}
+      className={className}
       aria-labelledby={titleId}
       onClose={onClose}
       onCancel={(e) => {

@@ -29,7 +29,8 @@ public class DeviceEventsTests
         var inputPoint = rig.Points.Create("cam2", DevicesOnly, TimeSpan.FromMinutes(1));
 
         Assert.Equal([("Device/Trigger/Relay", "lamp", "inactive", "Initialized")], Read(await PullAsync(relayPoint, 1)));
-        Assert.Equal([("Device/Trigger/DigitalInput", "sensor", "false", "Initialized")], Read(await PullAsync(inputPoint, 1)));
+        // An open relay leaves the input pulled up, so it reads true.
+        Assert.Equal([("Device/Trigger/DigitalInput", "sensor", "true", "Initialized")], Read(await PullAsync(inputPoint, 1)));
     }
 
     [Fact]
@@ -55,7 +56,8 @@ public class DeviceEventsTests
         Assert.True(rig.Switches.SetRelay("cam1", "lamp", true));
 
         Assert.Equal([("Device/Trigger/Relay", "lamp", "active", "Changed")], Read(await PullAsync(relayPoint, 1)));
-        Assert.Equal([("Device/Trigger/DigitalInput", "sensor", "true", "Changed")], Read(await PullAsync(inputPoint, 1)));
+        // A closed contact shunts the input to zero.
+        Assert.Equal([("Device/Trigger/DigitalInput", "sensor", "false", "Changed")], Read(await PullAsync(inputPoint, 1)));
     }
 
     [Fact]
@@ -137,6 +139,7 @@ public class DeviceEventsTests
                 {
                     camera.RelayOutputs.Clear();
                     camera.DigitalInputs.Clear();
+                    camera.Lamps.Clear();
                 }
                 world.Wires.Clear();
             });
@@ -197,7 +200,8 @@ public class DeviceEventServiceTests(SimFactory factory) : IClassFixture<SimFact
         var messages = pulled.Descendants(Tt + "Message").ToList();
         Assert.All(messages, message => Assert.Equal("Initialized", message.Attribute("PropertyOperation")?.Value));
         Assert.Contains(messages, message => Item(message, "RelayToken") == "lamp" && Item(message, "LogicalState") == "active");
-        Assert.Contains(messages, message => Item(message, "InputToken") == "sensor" && Item(message, "LogicalState") == "true");
+        // The relay is closed, so the input it drives reads zero.
+        Assert.Contains(messages, message => Item(message, "InputToken") == "sensor" && Item(message, "LogicalState") == "false");
     }
 
     private static string? Item(XElement message, string name) => message

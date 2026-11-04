@@ -182,13 +182,14 @@ public static partial class WorldValidation
         }
     }
 
-    // Relay outputs and digital inputs: tokens address them in URLs and in ONVIF requests, so they are
-    // unique per camera and URL-safe; positions are metres offset from the camera.
+    // Relay outputs, digital inputs and lamps: tokens address them in URLs and in ONVIF requests, so
+    // they are unique per camera and URL-safe; positions are metres offset from the camera.
     private static void CheckDevices(CameraModel camera)
     {
         string id = camera.Id;
         RequireUnique(camera.RelayOutputs.Select(r => r.Token), $"Camera {id}: relay output token");
         RequireUnique(camera.DigitalInputs.Select(i => i.Token), $"Camera {id}: digital input token");
+        RequireUnique(camera.Lamps.Select(l => l.Token), $"Camera {id}: lamp token");
         foreach (var relay in camera.RelayOutputs)
         {
             Require(TokenPattern().IsMatch(relay.Token),
@@ -205,24 +206,47 @@ public static partial class WorldValidation
             Require(input.Name.Length <= 64, $"Camera {id}: digital input {input.Token}: the name must be at most 64 characters.");
             Require(IsFinite(input.Position), $"Camera {id}: digital input {input.Token}: the position must be finite.");
         }
+        foreach (var lamp in camera.Lamps)
+        {
+            Require(TokenPattern().IsMatch(lamp.Token),
+                $"Camera {id}: lamp token '{lamp.Token}' must be 1..32 letters, digits, '-' or '_'.");
+            Require(lamp.Name.Length <= 64, $"Camera {id}: lamp {lamp.Token}: the name must be at most 64 characters.");
+            Require(IsFinite(lamp.Position), $"Camera {id}: lamp {lamp.Token}: the position must be finite.");
+        }
     }
 
-    // A wire joins a relay output of one camera to a digital input of any camera: both must exist, and
-    // an input takes at most one wire.
+    // A wire joins a relay output of one camera to one sink of any camera — a digital input or a lamp.
+    // Both ends must exist; several relays may drive one sink, the way contacts in parallel do.
     private static void CheckWires(WorldModel world)
     {
-        var driven = new HashSet<(string Camera, string Token)>();
+        var wires = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var wire in world.Wires)
         {
-            string where = $"Wire {wire.RelayCameraId}/{wire.RelayToken} -> {wire.InputCameraId}/{wire.InputToken}";
+            bool toInput = wire.InputCameraId is not null || wire.InputToken is not null;
+            bool toLamp = wire.LampCameraId is not null || wire.LampToken is not null;
+            string sink = toInput
+                ? $"{wire.InputCameraId}/{wire.InputToken}"
+                : $"{wire.LampCameraId}/{wire.LampToken}";
+            string where = $"Wire {wire.RelayCameraId}/{wire.RelayToken} -> {sink}";
+            Require(toInput != toLamp, $"{where}: a wire drives either a digital input or a lamp, not both and not neither.");
             Require(DeviceIo.FindCamera(world, wire.RelayCameraId) != null, $"{where}: no camera '{wire.RelayCameraId}'.");
             Require(DeviceIo.FindRelay(world, wire.RelayCameraId, wire.RelayToken) != null,
                 $"{where}: camera {wire.RelayCameraId} has no relay output '{wire.RelayToken}'.");
-            Require(DeviceIo.FindCamera(world, wire.InputCameraId) != null, $"{where}: no camera '{wire.InputCameraId}'.");
-            Require(DeviceIo.FindInput(world, wire.InputCameraId, wire.InputToken) != null,
-                $"{where}: camera {wire.InputCameraId} has no digital input '{wire.InputToken}'.");
-            Require(driven.Add((wire.InputCameraId.ToLowerInvariant(), wire.InputToken.ToLowerInvariant())),
-                $"{where}: that digital input is already driven by another wire.");
+            if (toInput)
+            {
+                Require(wire.InputCameraId is not null && wire.InputToken is not null, $"{where}: the digital input is incomplete.");
+                Require(DeviceIo.FindCamera(world, wire.InputCameraId) != null, $"{where}: no camera '{wire.InputCameraId}'.");
+                Require(DeviceIo.FindInput(world, wire.InputCameraId, wire.InputToken!) != null,
+                    $"{where}: camera {wire.InputCameraId} has no digital input '{wire.InputToken}'.");
+            }
+            else
+            {
+                Require(wire.LampCameraId is not null && wire.LampToken is not null, $"{where}: the lamp is incomplete.");
+                Require(DeviceIo.FindCamera(world, wire.LampCameraId) != null, $"{where}: no camera '{wire.LampCameraId}'.");
+                Require(DeviceIo.FindLamp(world, wire.LampCameraId, wire.LampToken!) != null,
+                    $"{where}: camera {wire.LampCameraId} has no lamp '{wire.LampToken}'.");
+            }
+            Require(wires.Add(where), $"{where}: the same wire is listed twice.");
         }
     }
 

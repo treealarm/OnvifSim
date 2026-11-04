@@ -193,6 +193,8 @@ public sealed class CameraModel
     // them in the world. Their live state travels as ONVIF Device/Trigger events.
     public List<RelayOutputModel> RelayOutputs { get; set; } = [];
     public List<DigitalInputModel> DigitalInputs { get; set; } = [];
+    // Lamps a relay drives: actuators with no ONVIF service of their own.
+    public List<LampModel> Lamps { get; set; } = [];
     // Port of the camera's ONVIF service; 0 means automatic: 8001 for the first camera, 8002 for the
     // second and so on (--onvif-base-port moves the start).
     public int OnvifPort { get; set; }
@@ -254,14 +256,34 @@ public sealed class DigitalInputModel
     public Vec3 Position { get; set; }
 }
 
-// A wire: the relay output of one camera drives the digital input of any camera, the same one or
-// another. An input takes at most one wire; one relay may drive several inputs.
+// A lamp a relay drives, in the world as a lamp post with a shade. It has no ONVIF service of its
+// own: its state follows the relays wired to it, and its wiring may be normally open or normally
+// closed — an NO lamp lights while a linked relay is closed, an NC lamp while none is.
+public sealed class LampModel
+{
+    public string Token { get; set; } = "";
+    public string Name { get; set; } = "";
+    public bool NormallyClosed { get; set; }
+    // As RelayOutputModel.Position: X to the camera's right, Z behind it, Y above the ground there.
+    public Vec3 Position { get; set; }
+}
+
+// A wire: the relay output of one camera drives one sink of any camera — a digital input or a lamp.
+// One relay may drive several sinks, and a sink may be driven by several relays: a closed contact
+// pulls an input low, and any closed relay lights a normally-open lamp.
 public sealed class WireModel
 {
     public string RelayCameraId { get; set; } = "";
     public string RelayToken { get; set; } = "";
-    public string InputCameraId { get; set; } = "";
-    public string InputToken { get; set; } = "";
+    // Exactly one of the two sink pairs is set.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? InputCameraId { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? InputToken { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? LampCameraId { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? LampToken { get; set; }
 }
 
 // What the camera's metadata track (in both RTSP streams, ONVIF's metadata configuration) carries:

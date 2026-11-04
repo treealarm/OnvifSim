@@ -78,14 +78,20 @@ public class MarylandWorldTests
         var world = World();
         var relay = Assert.Single(world.Cameras.Single(c => c.Id == "master").RelayOutputs);
         Assert.Equal("lamp", relay.Token);
-        var input = Assert.Single(world.Cameras.Single(c => c.Id == "ptz").DigitalInputs);
+        var ptz = world.Cameras.Single(c => c.Id == "ptz");
+        var input = Assert.Single(ptz.DigitalInputs);
         Assert.Equal("input", input.Token);
-        var wire = Assert.Single(world.Wires);
-        Assert.Equal(("master", "lamp", "ptz", "input"),
-            (wire.RelayCameraId, wire.RelayToken, wire.InputCameraId, wire.InputToken));
+        var lamp = Assert.Single(ptz.Lamps);
+        Assert.Equal("alert", lamp.Token);
+        Assert.False(lamp.NormallyClosed);
+        Assert.Contains(world.Wires, wire => wire.InputToken == "input");
+        Assert.Contains(world.Wires, wire => wire.LampToken == "alert");
+        Assert.All(world.Wires, wire =>
+            Assert.Equal(("master", "lamp"), (wire.RelayCameraId, wire.RelayToken)));
         // A device on the car would move the wire, and every camera that sees it, every frame.
         Assert.Empty(world.Cameras.Single(c => c.Id == MarylandWorld.VehicleCameraId).DigitalInputs);
         Assert.Empty(world.Cameras.Single(c => c.Id == MarylandWorld.VehicleCameraId).RelayOutputs);
+        Assert.Empty(world.Cameras.Single(c => c.Id == MarylandWorld.VehicleCameraId).Lamps);
     }
 
     [Fact]
