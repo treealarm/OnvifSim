@@ -36,6 +36,7 @@ public static class EditorApi
         WorldLibraryApi.MapWorldLibrary(app);
         MapCameraStreams(app);
         MapDeviceIo(app);
+        MapLamps(app);
         MapPtz(app);
         MapAnalytics(app);
         MapGroundTruth(app);
@@ -136,7 +137,6 @@ public static class EditorApi
                 {
                     camera.RelayOutputs = stored.RelayOutputs;
                     camera.DigitalInputs = stored.DigitalInputs;
-                    camera.Lamps = stored.Lamps;
                 }
                 Upsert(world.Cameras, camera, c => SameId(c.Id, id));
             });
@@ -148,17 +148,15 @@ public static class EditorApi
                 ? Change(store, options, world =>
                 {
                     world.Cameras.RemoveAll(c => SameId(c.Id, id));
-                    world.Wires.RemoveAll(w =>
-                        SameId(w.RelayCameraId, id) || SameId(w.InputCameraId, id) || SameId(w.LampCameraId, id));
+                    world.Wires.RemoveAll(w => SameId(w.RelayCameraId, id) || SameId(w.InputCameraId, id));
                 })
                 : Results.NotFound());
     }
 
-    // A camera's relay outputs, digital inputs, lamps and the wires running from its relays.
+    // A camera's relay outputs, digital inputs and the wires running from its relays.
     public sealed record CameraIoModel(
         List<RelayOutputModel>? RelayOutputs,
         List<DigitalInputModel>? DigitalInputs,
-        List<LampModel>? Lamps,
         List<WireModel>? Wires);
 
     public sealed record RelaySwitch(bool Active);
@@ -175,17 +173,14 @@ public static class EditorApi
                 var camera = world.Cameras.First(c => SameId(c.Id, id));
                 var relays = io.RelayOutputs ?? [];
                 var inputs = io.DigitalInputs ?? [];
-                var lamps = io.Lamps ?? [];
                 // The state belongs to the event stream, not to a saved copy of the panel.
                 foreach (var relay in relays)
                     relay.Active = camera.RelayOutputs.FirstOrDefault(r => DeviceIo.Same(r.Token, relay.Token))?.Active ?? false;
                 camera.RelayOutputs = relays;
                 camera.DigitalInputs = inputs;
-                camera.Lamps = lamps;
                 // This camera's wires are exactly what it sends; a wire into a device that is gone goes too.
                 world.Wires.RemoveAll(w => DeviceIo.Same(w.RelayCameraId, id));
                 world.Wires.RemoveAll(w => DeviceIo.Same(w.InputCameraId, id) && !inputs.Any(i => DeviceIo.Same(i.Token, w.InputToken)));
-                world.Wires.RemoveAll(w => DeviceIo.Same(w.LampCameraId, id) && !lamps.Any(l => DeviceIo.Same(l.Token, w.LampToken)));
                 foreach (var wire in io.Wires ?? [])
                 {
                     wire.RelayCameraId = id;
@@ -196,6 +191,26 @@ public static class EditorApi
 
         app.MapPut("/api/cameras/{id}/relays/{token}", (string id, string token, RelaySwitch body, DeviceIoController switches) =>
             switches.SetRelay(id, token, body.Active) ? Results.NoContent() : Results.NotFound());
+    }
+
+    // Lamps are actuators of the world, not of a camera: they are created, moved and deleted here, and
+    // a wire from a relay reaches them by id.
+    private static void MapLamps(WebApplication app)
+    {
+        app.MapPut("/api/lamps/{id}", (string id, LampModel lamp, WorldStore store, SimOptions options) =>
+        {
+            lamp.Id = id;
+            return Change(store, options, world => Upsert(world.Lamps, lamp, l => SameId(l.Id, id)));
+        });
+
+        app.MapDelete("/api/lamps/{id}", (string id, WorldStore store, SimOptions options) =>
+            store.Current.Lamps.Any(l => SameId(l.Id, id))
+                ? Change(store, options, world =>
+                {
+                    world.Lamps.RemoveAll(l => SameId(l.Id, id));
+                    world.Wires.RemoveAll(w => DeviceIo.Same(w.LampId, id));
+                })
+                : Results.NotFound());
     }
 
     private static void MapCameraStreams(WebApplication app)

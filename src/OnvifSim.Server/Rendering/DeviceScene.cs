@@ -21,6 +21,10 @@ public static class DeviceScene
         foreach (var camera in world.Cameras)
             if (!DeviceIo.IsMounted(camera))
                 chunks.AddRange(Devices(world, terrain, camera, DateTimeOffset.MinValue));
+        // A lamp belongs to the world, not to a camera, so it never moves with one.
+        foreach (var lamp in world.Lamps)
+            chunks.Add(Placed($"lamp/{lamp.Id}", DeviceMesh.Lamp(DeviceIo.LampLit(world, lamp.Id)),
+                new Vector3(lamp.Position.X, terrain.HeightAt(lamp.Position.X, lamp.Position.Z) + lamp.Position.Y, lamp.Position.Z)));
         return chunks;
     }
 
@@ -73,10 +77,6 @@ public static class DeviceScene
             yield return Placed($"{camera.Id}/input/{input.Token}",
                 DeviceMesh.Sensor(DeviceIo.InputActive(world, camera.Id, input.Token) == true),
                 DevicePoint(camera, world, terrain, at, input.Position));
-        foreach (var lamp in camera.Lamps)
-            yield return Placed($"{camera.Id}/lamp/{lamp.Token}",
-                DeviceMesh.Lamp(DeviceIo.LampLit(world, camera.Id, lamp.Token)),
-                DevicePoint(camera, world, terrain, at, lamp.Position));
     }
 
     private static SceneChunk Placed(string name, Mesh mesh, Vector3 at)
@@ -95,31 +95,37 @@ public static class DeviceScene
         var relayCamera = DeviceIo.FindCamera(world, wire.RelayCameraId);
         var relay = DeviceIo.FindRelay(world, wire.RelayCameraId, wire.RelayToken);
         if (relayCamera is null || relay is null) return null;
-        var (sinkCamera, sinkPosition, sinkHeight) = Sink(world, wire);
-        if (sinkCamera is null) return null;
         var terrain = new Terrain(world.Terrain);
+        if (Sink(world, wire, terrain, at) is not { } sink) return null;
         var from = DevicePoint(relayCamera, world, terrain, at, relay.Position) + new Vector3(0, DeviceMesh.LampHeight - 0.2f, 0);
-        var to = DevicePoint(sinkCamera, world, terrain, at, sinkPosition) + new Vector3(0, sinkHeight, 0);
+        var to = sink.Position + new Vector3(0, sink.Height, 0);
         var mesh = new Mesh();
         mesh.AddVertex(from, Vector3.UnitY, WireColor);
         mesh.AddVertex(to, Vector3.UnitY, WireColor);
         return RenderScene.Unlit(mesh, WireAlpha, [0, 1]);
     }
 
-    // The camera, place and height of the device a wire ends at: an input's block or a lamp's shade.
-    private static (CameraModel? Camera, Vec3 Position, float Height) Sink(WorldModel world, WireModel wire)
+    // Where a wire ends and at what height above the ground: an input's block on its camera, or a
+    // lamp's shade standing in the world. Null when the sink is gone.
+    private static (Vector3 Position, float Height)? Sink(WorldModel world, WireModel wire, Terrain terrain, DateTimeOffset at)
     {
-        if (DeviceIo.FindInput(world, wire.InputCameraId ?? "", wire.InputToken ?? "") is { } input)
-            return (DeviceIo.FindCamera(world, wire.InputCameraId), input.Position, DeviceMesh.SensorHeight);
-        if (DeviceIo.FindLamp(world, wire.LampCameraId ?? "", wire.LampToken ?? "") is { } lamp)
-            return (DeviceIo.FindCamera(world, wire.LampCameraId), lamp.Position, DeviceMesh.LampHeight - 0.2f);
-        return (null, default, 0);
+        var inputCamera = DeviceIo.FindCamera(world, wire.InputCameraId);
+        var input = DeviceIo.FindInput(world, wire.InputCameraId, wire.InputToken ?? "");
+        if (inputCamera is not null && input is not null)
+            return (DevicePoint(inputCamera, world, terrain, at, input.Position), DeviceMesh.SensorHeight);
+        var lamp = DeviceIo.FindLamp(world, wire.LampId);
+        if (lamp is not null)
+            return (new Vector3(lamp.Position.X,
+                terrain.HeightAt(lamp.Position.X, lamp.Position.Z) + lamp.Position.Y, lamp.Position.Z),
+                DeviceMesh.LampHeight - 0.2f);
+        return null;
     }
 
-    // Whether a wire's ends move: one of its cameras is on a car.
+    // Whether a wire's ends move: its relay or its input is on a car. A lamp stands in the world and
+    // never moves with one.
     private static bool Moves(WorldModel world, WireModel wire) =>
         DeviceIo.FindCamera(world, wire.RelayCameraId) is { } relayCamera && DeviceIo.IsMounted(relayCamera) ||
-        DeviceIo.FindCamera(world, wire.InputCameraId ?? wire.LampCameraId) is { } sinkCamera && DeviceIo.IsMounted(sinkCamera);
+        DeviceIo.FindCamera(world, wire.InputCameraId) is { } sinkCamera && DeviceIo.IsMounted(sinkCamera);
 
     private static float BaseHeading(CameraModel camera, WorldModel world, DateTimeOffset at)
     {

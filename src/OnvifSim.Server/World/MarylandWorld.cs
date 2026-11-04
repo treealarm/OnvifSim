@@ -2,48 +2,50 @@ namespace OnvifSim.World;
 
 // The demo world: the A.V. Williams building on the University of Maryland campus, where ta_vms's
 // demo world (dotnet/VmsMap/Demo/DemoWorlds.cs) places its cameras. Its anchor, the building
-// envelope, the two rooms and the camera poses are the demo's own constants, so the map and the
-// simulator cannot disagree about where the building is; everything around them — the ring road,
-// the car and its camera, the trees and the neighbouring office — is made up here, because the map
-// does not know it and need not.
+// envelope and the camera poses are the demo's own constants, so the map and the simulator cannot
+// disagree about where the building is; everything around them — the ring road, the car and its
+// camera, the trees and the neighbouring office — is made up here, because the map does not know it
+// and need not.
 //
-// Every wall is a box plate, never one solid box: the rasterizer culls back faces, so a solid
-// building is invisible from the inside. Floor, outer walls, roof and the two rooms are slabs, and
-// a camera standing in a room sees the faces of that room the way a person in it would. What the
-// editor cannot see that way is what its cutaway (a plane at 2.5 m) is for.
+// The building is one big hall, not a row of rooms: the demo's master and PTZ slave work as a pair
+// (the master's boxes drive the slave's aim), so they stand in one space with a person walking
+// between them. Every wall is a box plate, never one solid box: the rasterizer culls back faces, so
+// a solid building is invisible from the inside. Floor, outer walls and roof are slabs, and a camera
+// in the hall sees its inside the way a person in it would. What the editor cannot see that way is
+// what its cutaway (a plane at 2.5 m) is for.
 public static class MarylandWorld
 {
     public const string Name = "maryland";
 
     // The demo building in WGS84: the anchor is the centre of the envelope, and North = 0, so the
-    // world's -Z is true north. DemoWorlds.cs's Building* and Room* constants.
+    // world's -Z is true north. DemoWorlds.cs's Building* constants.
     public const double Latitude = 38.9923;
     public const double Longitude = -76.9378;
     public const double BuildingSouth = 38.9918;
     public const double BuildingWest = -76.9390;
     public const double BuildingNorth = 38.9928;
     public const double BuildingEast = -76.9365;
+
+    // The demo's Room 101 in WGS84: the corner of the hall the pair stands in. The hall has no wall
+    // there — it is one big room — but the demo map places both cameras in this room, so both lie
+    // inside it, and the walker's loop does too.
     public const double Room101South = 38.99238;
     public const double Room101West = -76.93855;
     public const double Room101North = 38.99250;
     public const double Room101East = -76.93835;
-    // Room 102 is a diagram on the floor plan in the demo, not a rectangle: the simulator gives it
-    // the size of Room 101 around the point DemoWorlds puts it at.
-    public const double Room102Latitude = 38.99244;
-    public const double Room102Longitude = -76.93750;
-    // The two rooms' cameras stand on one line; DemoWorlds.cs places both pairs there.
-    private const double RoomRowLatitude = 38.99240;
 
     // The top of the walls and the underside of the roof. Above the editor's cutaway (2.5 m), so the
-    // rooms can be worked on from above, and above the cameras standing in them.
+    // hall can be worked on from above, and above the cameras standing in it.
     public const float InteriorHeight = 3.6f;
 
     private const float WallThickness = 0.4f;
-    private const float RoomWallThickness = 0.2f;
-    private const float DoorWidth = 1.4f;
     private const string FloorColor = "#8f959d";
     private const string WallColor = "#c8ccd2";
     private const string RoofColor = "#6f747c";
+    // Where the demo's Room 101 lies in the hall: its rectangle's north-east corner is where the
+    // racks stand and the pair's corner of the floor is.
+    private const float RackNorthZ = -21.06f;
+    private const float RackWestX = -61.9f;
 
     // A camera the demo places: ta_vms's camera id is the world's id behind the bench's prefix
     // (sim-master is the world's master). Height above the building floor, heading clockwise from
@@ -54,10 +56,12 @@ public static class MarylandWorld
 
     public static readonly DemoCamera[] Cameras =
     [
-        new("master", "Room 101 master", CameraKind.Fixed,
-            RoomRowLatitude, -76.93852, 2.8f, 55, 70, -10),
-        new("ptz", "Room 102 slave (PTZ)", CameraKind.Ptz,
-            RoomRowLatitude, -76.93757, 2.8f, 50, 65, 0),
+        // The pair of the demo: one room, the master in its south-west corner looking across it and
+        // the slave in the north-east corner looking back. A person walks between them.
+        new("master", "Main room master", CameraKind.Fixed,
+            38.99240, -76.93852, 2.8f, 55, 70, -18),
+        new("ptz", "Main room slave (PTZ)", CameraKind.Ptz,
+            38.992484, -76.938372, 2.8f, 235, 65, 0),
         new("master2", "Building master 2", CameraKind.Fixed,
             38.99276, -76.93895, 3f, 135, 80, -10),
         new("ptz2", "Campus slave 2 (PTZ)", CameraKind.Ptz,
@@ -77,11 +81,8 @@ public static class MarylandWorld
 
         var (westX, northZ) = Ground(world, BuildingNorth, BuildingWest);
         var (eastX, southZ) = Ground(world, BuildingSouth, BuildingEast);
-        var (roomWestX, roomSouthZ) = Ground(world, Room101South, Room101West);
-        var (roomEastX, roomNorthZ) = Ground(world, Room101North, Room101East);
-        var (room102X, room102Z) = Ground(world, Room102Latitude, Room102Longitude);
 
-        // The shell of the building: a floor slab, four walls and a roof slab.
+        // The hall: a floor slab, four walls and a roof slab.
         float cx = (eastX + westX) / 2, cz = (southZ + northZ) / 2;
         float width = eastX - westX, depth = southZ - northZ;
         // The floor's top sits just above the terrain: at exactly its height the two z-fight, and the
@@ -93,23 +94,11 @@ public static class MarylandWorld
         Plate(world, "building-wall-w", westX, 0, cz, WallThickness, InteriorHeight, depth - WallThickness, WallColor);
         Plate(world, "building-wall-e", eastX, 0, cz, WallThickness, InteriorHeight, depth - WallThickness, WallColor);
 
-        // Room 101 is the demo plan's rectangle. Room 102 has no rectangle of its own, so it takes
-        // Room 101's size around its point.
-        float room102WestX = room102X - (roomEastX - roomWestX) / 2;
-        float room102EastX = room102X + (roomEastX - roomWestX) / 2;
-        float room102NorthZ = room102Z - (roomSouthZ - roomNorthZ) / 2;
-        float room102SouthZ = room102Z + (roomSouthZ - roomNorthZ) / 2;
-        Room(world, "room-101", roomWestX, roomEastX, roomNorthZ, roomSouthZ);
-        Room(world, "room-102", room102WestX, room102EastX, room102NorthZ, room102SouthZ);
-
         // The racks the demo's plan draws, as plain boxes: the simulator does not repeat the demo's
-        // tree of switches and ports, it only stands something in the rooms to recognize them by.
+        // tree of switches and ports, it only stands something in the hall to recognize the corner
+        // by. They stand where the demo's Room 101 is, along the row the master looks down.
         for (int i = 0; i < 4; i++)
-            Plate(world, $"room-101-rack-{i + 1}", roomWestX + 3 + i * 3.2f, 0, roomNorthZ + 1.2f,
-                0.6f, 2f, 1.2f, "#3d4149");
-        for (int i = 0; i < 2; i++)
-            Plate(world, $"room-102-rack-{i + 1}", room102WestX + 3 + i * 3.2f, 0, room102NorthZ + 1.2f,
-                0.6f, 2f, 1.2f, "#3d4149");
+            Plate(world, $"rack-{i + 1}", RackWestX + i * 3.2f, 0, RackNorthZ, 0.6f, 2f, 1.2f, "#3d4149");
 
         // The landscape: a ring road round the building, the car that drives it, a parking apron and
         // a neighbouring office. The route is closed: the car comes round again and again.
@@ -124,6 +113,13 @@ public static class MarylandWorld
             Id = "v1", Route = [.. ring], Speed = 8, Return = RouteReturn.Loop,
             Color = "#2f6fde", Color2 = "#f0f0ea", Plate = "M777MM",
         });
+        // The person the pair works on: the master sees them, boxes them in its metadata track, and
+        // the slave aims where those boxes say. The loop lies between the two cameras.
+        world.Walkers.Add(new WalkerModel
+        {
+            Id = "w1", Speed = 1.0f, Return = RouteReturn.Loop, Height = 1.75f,
+            Route = [new(-59, -18), new(-54, -18), new(-54, -13), new(-59, -13)],
+        });
         Plate(world, "parking", 80, 0, 142, 90, 0.06f, 24, "#5f6165");
 
         Add(world, "office-ne", "office", 165, 0, 145, 44, 11, 28, "#d0d4da", "#5c6068");
@@ -132,23 +128,6 @@ public static class MarylandWorld
         AddCameras(world);
         AddDevices(world);
         return world;
-    }
-
-    // One room: four walls, the south one with a door onto the hall.
-    private static void Room(WorldModel world, string id, float westX, float eastX, float northZ, float southZ)
-    {
-        float width = eastX - westX, depth = southZ - northZ;
-        float cx = (westX + eastX) / 2;
-        Plate(world, $"{id}-wall-n", cx, 0, northZ, width + RoomWallThickness, InteriorHeight, RoomWallThickness, WallColor);
-        Plate(world, $"{id}-wall-w", westX, 0, (northZ + southZ) / 2, RoomWallThickness, InteriorHeight, depth, WallColor);
-        Plate(world, $"{id}-wall-e", eastX, 0, (northZ + southZ) / 2, RoomWallThickness, InteriorHeight, depth, WallColor);
-
-        float door = westX + width / 2;
-        float left = door - DoorWidth / 2 - westX, right = eastX - (door + DoorWidth / 2);
-        if (left > 0)
-            Plate(world, $"{id}-wall-s-1", westX + left / 2, 0, southZ, left, InteriorHeight, RoomWallThickness, WallColor);
-        if (right > 0)
-            Plate(world, $"{id}-wall-s-2", eastX - right / 2, 0, southZ, right, InteriorHeight, RoomWallThickness, WallColor);
     }
 
     private static void AddCameras(WorldModel world)
@@ -169,6 +148,9 @@ public static class MarylandWorld
                 {
                     FovWide = demo.HorizontalFov, Tilt = -10, Home = new PtzPosition(0, -10, 0),
                 };
+                // A slave reports where its head points; ta_vms reads that as its telemetry. Its own
+                // picture boxes nobody: only the master's boxes drive the aim.
+                camera.Metadata = new MetadataModel { Analytics = false, PtzStatus = true };
             }
             world.Cameras.Add(camera);
         }
@@ -201,21 +183,18 @@ public static class MarylandWorld
         {
             Token = "input", Name = "Room sensor", Position = new Vec3(-1.5f, 0.2f, 1f),
         });
-        // A lamp the same relay lights: closed, the sensor in Room 102 reads 0 and the lamp is on.
-        ptz.Lamps.Add(new LampModel
+        // A lamp the same relay lights, standing in the hall on its own: closed, the sensor reads 0
+        // and the lamp is on.
+        world.Lamps.Add(new LampModel
         {
-            Token = "alert", Name = "Room alert lamp", Position = new Vec3(1.5f, 0, -1f),
+            Id = "alert", Name = "Hall alert lamp", Position = new Vec3(-56, 0, -16),
         });
         world.Wires.Add(new WireModel
         {
             RelayCameraId = master.Id, RelayToken = "lamp",
             InputCameraId = ptz.Id, InputToken = "input",
         });
-        world.Wires.Add(new WireModel
-        {
-            RelayCameraId = master.Id, RelayToken = "lamp",
-            LampCameraId = ptz.Id, LampToken = "alert",
-        });
+        world.Wires.Add(new WireModel { RelayCameraId = master.Id, RelayToken = "lamp", LampId = "alert" });
     }
 
     private static void Scenery(WorldModel world)

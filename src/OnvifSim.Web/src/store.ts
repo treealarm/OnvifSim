@@ -12,6 +12,7 @@ import {
   type Geo,
   type Head,
   type GroundPoint,
+  type Lamp,
   type ObjectType,
   type Road,
   type ServerStatus,
@@ -275,6 +276,8 @@ type Part =
   | { kind: 'road'; id: string; value: Road | null }
   | { kind: 'walker'; id: string; value: Walker | null }
   | { kind: 'vehicle'; id: string; value: Vehicle | null }
+  // A lamp of the world: an actuator, not a part of a camera.
+  | { kind: 'lamp'; id: string; value: Lamp | null }
   // A camera's relays, inputs and the wires from its relays, which are saved together.
   | { kind: 'camera-io'; id: string; value: CameraIo | null }
   // One relay's switch position, saved on its own: ONVIF clients change it too.
@@ -319,6 +322,8 @@ function currentOf(world: World, part: Part): Part {
       return { ...part, value: world.walkers.find((w) => w.id === part.id) ?? null };
     case 'vehicle':
       return { ...part, value: world.vehicles.find((v) => v.id === part.id) ?? null };
+    case 'lamp':
+      return { ...part, value: world.lamps.find((l) => l.id === part.id) ?? null };
     case 'camera-io': {
       const camera = world.cameras.find((c) => sameId(c.id, part.id));
       return { ...part, value: camera ? cameraIoOf(world, camera) : null };
@@ -361,24 +366,27 @@ function applyPart(world: World, part: Part): World {
       return { ...world, walkers: upsert(world.walkers, part.id, part.value) };
     case 'vehicle':
       return { ...world, vehicles: upsert(world.vehicles, part.id, part.value) };
+    case 'lamp':
+      return part.value
+        ? { ...world, lamps: upsert(world.lamps, part.id, part.value) }
+        : // A wire to a lamp that is gone goes too, as on the server.
+          { ...world, lamps: upsert(world.lamps, part.id, null), wires: world.wires.filter((wire) => !sameId(wire.lampId ?? '', part.id)) };
     case 'camera-io': {
       const io = part.value;
       if (!io) return world;
       const inputs = new Set(io.digitalInputs.map((input) => input.token.toLowerCase()));
-      const lamps = new Set(io.lamps.map((lamp) => lamp.token.toLowerCase()));
       return {
         ...world,
         cameras: world.cameras.map((camera) =>
           sameId(camera.id, part.id)
-            ? { ...camera, relayOutputs: io.relayOutputs, digitalInputs: io.digitalInputs, lamps: io.lamps }
+            ? { ...camera, relayOutputs: io.relayOutputs, digitalInputs: io.digitalInputs }
             : camera),
         // This camera's wires are the ones sent; a wire into a device that is gone goes too, as on the server.
         wires: [
           ...world.wires.filter(
             (wire) =>
               !sameId(wire.relayCameraId, part.id) &&
-              !(sameId(wire.inputCameraId ?? '', part.id) && !inputs.has((wire.inputToken ?? '').toLowerCase())) &&
-              !(sameId(wire.lampCameraId ?? '', part.id) && !lamps.has((wire.lampToken ?? '').toLowerCase())),
+              !(sameId(wire.inputCameraId ?? '', part.id) && !inputs.has((wire.inputToken ?? '').toLowerCase())),
           ),
           ...io.wires,
         ],
@@ -423,6 +431,8 @@ async function sendPart(part: Part): Promise<unknown> {
       return part.value ? api.putWalker(part.value) : ignoreMissing(api.deleteWalker(part.id));
     case 'vehicle':
       return part.value ? api.putVehicle(part.value) : ignoreMissing(api.deleteVehicle(part.id));
+    case 'lamp':
+      return part.value ? api.putLamp(part.value) : ignoreMissing(api.deleteLamp(part.id));
     case 'camera-io':
       return part.value ? api.putCameraIo(part.id, part.value) : undefined;
     case 'relay':
@@ -525,6 +535,14 @@ export function updateWalker(walker: Walker) {
 
 export function updateVehicle(vehicle: Vehicle) {
   change({ kind: 'vehicle', id: vehicle.id, value: vehicle });
+}
+
+export function updateLamp(lamp: Lamp) {
+  change({ kind: 'lamp', id: lamp.id, value: lamp });
+}
+
+export function removeLamp(id: string) {
+  change({ kind: 'lamp', id, value: null }, { merge: false });
 }
 
 // Turns the selected parked car into a moving one on a straight route along the way it faces, keeping

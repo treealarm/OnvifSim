@@ -131,19 +131,20 @@ function Sinks(world: World): SinkEntry[] {
         on: active === true,
       });
     }
-    for (const lamp of camera.lamps ?? []) {
-      const lit = lampLit(world, camera.id, lamp.token);
-      entries.push({
-        sink: { kind: 'lamp', cameraId: camera.id, token: lamp.token },
-        label: `${camera.name || camera.id} / ${lamp.name || lamp.token}`,
-        state: lit ? 'lit' : 'off',
-        on: lit,
-      });
-    }
+  }
+  // Lamps stand in the world, not on a camera.
+  for (const lamp of world.lamps) {
+    const lit = lampLit(world, lamp.id);
+    entries.push({
+      sink: { kind: 'lamp', lampId: lamp.id },
+      label: `${lamp.name || lamp.id} (lamp)`,
+      state: lit ? 'lit' : 'off',
+      on: lit,
+    });
   }
   return entries;
 }
 
 function keyOf(sink: Sink): string {
-  return `${sink.kind === 'lamp' ? 'l' : 'i'}:${sink.cameraId}/${sink.token}`;
+  return sink.kind === 'lamp' ? `l:${sink.lampId}` : `i:${sink.cameraId}/${sink.token}`;
 }

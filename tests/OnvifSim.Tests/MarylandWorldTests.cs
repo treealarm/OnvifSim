@@ -50,8 +50,39 @@ public class MarylandWorldTests
         Assert.Equal(2.8, master.Position.Y, 3);
 
         var ptz = world.Cameras.Single(c => c.Id == "ptz");
-        Assert.Equal(19.9, ptz.Position.X, 1);
-        Assert.Equal(-11.1, ptz.Position.Z, 1);
+        Assert.Equal(-49.5, ptz.Position.X, 1);
+        Assert.Equal(-20.5, ptz.Position.Z, 1);
+    }
+
+    [Fact]
+    public void ThePairAndTheWalker_StandInOneRoom()
+    {
+        // The master's boxes drive the slave's aim, so the two must watch the same space — Room 101
+        // of the demo's floor plan — and the person they work on walks inside it.
+        var world = World();
+        foreach (var demo in MarylandWorld.Cameras.Where(d => d.Id is "master" or "ptz"))
+        {
+            Assert.InRange(demo.Latitude, MarylandWorld.Room101South, MarylandWorld.Room101North);
+            Assert.InRange(demo.Longitude, MarylandWorld.Room101West, MarylandWorld.Room101East);
+        }
+        var walker = Assert.Single(world.Walkers);
+        Assert.True(walker.Detectable);
+        foreach (var point in walker.Route)
+        {
+            var geo = WorldGeo.ToGeo(world, new Vec3(point.X, 0, point.Z));
+            Assert.InRange(geo.Latitude, MarylandWorld.Room101South, MarylandWorld.Room101North);
+            Assert.InRange(geo.Longitude, MarylandWorld.Room101West, MarylandWorld.Room101East);
+        }
+    }
+
+    [Fact]
+    public void TheSlaves_ReportTheirHeadInTheTelemetry()
+    {
+        var world = World();
+        foreach (var id in new[] { "ptz", "ptz2" })
+            Assert.True(world.Cameras.Single(c => c.Id == id).Metadata.PtzStatus);
+        Assert.False(world.Cameras.Single(c => c.Id == "ptz").Metadata.Analytics);
+        Assert.True(world.Cameras.Single(c => c.Id == "master").Metadata.Analytics);
     }
 
     [Fact]
@@ -81,17 +112,16 @@ public class MarylandWorldTests
         var ptz = world.Cameras.Single(c => c.Id == "ptz");
         var input = Assert.Single(ptz.DigitalInputs);
         Assert.Equal("input", input.Token);
-        var lamp = Assert.Single(ptz.Lamps);
-        Assert.Equal("alert", lamp.Token);
+        var lamp = Assert.Single(world.Lamps);
+        Assert.Equal("alert", lamp.Id);
         Assert.False(lamp.NormallyClosed);
         Assert.Contains(world.Wires, wire => wire.InputToken == "input");
-        Assert.Contains(world.Wires, wire => wire.LampToken == "alert");
+        Assert.Contains(world.Wires, wire => wire.LampId == "alert");
         Assert.All(world.Wires, wire =>
             Assert.Equal(("master", "lamp"), (wire.RelayCameraId, wire.RelayToken)));
         // A device on the car would move the wire, and every camera that sees it, every frame.
         Assert.Empty(world.Cameras.Single(c => c.Id == MarylandWorld.VehicleCameraId).DigitalInputs);
         Assert.Empty(world.Cameras.Single(c => c.Id == MarylandWorld.VehicleCameraId).RelayOutputs);
-        Assert.Empty(world.Cameras.Single(c => c.Id == MarylandWorld.VehicleCameraId).Lamps);
     }
 
     [Fact]

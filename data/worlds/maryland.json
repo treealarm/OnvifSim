@@ -133,192 +133,12 @@
       "seed": 0
     },
     {
-      "id": "room-101-wall-n",
+      "id": "rack-1",
       "type": "box",
       "position": {
-        "x": -56.238586,
+        "x": -61.9,
         "y": 0,
-        "z": -22.263899
-      },
-      "rotationY": 0,
-      "scale": {
-        "x": 17.50418,
-        "y": 3.6,
-        "z": 0.2
-      },
-      "color": "#c8ccd2",
-      "color2": null,
-      "seed": 0
-    },
-    {
-      "id": "room-101-wall-w",
-      "type": "box",
-      "position": {
-        "x": -64.89068,
-        "y": 0,
-        "z": -15.584729
-      },
-      "rotationY": 0,
-      "scale": {
-        "x": 0.2,
-        "y": 3.6,
-        "z": 13.358339
-      },
-      "color": "#c8ccd2",
-      "color2": null,
-      "seed": 0
-    },
-    {
-      "id": "room-101-wall-e",
-      "type": "box",
-      "position": {
-        "x": -47.5865,
-        "y": 0,
-        "z": -15.584729
-      },
-      "rotationY": 0,
-      "scale": {
-        "x": 0.2,
-        "y": 3.6,
-        "z": 13.358339
-      },
-      "color": "#c8ccd2",
-      "color2": null,
-      "seed": 0
-    },
-    {
-      "id": "room-101-wall-s-1",
-      "type": "box",
-      "position": {
-        "x": -60.914635,
-        "y": 0,
-        "z": -8.90556
-      },
-      "rotationY": 0,
-      "scale": {
-        "x": 7.952091,
-        "y": 3.6,
-        "z": 0.2
-      },
-      "color": "#c8ccd2",
-      "color2": null,
-      "seed": 0
-    },
-    {
-      "id": "room-101-wall-s-2",
-      "type": "box",
-      "position": {
-        "x": -51.562542,
-        "y": 0,
-        "z": -8.90556
-      },
-      "rotationY": 0,
-      "scale": {
-        "x": 7.9520874,
-        "y": 3.6,
-        "z": 0.2
-      },
-      "color": "#c8ccd2",
-      "color2": null,
-      "seed": 0
-    },
-    {
-      "id": "room-102-wall-n",
-      "type": "box",
-      "position": {
-        "x": 25.956272,
-        "y": 0,
-        "z": -22.263897
-      },
-      "rotationY": 0,
-      "scale": {
-        "x": 17.504179,
-        "y": 3.6,
-        "z": 0.2
-      },
-      "color": "#c8ccd2",
-      "color2": null,
-      "seed": 0
-    },
-    {
-      "id": "room-102-wall-w",
-      "type": "box",
-      "position": {
-        "x": 17.304182,
-        "y": 0,
-        "z": -15.584728
-      },
-      "rotationY": 0,
-      "scale": {
-        "x": 0.2,
-        "y": 3.6,
-        "z": 13.358338
-      },
-      "color": "#c8ccd2",
-      "color2": null,
-      "seed": 0
-    },
-    {
-      "id": "room-102-wall-e",
-      "type": "box",
-      "position": {
-        "x": 34.60836,
-        "y": 0,
-        "z": -15.584728
-      },
-      "rotationY": 0,
-      "scale": {
-        "x": 0.2,
-        "y": 3.6,
-        "z": 13.358338
-      },
-      "color": "#c8ccd2",
-      "color2": null,
-      "seed": 0
-    },
-    {
-      "id": "room-102-wall-s-1",
-      "type": "box",
-      "position": {
-        "x": 21.280228,
-        "y": 0,
-        "z": -8.905559
-      },
-      "rotationY": 0,
-      "scale": {
-        "x": 7.9520893,
-        "y": 3.6,
-        "z": 0.2
-      },
-      "color": "#c8ccd2",
-      "color2": null,
-      "seed": 0
-    },
-    {
-      "id": "room-102-wall-s-2",
-      "type": "box",
-      "position": {
-        "x": 30.632317,
-        "y": 0,
-        "z": -8.905559
-      },
-      "rotationY": 0,
-      "scale": {
-        "x": 7.9520874,
-        "y": 3.6,
-        "z": 0.2
-      },
-      "color": "#c8ccd2",
-      "color2": null,
-      "seed": 0
-    },
-    {
-      "id": "room-101-rack-1",
-      "type": "box",
-      "position": {
-        "x": -61.89068,
-        "y": 0,
-        "z": -21.063898
+        "z": -21.06
       },
       "rotationY": 0,
       "scale": {
@@ -331,12 +151,12 @@
       "seed": 0
     },
     {
-      "id": "room-101-rack-2",
+      "id": "rack-2",
       "type": "box",
       "position": {
-        "x": -58.690678,
+        "x": -58.7,
         "y": 0,
-        "z": -21.063898
+        "z": -21.06
       },
       "rotationY": 0,
       "scale": {
@@ -349,12 +169,12 @@
       "seed": 0
     },
     {
-      "id": "room-101-rack-3",
+      "id": "rack-3",
       "type": "box",
       "position": {
-        "x": -55.490677,
+        "x": -55.5,
         "y": 0,
-        "z": -21.063898
+        "z": -21.06
       },
       "rotationY": 0,
       "scale": {
@@ -367,48 +187,12 @@
       "seed": 0
     },
     {
-      "id": "room-101-rack-4",
+      "id": "rack-4",
       "type": "box",
       "position": {
-        "x": -52.29068,
+        "x": -52.300003,
         "y": 0,
-        "z": -21.063898
-      },
-      "rotationY": 0,
-      "scale": {
-        "x": 0.6,
-        "y": 2,
-        "z": 1.2
-      },
-      "color": "#3d4149",
-      "color2": null,
-      "seed": 0
-    },
-    {
-      "id": "room-102-rack-1",
-      "type": "box",
-      "position": {
-        "x": 20.304182,
-        "y": 0,
-        "z": -21.063896
-      },
-      "rotationY": 0,
-      "scale": {
-        "x": 0.6,
-        "y": 2,
-        "z": 1.2
-      },
-      "color": "#3d4149",
-      "color2": null,
-      "seed": 0
-    },
-    {
-      "id": "room-102-rack-2",
-      "type": "box",
-      "position": {
-        "x": 23.504183,
-        "y": 0,
-        "z": -21.063896
+        "z": -21.06
       },
       "rotationY": 0,
       "scale": {
@@ -679,7 +463,35 @@
       "closed": true
     }
   ],
-  "walkers": [],
+  "walkers": [
+    {
+      "id": "w1",
+      "route": [
+        {
+          "x": -59,
+          "z": -18
+        },
+        {
+          "x": -54,
+          "z": -18
+        },
+        {
+          "x": -54,
+          "z": -13
+        },
+        {
+          "x": -59,
+          "z": -13
+        }
+      ],
+      "speed": 1,
+      "return": "loop",
+      "height": 1.75,
+      "color": null,
+      "color2": null,
+      "detectable": true
+    }
+  ],
   "vehicles": [
     {
       "id": "v1",
@@ -731,7 +543,7 @@
   "cameras": [
     {
       "id": "master",
-      "name": "Room 101 master",
+      "name": "Main room master",
       "kind": "fixed",
       "position": {
         "x": -62.29505,
@@ -739,7 +551,7 @@
         "z": -11.131949
       },
       "heading": 55,
-      "pitch": -10,
+      "pitch": -18,
       "roll": 0,
       "hFov": 70,
       "angleGrid": false,
@@ -784,7 +596,6 @@
         }
       ],
       "digitalInputs": [],
-      "lamps": [],
       "onvifPort": 0,
       "rtspPort": 0,
       "users": [
@@ -797,14 +608,14 @@
     },
     {
       "id": "ptz",
-      "name": "Room 102 slave (PTZ)",
+      "name": "Main room slave (PTZ)",
       "kind": "ptz",
       "position": {
-        "x": 19.899809,
+        "x": -49.48996,
         "y": 2.8,
-        "z": -11.131949
+        "z": -20.482786
       },
-      "heading": 50,
+      "heading": 235,
       "pitch": 0,
       "roll": 0,
       "hFov": 65,
@@ -830,8 +641,8 @@
         "colorSaturation": 50
       },
       "metadata": {
-        "analytics": true,
-        "ptzStatus": false
+        "analytics": false,
+        "ptzStatus": true
       },
       "ptz": {
         "panMin": -180,
@@ -865,18 +676,6 @@
             "x": -1.5,
             "y": 0.2,
             "z": 1
-          }
-        }
-      ],
-      "lamps": [
-        {
-          "token": "alert",
-          "name": "Room alert lamp",
-          "normallyClosed": false,
-          "position": {
-            "x": 1.5,
-            "y": 0,
-            "z": -1
           }
         }
       ],
@@ -931,7 +730,6 @@
       "ptz": null,
       "relayOutputs": [],
       "digitalInputs": [],
-      "lamps": [],
       "onvifPort": 0,
       "rtspPort": 0,
       "users": [
@@ -977,8 +775,8 @@
         "colorSaturation": 50
       },
       "metadata": {
-        "analytics": true,
-        "ptzStatus": false
+        "analytics": false,
+        "ptzStatus": true
       },
       "ptz": {
         "panMin": -180,
@@ -1004,7 +802,6 @@
       },
       "relayOutputs": [],
       "digitalInputs": [],
-      "lamps": [],
       "onvifPort": 0,
       "rtspPort": 0,
       "users": [
@@ -1057,7 +854,6 @@
       "ptz": null,
       "relayOutputs": [],
       "digitalInputs": [],
-      "lamps": [],
       "onvifPort": 0,
       "rtspPort": 0,
       "users": [
@@ -1067,6 +863,18 @@
         }
       ],
       "recordingRetentionHours": 1
+    }
+  ],
+  "lamps": [
+    {
+      "id": "alert",
+      "name": "Hall alert lamp",
+      "normallyClosed": false,
+      "position": {
+        "x": -56,
+        "y": 0,
+        "z": -16
+      }
     }
   ],
   "wires": [
@@ -1079,8 +887,7 @@
     {
       "relayCameraId": "master",
       "relayToken": "lamp",
-      "lampCameraId": "ptz",
-      "lampToken": "alert"
+      "lampId": "alert"
     }
   ]
 }

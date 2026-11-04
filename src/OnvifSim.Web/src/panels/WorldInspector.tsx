@@ -1,6 +1,6 @@
-import type { Environment, Geo, World } from '../model';
-import { updateEnvironment, updateGeo, updateTerrain } from '../store';
-import { CheckboxField, ColorField, NumberField, Section } from './fields';
+import { lampLit, nextId, wiresToLamp, type Environment, type Geo, type Lamp, type World } from '../model';
+import { removeLamp, updateEnvironment, updateGeo, updateLamp, updateTerrain } from '../store';
+import { BlurTextField, CheckboxField, ColorField, NumberField, Section } from './fields';
 
 // What shows when nothing is selected: settings of the world as a whole.
 export function WorldInspector({ world }: { world: World }) {
@@ -40,9 +40,64 @@ export function WorldInspector({ world }: { world: World }) {
         <ColorField label="Ground" value={world.terrain.color} onChange={(color) => updateTerrain({ ...world.terrain, color })} />
         <p className="muted">Steep slopes still turn to rock, with lighter patches breaking up the colour.</p>
       </Section>
+      <Section title="Lamps">
+        {world.lamps.length === 0 && (
+          <p className="muted">No lamps. A relay can drive one, so its firing is seen in the world.</p>
+        )}
+        {world.lamps.map((lamp) => (
+          <LampCard key={lamp.id} lamp={lamp} world={world} />
+        ))}
+        <button
+          type="button"
+          onClick={() =>
+            updateLamp({
+              id: nextId('lamp', world.lamps.map((l) => l.id)),
+              name: 'Lamp',
+              normallyClosed: false,
+              position: { x: 0, y: 0, z: 0 },
+            })
+          }
+        >
+          Add lamp
+        </button>
+      </Section>
       <p className="muted">
-        {world.objects.length} objects, {world.roads.length} roads, {world.walkers.length} people, {world.cameras.length} cameras.
+        {world.objects.length} objects, {world.roads.length} roads, {world.walkers.length} people, {world.cameras.length} cameras,{' '}
+        {world.lamps.length} lamps.
       </p>
     </>
+  );
+}
+
+// A lamp of the world: an actuator with a place of its own, lit by the relays wired to it. Its id is
+// what a wire names, so it is not renamed here; the name and the place are.
+function LampCard({ lamp, world }: { lamp: Lamp; world: World }) {
+  const wires = wiresToLamp(world, lamp.id);
+  const lit = lampLit(world, lamp.id);
+  const move = (patch: Partial<Lamp['position']>) => updateLamp({ ...lamp, position: { ...lamp.position, ...patch } });
+  return (
+    <div className="io-card">
+      <div className="io-head">
+        <strong>{lamp.name || lamp.id}</strong>
+        <span className="muted">{lamp.id}</span>
+        <button type="button" onClick={() => removeLamp(lamp.id)}>
+          Remove
+        </button>
+      </div>
+      <BlurTextField label="Name" value={lamp.name} onChange={(name) => updateLamp({ ...lamp, name })} />
+      <CheckboxField
+        label="Normally closed (lit while no relay is closed)"
+        checked={lamp.normallyClosed}
+        onChange={(normallyClosed) => updateLamp({ ...lamp, normallyClosed })}
+      />
+      <NumberField label="X (east)" value={lamp.position.x} step={0.5} onChange={(x) => move({ x })} />
+      <NumberField label="Z (south)" value={lamp.position.z} step={0.5} onChange={(z) => move({ z })} />
+      <NumberField label="Above ground" value={lamp.position.y} min={0} step={0.5} onChange={(y) => move({ y })} />
+      <p className={lit ? 'io-state on' : 'io-state'}>
+        {wires.length === 0
+          ? 'Not wired: connect it to a relay in Links…'
+          : `${wires.map((wire) => `${wire.relayCameraId}/${wire.relayToken}`).join(', ')} — ${lit ? 'lit' : 'off'}`}
+      </p>
+    </div>
   );
 }

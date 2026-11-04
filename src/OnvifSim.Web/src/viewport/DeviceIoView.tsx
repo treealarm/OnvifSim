@@ -3,11 +3,13 @@ import { useFrame } from '@react-three/fiber';
 import { useRef, type ComponentRef, type RefObject } from 'react';
 import type { Group, Plane } from 'three';
 import {
+  heightAt,
   inputActive,
   lampLit as lampIsLit,
   sameId,
   type CameraModel,
   type DigitalInput,
+  type Lamp as LampDevice,
   type Terrain,
   type Vec3,
   type Vehicle,
@@ -45,17 +47,6 @@ export function DeviceIoView({ world }: { world: World }) {
             clippingPlanes={clippingPlanes}
           />
         )),
-        ...(camera.lamps ?? []).map((lamp) => (
-          <Lamp
-            key={`${camera.id}/lamp/${lamp.token}`}
-            camera={camera}
-            position={lamp.position}
-            lit={lampIsLit(world, camera.id, lamp.token)}
-            terrain={world.terrain}
-            vehicles={world.vehicles}
-            clippingPlanes={clippingPlanes}
-          />
-        )),
         ...camera.digitalInputs.map((input) => (
           <Sensor
             key={`${camera.id}/input/${input.token}`}
@@ -68,6 +59,15 @@ export function DeviceIoView({ world }: { world: World }) {
           />
         )),
       ])}
+      {world.lamps.map((lamp) => (
+        <WorldLamp
+          key={lamp.id}
+          lamp={lamp}
+          lit={lampIsLit(world, lamp.id)}
+          terrain={world.terrain}
+          clippingPlanes={clippingPlanes}
+        />
+      ))}
       {world.wires.map((wire) => (
         <DeviceWire
           key={wireKey(wire)}
@@ -79,7 +79,29 @@ export function DeviceIoView({ world }: { world: World }) {
   );
 }
 
-// A lamp post: the relay's own indicator, and the lamp an actuator is drawn as.
+// A lamp post at a place: the relay's own indicator, or a lamp standing in the world.
+function LampPost({ lit, clippingPlanes }: { lit: boolean; clippingPlanes: Plane[] }) {
+  const color = lit ? lampLit : lampDark;
+  return (
+    <>
+      <mesh position={[0, (lampHeight - 0.3) / 2, 0]}>
+        <cylinderGeometry args={[0.05, 0.08, lampHeight - 0.3, 6]} />
+        <meshLambertMaterial color="#424448" clippingPlanes={clippingPlanes} />
+      </mesh>
+      <mesh position={[0, lampHeight - 0.25, 0]} rotation={[Math.PI, 0, 0]}>
+        <coneGeometry args={[0.38, 0.45, 8]} />
+        <meshLambertMaterial
+          color={color}
+          emissive={lit ? color : '#000000'}
+          emissiveIntensity={0.6}
+          clippingPlanes={clippingPlanes}
+        />
+      </mesh>
+    </>
+  );
+}
+
+// A relay's indicator lamp: it stands at an offset from its camera, or rides the car with it.
 function Lamp({
   camera,
   position,
@@ -96,22 +118,33 @@ function Lamp({
   clippingPlanes: Plane[];
 }) {
   const { group, initial } = useDeviceGroup(camera, position, terrain, vehicles);
-  const color = lit ? lampLit : lampDark;
   return (
     <group ref={group} position={[initial.x, initial.y, initial.z]}>
-      <mesh position={[0, (lampHeight - 0.3) / 2, 0]}>
-        <cylinderGeometry args={[0.05, 0.08, lampHeight - 0.3, 6]} />
-        <meshLambertMaterial color="#424448" clippingPlanes={clippingPlanes} />
-      </mesh>
-      <mesh position={[0, lampHeight - 0.25, 0]} rotation={[Math.PI, 0, 0]}>
-        <coneGeometry args={[0.38, 0.45, 8]} />
-        <meshLambertMaterial
-          color={color}
-          emissive={lit ? color : '#000000'}
-          emissiveIntensity={0.6}
-          clippingPlanes={clippingPlanes}
-        />
-      </mesh>
+      <LampPost lit={lit} clippingPlanes={clippingPlanes} />
+    </group>
+  );
+}
+
+// A lamp of the world: it stands where it was put and never moves with a camera.
+function WorldLamp({
+  lamp,
+  lit,
+  terrain,
+  clippingPlanes,
+}: {
+  lamp: LampDevice;
+  lit: boolean;
+  terrain: Terrain;
+  clippingPlanes: Plane[];
+}) {
+  const position: [number, number, number] = [
+    lamp.position.x,
+    heightAt(terrain, lamp.position.x, lamp.position.z) + lamp.position.y,
+    lamp.position.z,
+  ];
+  return (
+    <group position={position}>
+      <LampPost lit={lit} clippingPlanes={clippingPlanes} />
     </group>
   );
 }
@@ -167,33 +200,41 @@ function DeviceWire({ wire, world }: { wire: Wire; world: World }) {
 function wireEnds(wire: Wire, world: World, timeMs: number): [[number, number, number], [number, number, number]] | null {
   const relayCamera = world.cameras.find((camera) => sameId(camera.id, wire.relayCameraId));
   const relay = relayCamera?.relayOutputs.find((output) => sameId(output.token, wire.relayToken));
-  const sink = sinkOf(wire, world);
+  const sink = sinkPoint(wire, world, timeMs);
   if (!relayCamera || !relay || !sink) return null;
   const from = devicePoint(relayCamera, relay.position, world.terrain, world.vehicles, timeMs);
-  const to = devicePoint(sink.camera, sink.position, world.terrain, world.vehicles, timeMs);
   return [
     [from.x, from.y + lampHeight - 0.2, from.z],
-    [to.x, to.y + sink.height, to.z],
+    [sink.x, sink.y + sink.height, sink.z],
   ];
 }
 
-// The device a wire ends at: an input's block or a lamp's shade.
-function sinkOf(wire: Wire, world: World): { camera: CameraModel; position: Vec3; height: number } | null {
+// Where a wire ends and the height above that point: an input's block on its camera, or a lamp's shade
+// standing in the world.
+function sinkPoint(wire: Wire, world: World, timeMs: number): { x: number; y: number; z: number; height: number } | null {
   const inputCamera = world.cameras.find((camera) => sameId(camera.id, wire.inputCameraId ?? ''));
   const input = inputCamera?.digitalInputs.find((device) => sameId(device.token, wire.inputToken ?? ''));
-  if (inputCamera && input) return { camera: inputCamera, position: input.position, height: sensorHeight };
-  const lampCamera = world.cameras.find((camera) => sameId(camera.id, wire.lampCameraId ?? ''));
-  const lamp = lampCamera?.lamps?.find((device) => sameId(device.token, wire.lampToken ?? ''));
-  return lampCamera && lamp ? { camera: lampCamera, position: lamp.position, height: lampHeight - 0.2 } : null;
+  if (inputCamera && input) {
+    const point = devicePoint(inputCamera, input.position, world.terrain, world.vehicles, timeMs);
+    return { ...point, height: sensorHeight };
+  }
+  const lamp = world.lamps.find((device) => sameId(device.id, wire.lampId ?? ''));
+  if (!lamp) return null;
+  return {
+    x: lamp.position.x,
+    y: heightAt(world.terrain, lamp.position.x, lamp.position.z) + lamp.position.y,
+    z: lamp.position.z,
+    height: lampHeight - 0.2,
+  };
 }
 
 function wireKey(wire: Wire): string {
-  return `${wire.relayCameraId}/${wire.relayToken}->${wire.inputCameraId ?? wire.lampCameraId}/${wire.inputToken ?? wire.lampToken}`;
+  return `${wire.relayCameraId}/${wire.relayToken}->${wire.lampId ?? `${wire.inputCameraId}/${wire.inputToken}`}`;
 }
 
 function movesWithCar(wire: Wire, world: World): boolean {
   const relayCamera = world.cameras.find((camera) => sameId(camera.id, wire.relayCameraId));
-  const sinkCamera = world.cameras.find((camera) => sameId(camera.id, wire.inputCameraId ?? wire.lampCameraId ?? ''));
+  const sinkCamera = world.cameras.find((camera) => sameId(camera.id, wire.inputCameraId ?? ''));
   return (!!relayCamera && isMounted(relayCamera)) || (!!sinkCamera && isMounted(sinkCamera));
 }
 

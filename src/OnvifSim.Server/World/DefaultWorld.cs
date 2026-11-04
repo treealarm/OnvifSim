@@ -142,19 +142,17 @@ public static class DefaultWorld
         {
             Token = "sensor", Name = "Gate sensor", Position = new(-3, 0.2f, 2),
         });
-        // A lamp the same relay lights: closed, the input reads 0 and the lamp is on.
-        world.Cameras[1].Lamps.Add(new LampModel
+        // A lamp the same relay lights: closed, the input reads 0 and the lamp is on. It stands in the
+        // world on its own, not on a camera.
+        world.Lamps.Add(new LampModel
         {
-            Token = "gate", Name = "Gate lamp", Position = new(-4, 0, 3),
+            Id = "gate", Name = "Gate lamp", Position = new(36, 0, 38),
         });
         world.Wires.Add(new WireModel
         {
             RelayCameraId = "cam1", RelayToken = "lamp", InputCameraId = "cam2", InputToken = "sensor",
         });
-        world.Wires.Add(new WireModel
-        {
-            RelayCameraId = "cam1", RelayToken = "lamp", LampCameraId = "cam2", LampToken = "gate",
-        });
+        world.Wires.Add(new WireModel { RelayCameraId = "cam1", RelayToken = "lamp", LampId = "gate" });
         return world;
     }
 }

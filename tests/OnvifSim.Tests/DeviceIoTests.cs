@@ -35,23 +35,21 @@ public class DeviceIoTests(SimFactory factory) : IClassFixture<SimFactory>
         Assert.Equal("sensor", input.Token);
         var wire = Assert.Single(read.Wires);
         Assert.Equal(("cam1", "lamp", "cam2", "sensor"), (wire.RelayCameraId, wire.RelayToken, wire.InputCameraId, wire.InputToken));
-        Assert.Null(wire.LampCameraId);
+        Assert.Null(wire.LampId);
     }
 
     [Fact]
     public void ALampAndItsWire_RoundTripThroughTheWorldFile()
     {
         var world = WorldWithDevices();
-        var camera = world.Cameras.Single(c => c.Id == "cam2");
-        camera.Lamps.Add(new LampModel { Token = "warning", Name = "Warning lamp", NormallyClosed = true, Position = new Vec3(2, 0, 1) });
-        world.Wires.Add(new WireModel { RelayCameraId = "cam1", RelayToken = "lamp", LampCameraId = "cam2", LampToken = "warning" });
+        world.Lamps.Add(new LampModel { Id = "warning", Name = "Warning lamp", NormallyClosed = true, Position = new Vec3(2, 0, 1) });
+        world.Wires.Add(new WireModel { RelayCameraId = "cam1", RelayToken = "lamp", LampId = "warning" });
         var read = JsonSerializer.Deserialize<WorldModel>(JsonSerializer.Serialize(world, WorldStore.Json), WorldStore.Json)!;
 
-        var lamp = Assert.Single(read.Cameras.Single(c => c.Id == "cam2").Lamps);
-        Assert.Equal(("warning", "Warning lamp", true), (lamp.Token, lamp.Name, lamp.NormallyClosed));
-        var wire = read.Wires.Single(w => w.LampToken == "warning");
-        Assert.Equal(("cam1", "lamp", "cam2", "warning"),
-            (wire.RelayCameraId, wire.RelayToken, wire.LampCameraId, wire.LampToken));
+        var lamp = Assert.Single(read.Lamps);
+        Assert.Equal(("warning", "Warning lamp", true), (lamp.Id, lamp.Name, lamp.NormallyClosed));
+        var wire = read.Wires.Single(w => w.LampId == "warning");
+        Assert.Equal(("cam1", "lamp", "warning"), (wire.RelayCameraId, wire.RelayToken, wire.LampId));
         Assert.Null(wire.InputCameraId);
     }
 
@@ -92,7 +90,7 @@ public class DeviceIoTests(SimFactory factory) : IClassFixture<SimFactory>
         Assert.Contains("no camera 'cam9'", ReasonOf(() => WorldValidation.Check(world, 0, 0)));
 
         world = WorldWithDevices();
-        world.Wires.Add(new WireModel { RelayCameraId = "cam1", RelayToken = "lamp", LampCameraId = "cam2", LampToken = "nobody" });
+        world.Wires.Add(new WireModel { RelayCameraId = "cam1", RelayToken = "lamp", LampId = "nobody" });
         Assert.Contains("no lamp 'nobody'", ReasonOf(() => WorldValidation.Check(world, 0, 0)));
     }
 
@@ -100,10 +98,22 @@ public class DeviceIoTests(SimFactory factory) : IClassFixture<SimFactory>
     public void AWire_DrivesOneSinkOnly()
     {
         var world = WorldWithDevices();
-        world.Cameras.Single(c => c.Id == "cam2").Lamps.Add(new LampModel { Token = "warning" });
-        world.Wires[0].LampCameraId = "cam2";
-        world.Wires[0].LampToken = "warning";
+        world.Lamps.Add(new LampModel { Id = "warning" });
+        world.Wires[0].LampId = "warning";
         Assert.Contains("either a digital input or a lamp", ReasonOf(() => WorldValidation.Check(world, 0, 0)));
+    }
+
+    [Fact]
+    public void LampIds_AreUrlSafeAndUnique()
+    {
+        var world = WorldWithDevices();
+        world.Lamps.Add(new LampModel { Id = "front door" });
+        Assert.Contains("Lamp id", ReasonOf(() => WorldValidation.Check(world, 0, 0)));
+
+        world = WorldWithDevices();
+        world.Lamps.Add(new LampModel { Id = "warning" });
+        world.Lamps.Add(new LampModel { Id = "WARNING" });
+        Assert.Contains("Lamp id 'warning' is used more than once", ReasonOf(() => WorldValidation.Check(world, 0, 0)));
     }
 
     [Fact]
@@ -220,34 +230,33 @@ public class DeviceIoTests(SimFactory factory) : IClassFixture<SimFactory>
     public void ALamp_LightsByItsWiring()
     {
         var world = WorldWithDevices();
-        var camera = world.Cameras.Single(c => c.Id == "cam2");
-        camera.Lamps.Add(new LampModel { Token = "open", Name = "NO lamp" });
-        camera.Lamps.Add(new LampModel { Token = "closed", Name = "NC lamp", NormallyClosed = true });
-        camera.Lamps.Add(new LampModel { Token = "idle", Name = "Unwired lamp" });
-        foreach (var token in new[] { "open", "closed" })
-            world.Wires.Add(new WireModel { RelayCameraId = "cam1", RelayToken = "lamp", LampCameraId = "cam2", LampToken = token });
+        world.Lamps.Add(new LampModel { Id = "open", Name = "NO lamp", Position = new Vec3(10, 0, 0) });
+        world.Lamps.Add(new LampModel { Id = "closed", Name = "NC lamp", NormallyClosed = true, Position = new Vec3(12, 0, 0) });
+        world.Lamps.Add(new LampModel { Id = "idle", Name = "Unwired lamp", Position = new Vec3(14, 0, 0) });
+        foreach (var id in new[] { "open", "closed" })
+            world.Wires.Add(new WireModel { RelayCameraId = "cam1", RelayToken = "lamp", LampId = id });
         var relay = world.Cameras.Single(c => c.Id == "cam1").RelayOutputs[0];
 
         relay.Active = true;
-        Assert.True(DeviceIo.LampLit(world, "cam2", "open"));
-        Assert.False(DeviceIo.LampLit(world, "cam2", "closed"));
+        Assert.True(DeviceIo.LampLit(world, "open"));
+        Assert.False(DeviceIo.LampLit(world, "closed"));
 
         relay.Active = false;
-        Assert.False(DeviceIo.LampLit(world, "cam2", "open"));
-        Assert.True(DeviceIo.LampLit(world, "cam2", "closed"));
+        Assert.False(DeviceIo.LampLit(world, "open"));
+        Assert.True(DeviceIo.LampLit(world, "closed"));
 
         // A lamp nothing drives is simply off, whatever its wiring.
-        Assert.False(DeviceIo.LampLit(world, "cam2", "idle"));
+        Assert.False(DeviceIo.LampLit(world, "idle"));
     }
 
     [Fact]
-    public void TheScene_DrawsALampForALampDevice()
+    public void TheScene_DrawsALampOfTheWorldAndItsWire()
     {
         var world = WorldWithDevices();
-        world.Cameras.Single(c => c.Id == "cam2").Lamps.Add(new LampModel { Token = "warning", Position = new Vec3(2, 0, 1) });
-        world.Wires.Add(new WireModel { RelayCameraId = "cam1", RelayToken = "lamp", LampCameraId = "cam2", LampToken = "warning" });
+        world.Lamps.Add(new LampModel { Id = "warning", Position = new Vec3(10, 0, 0) });
+        world.Wires.Add(new WireModel { RelayCameraId = "cam1", RelayToken = "lamp", LampId = "warning" });
 
-        Assert.Contains(DeviceScene.Static(world), chunk => chunk.Name == "cam2/lamp/warning");
+        Assert.Contains(DeviceScene.Static(world), chunk => chunk.Name == "lamp/warning");
         Assert.Equal(2, DeviceScene.StaticWires(world).Count);
     }
 
@@ -400,8 +409,8 @@ public class DeviceIoTests(SimFactory factory) : IClassFixture<SimFactory>
         {
             camera.RelayOutputs.Clear();
             camera.DigitalInputs.Clear();
-            camera.Lamps.Clear();
         }
+        world.Lamps.Clear();
         world.Wires.Clear();
         world.Cameras.Single(c => c.Id == "cam1").RelayOutputs.Add(new RelayOutputModel
         {

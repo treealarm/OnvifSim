@@ -14,15 +14,15 @@ public static class DeviceIo
     public static DigitalInputModel? FindInput(WorldModel world, string? cameraId, string token) =>
         FindCamera(world, cameraId)?.DigitalInputs.FirstOrDefault(i => Same(i.Token, token));
 
-    public static LampModel? FindLamp(WorldModel world, string? cameraId, string token) =>
-        FindCamera(world, cameraId)?.Lamps.FirstOrDefault(l => Same(l.Token, token));
+    public static LampModel? FindLamp(WorldModel world, string? id) =>
+        id is null ? null : world.Lamps.FirstOrDefault(l => Same(l.Id, id));
 
     // The wires into an input or a lamp. An input may be driven by several relays; so may a lamp.
     public static IEnumerable<WireModel> WiresToInput(WorldModel world, string cameraId, string token) =>
         world.Wires.Where(w => Same(w.InputCameraId, cameraId) && Same(w.InputToken, token));
 
-    public static IEnumerable<WireModel> WiresToLamp(WorldModel world, string cameraId, string token) =>
-        world.Wires.Where(w => Same(w.LampCameraId, cameraId) && Same(w.LampToken, token));
+    public static IEnumerable<WireModel> WiresToLamp(WorldModel world, string id) =>
+        world.Wires.Where(w => Same(w.LampId, id));
 
     // Whether the relay a wire runs from is closed (carrying current, ONVIF active).
     public static bool RelayClosed(WorldModel world, WireModel wire) =>
@@ -39,13 +39,14 @@ public static class DeviceIo
 
     // Whether a lamp is lit. A normally-open lamp lights while any linked relay is closed; a normally
     // closed one while none is. A lamp with no wire at all is simply off.
-    public static bool LampLit(WorldModel world, string cameraId, string token)
+    public static bool LampLit(WorldModel world, string id)
     {
-        var wires = WiresToLamp(world, cameraId, token).ToList();
+        var lamp = FindLamp(world, id);
+        if (lamp is null) return false;
+        var wires = WiresToLamp(world, id).ToList();
         if (wires.Count == 0) return false;
         bool closed = wires.Any(wire => RelayClosed(world, wire));
-        var lamp = FindLamp(world, cameraId, token);
-        return closed != (lamp?.NormallyClosed ?? false);
+        return closed != lamp.NormallyClosed;
     }
 
     // True when the camera's devices move with the world rather than standing still.

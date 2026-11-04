@@ -139,8 +139,8 @@ public class DeviceEventsTests
                 {
                     camera.RelayOutputs.Clear();
                     camera.DigitalInputs.Clear();
-                    camera.Lamps.Clear();
                 }
+                world.Lamps.Clear();
                 world.Wires.Clear();
             });
             if (setup != null) Store.Update(setup);

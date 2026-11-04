@@ -1,12 +1,10 @@
 import {
   cameraIoOf,
   inputActive,
-  lampLit,
   nextId,
   sameId,
   wireTo,
   wiresToInput,
-  wiresToLamp,
   type CameraIo,
   type CameraModel,
   type DigitalInput,
@@ -102,34 +100,6 @@ export function DeviceIoSection({ camera }: { camera: CameraModel }) {
     });
   }
 
-  function addLamp() {
-    const token = nextId('lamp', io.lamps.map((lamp) => lamp.token));
-    save({
-      ...io,
-      lamps: [...io.lamps, { token, name: `Lamp ${token}`, normallyClosed: false, position: { x: 2, y: 0, z: 0 } }],
-    });
-  }
-
-  function changeLamp(index: number, patch: Partial<Lamp>) {
-    const lamps = io.lamps.map((lamp, i) => (i === index ? { ...lamp, ...patch } : lamp));
-    const wires =
-      patch.token === undefined
-        ? io.wires
-        : io.wires.map((wire) =>
-            sameId(wire.lampToken ?? '', io.lamps[index].token) ? { ...wire, lampToken: patch.token! } : wire,
-          );
-    save({ ...io, lamps, wires });
-  }
-
-  function removeLamp(index: number) {
-    const token = io.lamps[index].token;
-    save({
-      ...io,
-      lamps: io.lamps.filter((_, i) => i !== index),
-      wires: io.wires.filter((wire) => !(sameId(wire.lampCameraId ?? '', camera.id) && sameId(wire.lampToken ?? '', token))),
-    });
-  }
-
   return (
     <>
       <Section title="Relay outputs">
@@ -183,7 +153,7 @@ export function DeviceIoSection({ camera }: { camera: CameraModel }) {
                 <SelectField
                   label="Wired to"
                   value={target}
-                  options={sinkOptions(world.cameras)}
+                  options={sinkOptions(world.cameras, world.lamps)}
                   onChange={(value) => wireRelay(relay, value)}
                 />
               )}
@@ -230,68 +200,30 @@ export function DeviceIoSection({ camera }: { camera: CameraModel }) {
           Add digital input
         </button>
       </Section>
-
-      <Section title="Lamps">
-        {io.lamps.length === 0 && <p className="muted">No lamps.</p>}
-        {io.lamps.map((lamp, index) => {
-          const wires = wiresToLamp(world, camera.id, lamp.token);
-          const lit = lampLit(world, camera.id, lamp.token);
-          return (
-            <div className="io-card" key={lamp.token}>
-              <div className="io-head">
-                <strong>{lamp.name || lamp.token}</strong>
-                <span className="muted">{lamp.token}</span>
-                <button type="button" onClick={() => removeLamp(index)}>
-                  Remove
-                </button>
-              </div>
-              <BlurTextField label="Token" value={lamp.token} onChange={(token) => changeLamp(index, { token })} />
-              <BlurTextField label="Name" value={lamp.name} onChange={(name) => changeLamp(index, { name })} />
-              <CheckboxField
-                label="Normally closed (lit while no relay is closed)"
-                checked={lamp.normallyClosed}
-                onChange={(normallyClosed) => changeLamp(index, { normallyClosed })}
-              />
-              <p className={lit ? 'io-state on' : 'io-state'}>
-                {wires.length === 0
-                  ? 'Not wired: no relay drives it.'
-                  : `${wires.map((wire) => `${wire.relayCameraId}/${wire.relayToken}`).join(', ')} — ${lit ? 'lit' : 'off'}`}
-              </p>
-              <DevicePosition offset={lamp.position} onChange={(position) => changeLamp(index, { position })} />
-            </div>
-          );
-        })}
-        <button type="button" onClick={addLamp}>
-          Add lamp
-        </button>
-      </Section>
     </>
   );
 }
 
-// Where a wire may go: any digital input or lamp of any camera. A sink may take several relays, so
-// nothing is excluded.
-function sinkOptions(cameras: CameraModel[]): { value: string; label: string }[] {
+// Where a wire may go: any digital input of any camera or any lamp of the world. A sink may take
+// several relays, so nothing is excluded.
+function sinkOptions(cameras: CameraModel[], lamps: Lamp[]): { value: string; label: string }[] {
   const options = [{ value: '', label: 'Not wired' }];
-  for (const other of cameras) {
+  for (const other of cameras)
     for (const input of other.digitalInputs)
       options.push({ value: `i:${other.id}/${input.token}`, label: `${other.name || other.id} / ${input.name || input.token} (input)` });
-    for (const lamp of other.lamps ?? [])
-      options.push({ value: `l:${other.id}/${lamp.token}`, label: `${other.name || other.id} / ${lamp.name || lamp.token} (lamp)` });
-  }
+  for (const lamp of lamps) options.push({ value: `l:${lamp.id}`, label: `${lamp.name || lamp.id} (lamp)` });
   return options;
 }
 
 // Ids and tokens are URL-safe, so a slash cannot appear in either; "i:" or "l:" says which sink.
 function targetOf(wire: Wire): string {
-  return wire.lampCameraId
-    ? `l:${wire.lampCameraId}/${wire.lampToken}`
-    : `i:${wire.inputCameraId}/${wire.inputToken}`;
+  return wire.lampId ? `l:${wire.lampId}` : `i:${wire.inputCameraId}/${wire.inputToken}`;
 }
 
 function parseTarget(value: string): Sink {
+  if (value.startsWith('l:')) return { kind: 'lamp', lampId: value.slice(2) };
   const [cameraId, token] = value.slice(2).split('/');
-  return { kind: value.startsWith('l:') ? 'lamp' : 'input', cameraId, token };
+  return { kind: 'input', cameraId, token };
 }
 
 // The device's place relative to its camera: to the right and behind it, and above the ground there.
