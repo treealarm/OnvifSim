@@ -43,10 +43,14 @@ export function CameraInspector({ camera }: { camera: CameraModel }) {
 
   return (
     <>
-      <h2>
-        {camera.name || camera.id} <span className="muted">{camera.id}</span>
-      </h2>
-      <CameraPicture camera={camera} showBoxes={showBoxes} />
+      {/* Pinned: while a property is being changed the picture stays in sight, showing the change
+          at once instead of scrolling away with the form. */}
+      <div className="inspector-head">
+        <h2>
+          {camera.name || camera.id} <span className="muted">{camera.id}</span>
+        </h2>
+        <CameraPicture camera={camera} showBoxes={showBoxes} />
+      </div>
       {camera.kind === 'ptz' && camera.ptz && <PtzControl camera={camera} ptz={camera.ptz} head={head} />}
       {status && <Addresses camera={camera} status={status} />}
 
@@ -68,6 +72,7 @@ export function CameraInspector({ camera }: { camera: CameraModel }) {
           options={[{ value: '', label: 'Standing on the ground' }, ...vehicles.map((v) => ({ value: v.id, label: v.id }))]}
           onChange={(id) => change({ mountedOnVehicleId: id === '' ? null : id })}
         />
+        <p className="muted">On a car, the camera rides it: its place and picture move along the route.</p>
         <NumberField label={mounted ? 'X (right)' : 'X (east)'} value={camera.position.x} step={0.5} onChange={(x) => changePosition({ x })} />
         <NumberField label={mounted ? 'Z (back)' : 'Z (south)'} value={camera.position.z} step={0.5} onChange={(z) => changePosition({ z })} />
         <NumberField label={mounted ? 'Above the car' : 'Above ground'} value={camera.position.y} min={0} step={0.5} onChange={(y) => changePosition({ y })} />

@@ -197,6 +197,18 @@ main {
   border-left: 1px solid var(--border);
 }
 
+/* The camera's name and picture stay at the top of the inspector while its properties scroll, so a
+   change is seen in the picture as it is made. */
+.inspector-head {
+  position: sticky;
+  top: -12px;
+  z-index: 3;
+  margin: -12px -12px 10px;
+  padding: 12px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+
 .tree {
   width: 240px;
   overflow-y: auto;
