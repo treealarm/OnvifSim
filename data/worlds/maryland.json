@@ -855,7 +855,18 @@
         "presets": []
       },
       "relayOutputs": [],
-      "digitalInputs": [],
+      "digitalInputs": [
+        {
+          "token": "input",
+          "name": "Room sensor",
+          "idleState": "open",
+          "position": {
+            "x": -1.5,
+            "y": 0.2,
+            "z": 1
+          }
+        }
+      ],
       "onvifPort": 0,
       "rtspPort": 0,
       "users": [
@@ -1030,18 +1041,7 @@
       },
       "ptz": null,
       "relayOutputs": [],
-      "digitalInputs": [
-        {
-          "token": "input",
-          "name": "Car sensor",
-          "idleState": "open",
-          "position": {
-            "x": 0.6,
-            "y": 0.2,
-            "z": 0.9
-          }
-        }
-      ],
+      "digitalInputs": [],
       "onvifPort": 0,
       "rtspPort": 0,
       "users": [
@@ -1057,7 +1057,7 @@
     {
       "relayCameraId": "master",
       "relayToken": "lamp",
-      "inputCameraId": "vehicle",
+      "inputCameraId": "ptz",
       "inputToken": "input"
     }
   ]

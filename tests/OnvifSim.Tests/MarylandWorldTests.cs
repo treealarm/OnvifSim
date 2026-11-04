@@ -73,16 +73,19 @@ public class MarylandWorldTests
     }
 
     [Fact]
-    public void TheMastersLamp_DrivesTheCarsSensor()
+    public void TheMastersLamp_DrivesThePtzsSensor()
     {
         var world = World();
         var relay = Assert.Single(world.Cameras.Single(c => c.Id == "master").RelayOutputs);
         Assert.Equal("lamp", relay.Token);
-        var input = Assert.Single(world.Cameras.Single(c => c.Id == MarylandWorld.VehicleCameraId).DigitalInputs);
+        var input = Assert.Single(world.Cameras.Single(c => c.Id == "ptz").DigitalInputs);
         Assert.Equal("input", input.Token);
         var wire = Assert.Single(world.Wires);
-        Assert.Equal(("master", "lamp", MarylandWorld.VehicleCameraId, "input"),
+        Assert.Equal(("master", "lamp", "ptz", "input"),
             (wire.RelayCameraId, wire.RelayToken, wire.InputCameraId, wire.InputToken));
+        // A device on the car would move the wire, and every camera that sees it, every frame.
+        Assert.Empty(world.Cameras.Single(c => c.Id == MarylandWorld.VehicleCameraId).DigitalInputs);
+        Assert.Empty(world.Cameras.Single(c => c.Id == MarylandWorld.VehicleCameraId).RelayOutputs);
     }
 
     [Fact]

@@ -184,8 +184,11 @@ public static class MarylandWorld
         });
     }
 
-    // The demo's relay and sensor: a lamp in Room 101 on the master's relay, a sensor on the car,
-    // and the wire between them. The car carries its sensor round the ring road, so the wire moves.
+    // The demo's relay and sensor: a lamp in Room 101 on the master's relay, a sensor in Room 102 on
+    // the PTZ camera's input, and the wire between them — one camera's relay driving another's input.
+    // Both cameras stand still: a wire to the car would trail across the world and make every camera
+    // that sees it redraw at every frame of the drive, for no demonstration the static pair does not
+    // already give.
     private static void AddDevices(WorldModel world)
     {
         var master = world.Cameras.Single(c => c.Id == "master");
@@ -193,15 +196,15 @@ public static class MarylandWorld
         {
             Token = "lamp", Name = "Room lamp", Position = new Vec3(1.5f, 0, -1f),
         });
-        var vehicle = world.Cameras.Single(c => c.Id == VehicleCameraId);
-        vehicle.DigitalInputs.Add(new DigitalInputModel
+        var ptz = world.Cameras.Single(c => c.Id == "ptz");
+        ptz.DigitalInputs.Add(new DigitalInputModel
         {
-            Token = "input", Name = "Car sensor", Position = new Vec3(0.6f, 0.2f, 0.9f),
+            Token = "input", Name = "Room sensor", Position = new Vec3(-1.5f, 0.2f, 1f),
         });
         world.Wires.Add(new WireModel
         {
             RelayCameraId = master.Id, RelayToken = "lamp",
-            InputCameraId = vehicle.Id, InputToken = "input",
+            InputCameraId = ptz.Id, InputToken = "input",
         });
     }
 
