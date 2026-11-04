@@ -183,8 +183,8 @@ public static partial class WorldValidation
         }
     }
 
-    // Relay outputs, digital inputs and lamps: tokens address them in URLs and in ONVIF requests, so
-    // they are unique per camera and URL-safe; positions are metres offset from the camera.
+    // Relay outputs and digital inputs: tokens address them in URLs and in ONVIF requests, so they are
+    // unique per camera and URL-safe. They are settings of the camera, not things standing in the world.
     private static void CheckDevices(CameraModel camera)
     {
         string id = camera.Id;
@@ -195,7 +195,6 @@ public static partial class WorldValidation
             Require(TokenPattern().IsMatch(relay.Token),
                 $"Camera {id}: relay output token '{relay.Token}' must be 1..32 letters, digits, '-' or '_'.");
             Require(relay.Name.Length <= 64, $"Camera {id}: relay output {relay.Token}: the name must be at most 64 characters.");
-            Require(IsFinite(relay.Position), $"Camera {id}: relay output {relay.Token}: the position must be finite.");
             Require(relay.Mode == RelayModeModel.Bistable || relay.DelaySeconds is >= 0.05f and <= 3600,
                 $"Camera {id}: relay output {relay.Token}: a monostable delay must be within 0.05..3600 s.");
         }
@@ -204,7 +203,6 @@ public static partial class WorldValidation
             Require(TokenPattern().IsMatch(input.Token),
                 $"Camera {id}: digital input token '{input.Token}' must be 1..32 letters, digits, '-' or '_'.");
             Require(input.Name.Length <= 64, $"Camera {id}: digital input {input.Token}: the name must be at most 64 characters.");
-            Require(IsFinite(input.Position), $"Camera {id}: digital input {input.Token}: the position must be finite.");
         }
     }
 

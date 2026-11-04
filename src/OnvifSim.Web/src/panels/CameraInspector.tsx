@@ -41,6 +41,9 @@ export function CameraInspector({ camera }: { camera: CameraModel }) {
   const changePosition = (patch: Partial<Vec3>) => change({ position: { ...camera.position, ...patch } });
   const changeMetadata = (patch: Partial<CameraModel['metadata']>) => change({ metadata: { ...camera.metadata, ...patch } });
   const [showBoxes, setShowBoxes] = useState(true);
+  // The relay and input states as a caption on the picture, which is where a device of a camera is
+  // shown: it has no shape in the world.
+  const [showDevices, setShowDevices] = useState(true);
 
   return (
     <>
@@ -52,7 +55,7 @@ export function CameraInspector({ camera }: { camera: CameraModel }) {
             {camera.name || camera.id} <span className="muted">{camera.id}</span>
           </h2>
         </InspectorTitle>
-        <CameraPicture camera={camera} showBoxes={showBoxes} />
+        <CameraPicture camera={camera} showBoxes={showBoxes} showDevices={showDevices} />
       </div>
       {camera.kind === 'ptz' && camera.ptz && <PtzControl camera={camera} ptz={camera.ptz} head={head} />}
       {status && <Addresses camera={camera} status={status} />}
@@ -97,7 +100,7 @@ export function CameraInspector({ camera }: { camera: CameraModel }) {
 
       {/* Before the streams: a relay and the input it drives are what an installer wires, and the
           section is of no use buried under two panels of encoder settings. */}
-      <DeviceIoSection camera={camera} />
+      <DeviceIoSection camera={camera} showDevices={showDevices} onShowDevices={setShowDevices} />
 
       <StreamsSection camera={camera} h264Available={status?.h264 !== false} onChange={(streams) => change({ streams })} />
 

@@ -43,8 +43,6 @@ public sealed class RenderScene
         // Direction towards the sun: azimuth clockwise from north (-Z).
         var toSun = Vector3.Normalize(new(MathF.Sin(az) * MathF.Cos(el), MathF.Sin(el), -MathF.Cos(az) * MathF.Cos(el)));
         var lit = chunks.Concat(DeviceScene.Static(world)).Select(c => Light(c, toSun)).ToList();
-        // Wires are lines, not faces: drawn as they are, and only where both ends stand still.
-        lit.AddRange(DeviceScene.StaticWires(world));
         return new RenderScene
         {
             Chunks = lit,

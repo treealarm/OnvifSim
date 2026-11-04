@@ -169,33 +169,17 @@ public static class MarylandWorld
     // The master's three relays show every kind of link a relay can have: one lights a lamp standing
     // in the hall, one drives the slave camera's sensor, and one drives a sensor of the master itself.
     // Closed, the sensors read 0 and the lamp is on; open, the sensors read 1 and the lamp is off.
-    // All of them stand on cameras that do not move: a wire to the car would trail across the world
-    // and make every camera that sees it redraw at every frame of the drive, for no demonstration
-    // the static pair does not already give.
+    // Relays and sensors are settings of a camera, not things standing in the world, so the car carries
+    // none: a device on it would be a link nobody can see, and the static pair already shows each kind.
     private static void AddDevices(WorldModel world)
     {
         var master = world.Cameras.Single(c => c.Id == "master");
-        master.RelayOutputs.Add(new RelayOutputModel
-        {
-            Token = "lamp", Name = "Hall lamp relay", Position = new Vec3(1.5f, 0, -1f),
-        });
-        master.RelayOutputs.Add(new RelayOutputModel
-        {
-            Token = "peer", Name = "Slave sensor relay", Position = new Vec3(2.5f, 0, -1f),
-        });
-        master.RelayOutputs.Add(new RelayOutputModel
-        {
-            Token = "loop", Name = "Own sensor relay", Position = new Vec3(3.5f, 0, -1f),
-        });
-        master.DigitalInputs.Add(new DigitalInputModel
-        {
-            Token = "input", Name = "Master sensor", Position = new Vec3(-1.5f, 0.2f, 1f),
-        });
+        master.RelayOutputs.Add(new RelayOutputModel { Token = "lamp", Name = "Hall lamp relay" });
+        master.RelayOutputs.Add(new RelayOutputModel { Token = "peer", Name = "Slave sensor relay" });
+        master.RelayOutputs.Add(new RelayOutputModel { Token = "loop", Name = "Own sensor relay" });
+        master.DigitalInputs.Add(new DigitalInputModel { Token = "input", Name = "Master sensor" });
         var ptz = world.Cameras.Single(c => c.Id == "ptz");
-        ptz.DigitalInputs.Add(new DigitalInputModel
-        {
-            Token = "input", Name = "Slave sensor", Position = new Vec3(-1.5f, 0.2f, 1f),
-        });
+        ptz.DigitalInputs.Add(new DigitalInputModel { Token = "input", Name = "Slave sensor" });
         world.Lamps.Add(new LampModel
         {
             Id = "alert", Name = "Hall alert lamp", Position = new Vec3(-56, 0, -16),

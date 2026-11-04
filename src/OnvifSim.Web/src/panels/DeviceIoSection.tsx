@@ -26,9 +26,18 @@ const idleOptions = [
   { value: 'closed', label: 'Closed' },
 ] as const;
 
-// The camera's relay outputs and digital inputs: relays as switches with lamps, inputs as sensors they
-// may be wired to, on this camera or another. The live state of an input follows its wire.
-export function DeviceIoSection({ camera }: { camera: CameraModel }) {
+// The camera's relay outputs and digital inputs: switches a client reads and writes over ONVIF, not
+// things standing in the world. The live state of an input follows its wire, and both may be shown on
+// the camera's picture.
+export function DeviceIoSection({
+  camera,
+  showDevices,
+  onShowDevices,
+}: {
+  camera: CameraModel;
+  showDevices: boolean;
+  onShowDevices: (show: boolean) => void;
+}) {
   const world = useEditor((s) => s.world);
   if (!world) return null;
   const io = cameraIoOf(world, camera);
@@ -52,7 +61,7 @@ export function DeviceIoSection({ camera }: { camera: CameraModel }) {
       ...io,
       relayOutputs: [
         ...io.relayOutputs,
-        { token, name: `Relay ${token}`, mode: 'bistable', delaySeconds: 5, idleState: 'open', active: false, position: { x: 2, y: 0, z: 2 } },
+        { token, name: `Relay ${token}`, mode: 'bistable', delaySeconds: 5, idleState: 'open', active: false },
       ],
     });
   }
@@ -86,7 +95,7 @@ export function DeviceIoSection({ camera }: { camera: CameraModel }) {
     const token = nextId('input', io.digitalInputs.map((input) => input.token));
     save({
       ...io,
-      digitalInputs: [...io.digitalInputs, { token, name: `Input ${token}`, idleState: 'open', position: { x: 2, y: 0, z: 0 } }],
+      digitalInputs: [...io.digitalInputs, { token, name: `Input ${token}`, idleState: 'open' }],
     });
   }
 
@@ -110,6 +119,7 @@ export function DeviceIoSection({ camera }: { camera: CameraModel }) {
             Wiring…
           </button>
         </p>
+        <CheckboxField label="States on the picture" checked={showDevices} onChange={onShowDevices} />
       </Section>
       <Section title="Relay outputs">
         {io.relayOutputs.length === 0 && <p className="muted">No relay outputs.</p>}
@@ -166,7 +176,6 @@ export function DeviceIoSection({ camera }: { camera: CameraModel }) {
                   onChange={(value) => wireRelay(relay, value)}
                 />
               )}
-              <DevicePosition offset={relay.position} onChange={(position) => changeRelay(index, { position })} />
             </div>
           );
         })}
@@ -201,7 +210,6 @@ export function DeviceIoSection({ camera }: { camera: CameraModel }) {
                   ? 'Not wired: no relay drives it.'
                   : `${wires.map((wire) => `${wire.relayCameraId}/${wire.relayToken}`).join(', ')} — ${active ? '1' : '0'}`}
               </p>
-              <DevicePosition offset={input.position} onChange={(position) => changeInput(index, { position })} />
             </div>
           );
         })}
@@ -233,15 +241,4 @@ function parseTarget(value: string): Sink {
   if (value.startsWith('l:')) return { kind: 'lamp', lampId: value.slice(2) };
   const [cameraId, token] = value.slice(2).split('/');
   return { kind: 'input', cameraId, token };
-}
-
-// The device's place relative to its camera: to the right and behind it, and above the ground there.
-function DevicePosition({ offset, onChange }: { offset: { x: number; y: number; z: number }; onChange: (offset: { x: number; y: number; z: number }) => void }) {
-  return (
-    <>
-      <NumberField label="Right of camera, m" value={offset.x} step={0.5} onChange={(x) => onChange({ ...offset, x })} />
-      <NumberField label="Behind camera, m" value={offset.z} step={0.5} onChange={(z) => onChange({ ...offset, z })} />
-      <NumberField label="Above ground, m" value={offset.y} step={0.5} onChange={(y) => onChange({ ...offset, y })} />
-    </>
-  );
 }

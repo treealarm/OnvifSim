@@ -587,12 +587,7 @@
           "mode": "bistable",
           "delaySeconds": 5,
           "idleState": "open",
-          "active": false,
-          "position": {
-            "x": 1.5,
-            "y": 0,
-            "z": -1
-          }
+          "active": false
         },
         {
           "token": "peer",
@@ -600,12 +595,7 @@
           "mode": "bistable",
           "delaySeconds": 5,
           "idleState": "open",
-          "active": false,
-          "position": {
-            "x": 2.5,
-            "y": 0,
-            "z": -1
-          }
+          "active": false
         },
         {
           "token": "loop",
@@ -613,24 +603,14 @@
           "mode": "bistable",
           "delaySeconds": 5,
           "idleState": "open",
-          "active": false,
-          "position": {
-            "x": 3.5,
-            "y": 0,
-            "z": -1
-          }
+          "active": false
         }
       ],
       "digitalInputs": [
         {
           "token": "input",
           "name": "Master sensor",
-          "idleState": "open",
-          "position": {
-            "x": -1.5,
-            "y": 0.2,
-            "z": 1
-          }
+          "idleState": "open"
         }
       ],
       "onvifPort": 0,
@@ -708,12 +688,7 @@
         {
           "token": "input",
           "name": "Slave sensor",
-          "idleState": "open",
-          "position": {
-            "x": -1.5,
-            "y": 0.2,
-            "z": 1
-          }
+          "idleState": "open"
         }
       ],
       "onvifPort": 0,

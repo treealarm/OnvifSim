@@ -574,6 +574,20 @@ input.pending {
   height: 100%;
 }
 
+/* A camera's relay and input states, as an optional caption over its picture. */
+.preview-devices {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgb(0 0 0 / 55%);
+  color: #e8eaee;
+  font-size: 11px;
+  line-height: 1.35;
+  pointer-events: none;
+}
+
 .preview .seen {
   position: absolute;
   box-sizing: border-box;

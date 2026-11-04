@@ -81,10 +81,8 @@ public sealed class CachingFrameRenderer(TimeProvider time, Func<CameraModel, Pt
         var vehicles = VehiclesInView(snapshot.World.Vehicles, scene, frustum, now, camera.MountedOnVehicleId);
         bool headsMoving = CameraMarkers.Any(scene) && snapshot.World.Cameras.Any(c =>
             c.Kind == CameraKind.Ptz && c.Ptz != null && !string.Equals(c.Id, camera.Id, StringComparison.OrdinalIgnoreCase) && IsMoving(HeadOf(c)));
-        // Lamps and sensors on a car drive with it, and so do the wires touching them.
-        var devices = DeviceScene.Moving(snapshot.World, scene, frustum, now);
         var key = new FrameKey(scene, pose, imaging.Brightness, imaging.Contrast, imaging.ColorSaturation, camera.AngleGrid, width, height,
-            walkers.Count == 0 && vehicles.Count == 0 && devices.Count == 0 ? 0 : now.ToUnixTimeMilliseconds(),
+            walkers.Count == 0 && vehicles.Count == 0 ? 0 : now.ToUnixTimeMilliseconds(),
             headsMoving ? now.ToUnixTimeMilliseconds() : 0);
         if (key == _frameKey) return key;
         if (_frame == null || _frame.Width != width || _frame.Height != height)
@@ -92,7 +90,6 @@ public sealed class CachingFrameRenderer(TimeProvider time, Func<CameraModel, Pt
         var moving = walkers.Select(w => scene.Light(SceneBuilder.WalkerChunk(w.Walker, w.Pose, scene.Terrain))).ToList();
         moving.AddRange(vehicles.Select(v => scene.Light(SceneBuilder.VehicleChunk(v.Vehicle, v.Pose, scene.Terrain))));
         moving.AddRange(CameraMarkers.Build(scene, snapshot.World, camera.Id, c => HeadOf(c).Position, now));
-        moving.AddRange(devices);
         _rasterizer.Render(scene, moving, key.Pose, _frame);
         ImageAdjustments.Apply(_frame, imaging);
         if (camera.AngleGrid) AngleGrid.Draw(_frame, camera, key.Pose, ptz);

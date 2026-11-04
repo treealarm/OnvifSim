@@ -410,8 +410,11 @@ test('a lamp is placed from the palette and a relay lights it', async ({ page, r
   await page.getByLabel('Wired to', { exact: true }).selectOption({ label: `Fixed ${cameraId} / Input input1 (input)` });
   const sensor = page.locator('.io-card').filter({ has: page.locator('strong', { hasText: 'Input input1' }) });
   await expect(sensor).toContainText('1');
+  // The states are a caption on the picture, where a device of a camera is shown.
+  await expect(page.locator('.preview-devices')).toContainText('Input input1: 1');
   await page.getByLabel('Active (the lamp is lit)', { exact: true }).check();
   await expect(sensor).toContainText('0');
+  await expect(page.locator('.preview-devices')).toContainText('Input input1: 0');
   await expect.poll(async () => (await world(request)).wires?.some(
     (w) => w.relayCameraId === cameraId && w.inputCameraId === cameraId && w.inputToken === 'input1')).toBe(true);
 

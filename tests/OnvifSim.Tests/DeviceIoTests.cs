@@ -30,7 +30,6 @@ public class DeviceIoTests(SimFactory factory) : IClassFixture<SimFactory>
         Assert.Equal(2.5f, relay.DelaySeconds);
         Assert.Equal(IdleStateModel.Closed, relay.IdleState);
         Assert.True(relay.Active);
-        Assert.Equal(new Vec3(1, 0, -3), relay.Position);
         var input = Assert.Single(read.Cameras.Single(c => c.Id == "cam2").DigitalInputs);
         Assert.Equal("sensor", input.Token);
         var wire = Assert.Single(read.Wires);
@@ -178,24 +177,26 @@ public class DeviceIoTests(SimFactory factory) : IClassFixture<SimFactory>
     }
 
     [Fact]
-    public void TheScene_HasALampForARelay_AndALineForAWire()
+    public void TheScene_DrawsTheLampsOfTheWorld_AndNoShapeOfACamerasDevices()
     {
         var world = WorldWithDevices();
+        world.Lamps.Add(new LampModel { Id = "warning", Position = new Vec3(10, 0, 0) });
         var devices = DeviceScene.Static(world);
-        Assert.Contains(devices, chunk => chunk.Name == "cam1/relay/lamp");
-        Assert.Contains(devices, chunk => chunk.Name == "cam2/input/sensor");
-        var wire = Assert.Single(DeviceScene.StaticWires(world));
-        Assert.Equal(2, wire.Lines.Length);
-        Assert.Contains(RenderScene.Build(world).Chunks, chunk => chunk.Lines.Length == 2);
+        // A relay output or a digital input is a setting of the camera; only the lamp it drives stands
+        // in the world to be seen.
+        Assert.DoesNotContain(devices, chunk => chunk.Name.StartsWith("cam", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(devices, chunk => chunk.Name == "lamp/warning");
     }
 
     [Fact]
     public void ALamp_LooksDifferentWhenItIsActive()
     {
         var world = WorldWithDevices();
+        world.Lamps.Add(new LampModel { Id = "warning", Position = new Vec3(10, 0, 0) });
+        world.Wires.Add(new WireModel { RelayCameraId = "cam1", RelayToken = "lamp", LampId = "warning" });
         var lit = Lamp(world, active: true);
         var dark = Lamp(world, active: false);
-        Assert.False(lit.Mesh.Colors.SequenceEqual(dark.Mesh.Colors), "the shade changes colour");
+        Assert.False(lit.Mesh.Colors.SequenceEqual(dark.Mesh.Colors), "the bulb changes colour");
     }
 
     [Fact]
@@ -249,46 +250,6 @@ public class DeviceIoTests(SimFactory factory) : IClassFixture<SimFactory>
         Assert.False(DeviceIo.LampLit(world, "idle"));
     }
 
-    [Fact]
-    public void TheScene_DrawsALampOfTheWorldAndItsWire()
-    {
-        var world = WorldWithDevices();
-        world.Lamps.Add(new LampModel { Id = "warning", Position = new Vec3(10, 0, 0) });
-        world.Wires.Add(new WireModel { RelayCameraId = "cam1", RelayToken = "lamp", LampId = "warning" });
-
-        Assert.Contains(DeviceScene.Static(world), chunk => chunk.Name == "lamp/warning");
-        Assert.Equal(2, DeviceScene.StaticWires(world).Count);
-    }
-
-    [Fact]
-    public void ADevice_StandsToTheRightOfItsCamera()
-    {
-        var world = DefaultWorld.Create();
-        var camera = world.Cameras.Single(c => c.Id == "cam1");
-        camera.Position = new Vec3(10, 5, 20);
-        camera.Heading = 90; // facing east
-        var terrain = new Terrain(world.Terrain);
-
-        // Two metres to the camera's right is south, +Z, since it faces east.
-        var point = DeviceScene.DevicePoint(camera, world, terrain, DateTimeOffset.UnixEpoch, new Vec3(2, 1, 0));
-        Assert.Equal(10, point.X, 2);
-        Assert.Equal(22, point.Z, 2);
-        Assert.Equal(terrain.HeightAt(point.X, point.Z) + 1, point.Y, 2);
-    }
-
-    [Fact]
-    public void ADeviceOnACar_MovesWithIt()
-    {
-        var world = DefaultWorld.Create();
-        var camera = world.Cameras.Single(c => c.Id == "cam5");
-        var terrain = new Terrain(world.Terrain);
-        var at = DateTimeOffset.UnixEpoch.AddDays(20000);
-
-        var first = DeviceScene.DevicePoint(camera, world, terrain, at, new Vec3(1, 0, 0));
-        var later = DeviceScene.DevicePoint(camera, world, terrain, at.AddSeconds(5), new Vec3(1, 0, 0));
-        Assert.True(Vector3.Distance(first, later) > 1, "the car drives");
-    }
-
     // ---- The editor's API ----
 
     [Fact]
@@ -298,8 +259,8 @@ public class DeviceIoTests(SimFactory factory) : IClassFixture<SimFactory>
         await PutCamera(client, "io-save", 0);
         var put = await client.PutAsync("/api/cameras/io-save/io", Json(new
         {
-            relayOutputs = new[] { Relay("lamp", "Lamp", -4) },
-            digitalInputs = new[] { Input("sensor", "Sensor", -6) },
+            relayOutputs = new[] { Relay("lamp", "Lamp") },
+            digitalInputs = new[] { Input("sensor", "Sensor") },
             wires = new[] { Wire("lamp", "io-save", "sensor") },
         }));
 
@@ -311,19 +272,15 @@ public class DeviceIoTests(SimFactory factory) : IClassFixture<SimFactory>
     }
 
     [Fact]
-    public async Task SwitchingARelay_ChangesThePicture()
+    public async Task SwitchingARelay_SetsItsState()
     {
         var client = factory.CreateClient();
         await PutCamera(client, "io-frame", 140);
-        await PutIo(client, "io-frame", Relay("lamp", "Lamp", -4));
-        var before = await client.GetByteArrayAsync("/api/cameras/io-frame/snapshot.jpg");
+        await PutIo(client, "io-frame", Relay("lamp", "Lamp"));
 
         var switched = await client.PutAsync("/api/cameras/io-frame/relays/lamp", Json(new { active = true }));
         Assert.Equal(HttpStatusCode.NoContent, switched.StatusCode);
         Assert.True(Store.Current.Cameras.Single(c => c.Id == "io-frame").RelayOutputs[0].Active);
-
-        var after = await client.GetByteArrayAsync("/api/cameras/io-frame/snapshot.jpg");
-        Assert.NotEqual(before, after);
     }
 
     [Fact]
@@ -331,13 +288,13 @@ public class DeviceIoTests(SimFactory factory) : IClassFixture<SimFactory>
     {
         var client = factory.CreateClient();
         await PutCamera(client, "io-stale", 100);
-        await PutIo(client, "io-stale", Relay("lamp", "Lamp", -4));
+        await PutIo(client, "io-stale", Relay("lamp", "Lamp"));
         await client.PutAsync("/api/cameras/io-stale/relays/lamp", Json(new { active = true }));
 
         // A panel that was open before the switch still says the relay is off.
         var put = await client.PutAsync("/api/cameras/io-stale/io", Json(new
         {
-            relayOutputs = new[] { Relay("lamp", "Renamed", -4) },
+            relayOutputs = new[] { Relay("lamp", "Renamed") },
             digitalInputs = Array.Empty<object>(),
             wires = Array.Empty<object>(),
         }));
@@ -355,12 +312,12 @@ public class DeviceIoTests(SimFactory factory) : IClassFixture<SimFactory>
         await PutCamera(client, "io-a", -140);
         await PutCamera(client, "io-b", -100);
         await PutCamera(client, "io-c", -60);
-        await PutIo(client, "io-c", null, Input("sensor", "Sensor", 0));
+        await PutIo(client, "io-c", null, Input("sensor", "Sensor"));
         Assert.Equal(HttpStatusCode.NoContent,
-            (await client.PutAsync("/api/cameras/io-a/io", Json(new { relayOutputs = new[] { Relay("lamp", "Lamp", 0) }, wires = new[] { Wire("lamp", "io-c", "sensor") } }))).StatusCode);
+            (await client.PutAsync("/api/cameras/io-a/io", Json(new { relayOutputs = new[] { Relay("lamp", "Lamp") }, wires = new[] { Wire("lamp", "io-c", "sensor") } }))).StatusCode);
 
         var second = await client.PutAsync("/api/cameras/io-b/io",
-            Json(new { relayOutputs = new[] { Relay("lamp", "Lamp", 0) }, wires = new[] { Wire("lamp", "io-c", "sensor") } }));
+            Json(new { relayOutputs = new[] { Relay("lamp", "Lamp") }, wires = new[] { Wire("lamp", "io-c", "sensor") } }));
         Assert.Equal(HttpStatusCode.NoContent, second.StatusCode);
     }
 
@@ -370,7 +327,7 @@ public class DeviceIoTests(SimFactory factory) : IClassFixture<SimFactory>
         var client = factory.CreateClient();
         await PutCamera(client, "io-d", -20);
         var put = await client.PutAsync("/api/cameras/io-d/io",
-            Json(new { relayOutputs = new[] { Relay("lamp", "Lamp", 0) }, wires = new[] { Wire("lamp", "io-d", "nobody") } }));
+            Json(new { relayOutputs = new[] { Relay("lamp", "Lamp") }, wires = new[] { Wire("lamp", "io-d", "nobody") } }));
         Assert.Equal(HttpStatusCode.BadRequest, put.StatusCode);
         Assert.Contains("no digital input 'nobody'", await ReasonOf(put));
     }
@@ -381,9 +338,9 @@ public class DeviceIoTests(SimFactory factory) : IClassFixture<SimFactory>
         var client = factory.CreateClient();
         await PutCamera(client, "io-e", 20);
         await PutCamera(client, "io-f", 60);
-        await PutIo(client, "io-f", null, Input("sensor", "Sensor", 0));
+        await PutIo(client, "io-f", null, Input("sensor", "Sensor"));
         await client.PutAsync("/api/cameras/io-e/io",
-            Json(new { relayOutputs = new[] { Relay("lamp", "Lamp", 0) }, wires = new[] { Wire("lamp", "io-f", "sensor") } }));
+            Json(new { relayOutputs = new[] { Relay("lamp", "Lamp") }, wires = new[] { Wire("lamp", "io-f", "sensor") } }));
         Assert.Contains(Store.Current.Wires, w => w.InputCameraId == "io-f");
 
         Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync("/api/cameras/io-f")).StatusCode);
@@ -415,11 +372,11 @@ public class DeviceIoTests(SimFactory factory) : IClassFixture<SimFactory>
         world.Cameras.Single(c => c.Id == "cam1").RelayOutputs.Add(new RelayOutputModel
         {
             Token = "lamp", Name = "Lamp", Mode = RelayModeModel.Monostable, DelaySeconds = 2.5f,
-            IdleState = IdleStateModel.Closed, Active = true, Position = new Vec3(1, 0, -3),
+            IdleState = IdleStateModel.Closed, Active = true,
         });
         world.Cameras.Single(c => c.Id == "cam2").DigitalInputs.Add(new DigitalInputModel
         {
-            Token = "sensor", Name = "Sensor", Position = new Vec3(-1, 0, 2),
+            Token = "sensor", Name = "Sensor",
         });
         world.Wires.Add(new WireModel { RelayCameraId = "cam1", RelayToken = "lamp", InputCameraId = "cam2", InputToken = "sensor" });
         return world;
@@ -428,7 +385,7 @@ public class DeviceIoTests(SimFactory factory) : IClassFixture<SimFactory>
     private static SceneChunk Lamp(WorldModel world, bool active)
     {
         world.Cameras.Single(c => c.Id == "cam1").RelayOutputs[0].Active = active;
-        return DeviceScene.Static(world).Single(chunk => chunk.Name == "cam1/relay/lamp");
+        return DeviceScene.Static(world).Single(chunk => chunk.Name == "lamp/warning");
     }
 
     private static WorldStore StoreWithRelay(TempDir dir, RelayModeModel mode, IdleStateModel idle)
@@ -455,14 +412,14 @@ public class DeviceIoTests(SimFactory factory) : IClassFixture<SimFactory>
 
     private static JsonContent Json(object value) => JsonContent.Create(value, options: WorldStore.Json);
 
-    private static object Relay(string token, string name, float z) => new
+    private static object Relay(string token, string name) => new
     {
-        token, name, mode = "bistable", delaySeconds = 5, idleState = "open", position = new { x = 0, y = 0, z },
+        token, name, mode = "bistable", delaySeconds = 5, idleState = "open",
     };
 
-    private static object Input(string token, string name, float z) => new
+    private static object Input(string token, string name) => new
     {
-        token, name, idleState = "open", position = new { x = 0, y = 0, z },
+        token, name, idleState = "open",
     };
 
     private static object Wire(string relayToken, string inputCameraId, string inputToken) => new

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import type { CameraModel } from '../model';
+import { inputActive, type CameraModel } from '../model';
+import { useEditor } from '../store';
 
 // A person or car the camera's analytics sees, as its metadata stream reports them: the object id and
 // the box in ONVIF's normalized frame coordinates (x -1..1 left to right, y -1..1 bottom to top).
@@ -14,13 +15,29 @@ interface SeenObject {
 }
 
 // The server's own picture, exactly what RTSP and ONVIF clients get, with the people and cars its
-// analytics sees boxed over it.
-export function CameraPicture({ camera, showBoxes }: { camera: CameraModel; showBoxes: boolean }) {
+// analytics sees boxed over it — and, on request, the states of its relays and inputs. Those are
+// settings of the camera rather than shapes in the world, so the picture is where they are shown.
+export function CameraPicture({ camera, showBoxes, showDevices }: { camera: CameraModel; showBoxes: boolean; showDevices: boolean }) {
+  const world = useEditor((s) => s.world);
   const objects = useSeenObjects(camera.id, showBoxes && camera.metadata.analytics);
   const percent = (fraction: number) => `${fraction * 100}%`;
+  const devices = world && showDevices ? [
+    ...camera.relayOutputs.map((relay) => `${relay.name || relay.token}: ${relay.active ? 'closed' : 'open'}`),
+    ...camera.digitalInputs.map((input) => {
+      const active = inputActive(world, camera.id, input.token);
+      return `${input.name || input.token}: ${active === null ? 'not wired' : active ? '1' : '0'}`;
+    }),
+  ] : [];
   return (
     <div className="preview" style={{ aspectRatio: `${camera.video.width} / ${camera.video.height}` }}>
       <img src={`/api/cameras/${encodeURIComponent(camera.id)}/mjpeg`} alt={`What ${camera.name || camera.id} sees`} />
+      {devices.length > 0 && (
+        <div className="preview-devices">
+          {devices.map((line) => (
+            <div key={line}>{line}</div>
+          ))}
+        </div>
+      )}
       {objects.map((o) => (
         <div
           key={o.id}

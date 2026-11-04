@@ -130,18 +130,10 @@ public static class DefaultWorld
             Users = [new UserModel { Username = "admin", Password = "admin" }],
         });
 
-        // A relay lamp and a digital input, wired together, so a fresh install shows the devices and
-        // their wire before anyone opens the editor: the village camera's lamp stands by the road and
-        // the tower camera watches the sensor. Both stand still — a wire from a car would make every
-        // camera that sees either end redraw at every frame of its drive.
-        world.Cameras[0].RelayOutputs.Add(new RelayOutputModel
-        {
-            Token = "lamp", Name = "Village lamp", Position = new(4, 0, 6),
-        });
-        world.Cameras[1].DigitalInputs.Add(new DigitalInputModel
-        {
-            Token = "sensor", Name = "Gate sensor", Position = new(-3, 0.2f, 2),
-        });
+        // A relay and a digital input, wired together, so a fresh install has the devices to read over
+        // ONVIF before anyone opens the editor: the village camera switches, the tower camera reads.
+        world.Cameras[0].RelayOutputs.Add(new RelayOutputModel { Token = "lamp", Name = "Village lamp" });
+        world.Cameras[1].DigitalInputs.Add(new DigitalInputModel { Token = "sensor", Name = "Gate sensor" });
         // A lamp the same relay lights: closed, the input reads 0 and the lamp is on. It stands in the
         // world on its own, not on a camera.
         world.Lamps.Add(new LampModel

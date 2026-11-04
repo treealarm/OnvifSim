@@ -1,78 +1,23 @@
-import { Line } from '@react-three/drei';
-import { useFrame, type ThreeEvent } from '@react-three/fiber';
-import { useRef, type ComponentRef, type RefObject } from 'react';
-import { DoubleSide, type Group, type Plane } from 'three';
-import {
-  defaultLampColor,
-  heightAt,
-  inputActive,
-  lampLit as lampIsLit,
-  sameId,
-  type CameraModel,
-  type DigitalInput,
-  type Lamp as LampDevice,
-  type Terrain,
-  type Vec3,
-  type Vehicle,
-  type Wire,
-  type World,
-} from '../model';
+import { DoubleSide, type Plane } from 'three';
+import type { ThreeEvent } from '@react-three/fiber';
+import { defaultLampColor, heightAt, lampLit as lampIsLit, type Lamp as LampDevice, type Terrain, type World } from '../model';
 import { select, useEditor, type Selection } from '../store';
 import { useCutawayPlanes } from './cutaway';
-import { devicePoint, isMounted } from './devicePoint';
 import { Label } from './Label';
 
-// As Geometry/DeviceMesh.cs builds them on the server: the lamp's bulb sits at the top of its post, and
-// the sensor's lit top at sensorHeight.
+// As Geometry/DeviceMesh.cs builds the lamp on the server.
 const lampHeight = 2.6;
 const bulbHeight = 2.32;
 const bulbRadius = 0.28;
-const sensorHeight = 0.42;
 const lampDark = '#5c5e62';
-const sensorLit = '#52d06c';
-const sensorDark = '#5e6a76';
-const wireColor = '#2a2a2e';
 
-// The lamps and sensor blocks that stand for every camera's relay outputs and digital inputs, and the
-// wires between them. A camera on a car carries its devices, and the wires touching them, along.
+// The lamps of the world: actuators a relay drives, standing where they were placed. A camera's own
+// relay outputs and digital inputs are settings of the camera — a client reads and writes them over
+// ONVIF — not shapes in the world, so they are shown on its picture instead (CameraPicture).
 export function DeviceIoView({ world }: { world: World }) {
   const clippingPlanes = useCutawayPlanes();
-  // A camera's devices are a few centimetres wide at the world's scale: their names and states are
-  // shown while that camera is the one being edited, and not for every camera at once.
-  const selectedCamera = useEditor((s) => (s.selection?.kind === 'camera' ? s.selection.id : null));
   return (
     <>
-      {world.cameras.flatMap((camera) => {
-        const labelled = sameId(selectedCamera ?? '', camera.id);
-        return [
-          ...camera.relayOutputs.map((relay) => (
-            <Lamp
-              key={`${camera.id}/relay/${relay.token}`}
-              camera={camera}
-              name={relay.name || relay.token}
-              labelled={labelled}
-              position={relay.position}
-              lit={relay.active}
-              terrain={world.terrain}
-              vehicles={world.vehicles}
-              clippingPlanes={clippingPlanes}
-            />
-          )),
-          ...camera.digitalInputs.map((input) => (
-            <Sensor
-              key={`${camera.id}/input/${input.token}`}
-              camera={camera}
-              name={input.name || input.token}
-              labelled={labelled}
-              input={input}
-              active={inputActive(world, camera.id, input.token) === true}
-              terrain={world.terrain}
-              vehicles={world.vehicles}
-              clippingPlanes={clippingPlanes}
-            />
-          )),
-        ];
-      })}
       {world.lamps.map((lamp) => (
         <WorldLamp
           key={lamp.id}
@@ -80,13 +25,6 @@ export function DeviceIoView({ world }: { world: World }) {
           lit={lampIsLit(world, lamp.id)}
           terrain={world.terrain}
           clippingPlanes={clippingPlanes}
-        />
-      ))}
-      {world.wires.map((wire) => (
-        <DeviceWire
-          key={wireKey(wire)}
-          wire={wire}
-          world={world}
         />
       ))}
     </>
@@ -116,37 +54,6 @@ function LampPost({ lit, glow, clippingPlanes }: { lit: boolean; glow: string; c
         />
       </mesh>
     </>
-  );
-}
-
-// A relay's indicator lamp: it stands at an offset from its camera, or rides the car with it. Its name
-// and state show while its camera is selected, where otherwise it would be a dot in the world.
-function Lamp({
-  camera,
-  name,
-  labelled,
-  position,
-  lit,
-  terrain,
-  vehicles,
-  clippingPlanes,
-}: {
-  camera: CameraModel;
-  name: string;
-  labelled: boolean;
-  position: Vec3;
-  lit: boolean;
-  terrain: Terrain;
-  vehicles: Vehicle[];
-  clippingPlanes: Plane[];
-}) {
-  const { group, initial } = useDeviceGroup(camera, position, terrain, vehicles);
-  const pickCamera = (e: ThreeEvent<MouseEvent>) => pick(e, { kind: 'camera', id: camera.id });
-  return (
-    <group ref={group} position={[initial.x, initial.y, initial.z]} onClick={pickCamera}>
-      <LampPost lit={lit} glow={defaultLampColor} clippingPlanes={clippingPlanes} />
-      {labelled && <Label text={`${name} · ${lit ? 'closed' : 'open'}`} position={[0, lampHeight + 0.3, 0]} onClick={pickCamera} />}
-    </group>
   );
 }
 
@@ -193,117 +100,4 @@ function pick(e: ThreeEvent<MouseEvent>, selection: Selection) {
   if (e.delta > 4 || useEditor.getState().tool.kind !== 'select') return;
   e.stopPropagation();
   select(selection);
-}
-
-function Sensor({
-  camera,
-  name,
-  labelled,
-  input,
-  active,
-  terrain,
-  vehicles,
-  clippingPlanes,
-}: {
-  camera: CameraModel;
-  name: string;
-  labelled: boolean;
-  input: DigitalInput;
-  active: boolean;
-  terrain: Terrain;
-  vehicles: Vehicle[];
-  clippingPlanes: Plane[];
-}) {
-  const { group, initial } = useDeviceGroup(camera, input.position, terrain, vehicles);
-  const color = active ? sensorLit : sensorDark;
-  const pickCamera = (e: ThreeEvent<MouseEvent>) => pick(e, { kind: 'camera', id: camera.id });
-  return (
-    <group ref={group} position={[initial.x, initial.y, initial.z]} onClick={pickCamera}>
-      <mesh position={[0, (sensorHeight - 0.12) / 2, 0]}>
-        <boxGeometry args={[0.26, sensorHeight - 0.12, 0.26]} />
-        <meshLambertMaterial color="#34363a" clippingPlanes={clippingPlanes} />
-      </mesh>
-      <mesh position={[0, sensorHeight - 0.06, 0]}>
-        <boxGeometry args={[0.34, 0.12, 0.34]} />
-        <meshLambertMaterial
-          color={color}
-          emissive={active ? color : '#000000'}
-          emissiveIntensity={0.6}
-          clippingPlanes={clippingPlanes}
-        />
-      </mesh>
-      {labelled && <Label text={`${name} · ${active ? '1' : '0'}`} position={[0, sensorHeight + 0.3, 0]} onClick={pickCamera} />}
-    </group>
-  );
-}
-
-function DeviceWire({ wire, world }: { wire: Wire; world: World }) {
-  const line = useRef<ComponentRef<typeof Line>>(null);
-  const ends = wireEnds(wire, world, Date.now());
-  const moves = movesWithCar(wire, world);
-  useFrame(() => {
-    const current = moves ? wireEnds(wire, world, Date.now()) : null;
-    if (current && line.current) line.current.geometry.setPositions([...current[0], ...current[1]]);
-  });
-  return ends ? <Line ref={line} points={[ends[0], ends[1]]} color={wireColor} lineWidth={1.5} /> : null;
-}
-
-// From just under the lamp's shade to the top of a sensor block, or to the shade of the lamp it drives.
-function wireEnds(wire: Wire, world: World, timeMs: number): [[number, number, number], [number, number, number]] | null {
-  const relayCamera = world.cameras.find((camera) => sameId(camera.id, wire.relayCameraId));
-  const relay = relayCamera?.relayOutputs.find((output) => sameId(output.token, wire.relayToken));
-  const sink = sinkPoint(wire, world, timeMs);
-  if (!relayCamera || !relay || !sink) return null;
-  const from = devicePoint(relayCamera, relay.position, world.terrain, world.vehicles, timeMs);
-  return [
-    [from.x, from.y + lampHeight - 0.2, from.z],
-    [sink.x, sink.y + sink.height, sink.z],
-  ];
-}
-
-// Where a wire ends and the height above that point: an input's block on its camera, or a lamp's shade
-// standing in the world.
-function sinkPoint(wire: Wire, world: World, timeMs: number): { x: number; y: number; z: number; height: number } | null {
-  const inputCamera = world.cameras.find((camera) => sameId(camera.id, wire.inputCameraId ?? ''));
-  const input = inputCamera?.digitalInputs.find((device) => sameId(device.token, wire.inputToken ?? ''));
-  if (inputCamera && input) {
-    const point = devicePoint(inputCamera, input.position, world.terrain, world.vehicles, timeMs);
-    return { ...point, height: sensorHeight };
-  }
-  const lamp = world.lamps.find((device) => sameId(device.id, wire.lampId ?? ''));
-  if (!lamp) return null;
-  return {
-    x: lamp.position.x,
-    y: heightAt(world.terrain, lamp.position.x, lamp.position.z) + lamp.position.y,
-    z: lamp.position.z,
-    height: lampHeight - 0.2,
-  };
-}
-
-function wireKey(wire: Wire): string {
-  return `${wire.relayCameraId}/${wire.relayToken}->${wire.lampId ?? `${wire.inputCameraId}/${wire.inputToken}`}`;
-}
-
-function movesWithCar(wire: Wire, world: World): boolean {
-  const relayCamera = world.cameras.find((camera) => sameId(camera.id, wire.relayCameraId));
-  const sinkCamera = world.cameras.find((camera) => sameId(camera.id, wire.inputCameraId ?? ''));
-  return (!!relayCamera && isMounted(relayCamera)) || (!!sinkCamera && isMounted(sinkCamera));
-}
-
-// A group that stays where its device stands: placed once, and moved every frame when its camera rides
-// on a car, as CameraGizmo moves the camera itself.
-function useDeviceGroup(
-  camera: CameraModel,
-  offset: Vec3,
-  terrain: Terrain,
-  vehicles: Vehicle[],
-): { group: RefObject<Group | null>; initial: { x: number; y: number; z: number } } {
-  const group = useRef<Group>(null);
-  const mounted = isMounted(camera);
-  useFrame(() => {
-    if (!mounted || !group.current) return;
-    const point = devicePoint(camera, offset, terrain, vehicles, Date.now());
-    group.current.position.set(point.x, point.y, point.z);
-  });
-  return { group, initial: devicePoint(camera, offset, terrain, vehicles, Date.now()) };
 }

@@ -228,8 +228,9 @@ public enum RelayModeModel { Bistable, Monostable }
 // which ONVIF reports as active.
 public enum IdleStateModel { Closed, Open }
 
-// A relay output of a camera, drawn as a lamp: a switch a client or the editor sets, and which a wire
-// may pass on to a digital input of any camera.
+// A relay output of a camera: a switch a client or the editor sets, and which a wire may pass on to a
+// digital input of any camera or a lamp of the world. It is a setting of the camera that a client reads
+// and writes over ONVIF, not a thing standing in the world, so it has no place of its own.
 public sealed class RelayOutputModel
 {
     public string Token { get; set; } = "";
@@ -240,21 +241,15 @@ public sealed class RelayOutputModel
     public IdleStateModel IdleState { get; set; } = IdleStateModel.Open;
     // The logical state now: what the editor or ONVIF set it to, and what a wire passes on.
     public bool Active { get; set; }
-    // Where the lamp stands, as an offset from the camera: X to its right and Z behind it in the mount's
-    // level frame, metres, and Y above the ground there, which is the height of the lamp's post. A
-    // camera on a car carries its devices with it.
-    public Vec3 Position { get; set; }
 }
 
-// A digital input of a camera, drawn as a small block. It has no state of its own: a wire from a relay
-// output drives it, and without a wire it is simply not wired.
+// A digital input of a camera. It has no state of its own: a wire from a relay output drives it, and
+// without a wire it is simply not wired. Like a relay, it is a setting, not a thing in the world.
 public sealed class DigitalInputModel
 {
     public string Token { get; set; } = "";
     public string Name { get; set; } = "";
     public IdleStateModel IdleState { get; set; } = IdleStateModel.Open;
-    // As RelayOutputModel.Position: X to the camera's right, Z behind it, Y above the ground there.
-    public Vec3 Position { get; set; }
 }
 
 // A lamp a relay drives: an actuator standing in the world as a lamp post with a shade, not a part of

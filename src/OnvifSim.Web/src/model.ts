@@ -169,7 +169,8 @@ export interface PtzSettings {
   presets: { token: string; name: string; position: PtzPosition }[];
 }
 
-// A relay output: a switch with a lamp, whose state the editor or ONVIF sets and a wire may pass on.
+// A relay output: a switch a client or the editor sets, which a wire may pass on. It is a setting of
+// the camera that ONVIF reads and writes, not a thing standing in the world.
 export type RelayMode = 'bistable' | 'monostable';
 
 // The electrical state a relay sits in when nothing drives it; closed carries current (ONVIF: active).
@@ -185,16 +186,14 @@ export interface RelayOutput {
   idleState: IdleState;
   // The live state, which travels as ONVIF Device/Trigger events.
   active: boolean;
-  // Offset from the camera: x to its right, z behind it, y above the ground there — as on the server.
-  position: Vec3;
 }
 
-// A digital input: it has no state of its own, a wire from a relay output drives it.
+// A digital input: it has no state of its own, a wire from a relay output drives it. Like a relay, it
+// is a setting of the camera, not a thing in the world.
 export interface DigitalInput {
   token: string;
   name: string;
   idleState: IdleState;
-  position: Vec3;
 }
 
 // A lamp a relay drives: an actuator standing in the world, not a part of a camera. It has no ONVIF
