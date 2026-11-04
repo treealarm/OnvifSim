@@ -11,11 +11,14 @@ namespace OnvifSim.Onvif;
 // stream and snapshot URIs) use the host and port the client itself addressed, so they stay valid
 // behind NAT or Docker port mapping.
 public sealed class OnvifRequestContext(
-    CameraModel camera, WorldStore store, PtzSimulator ptz, PullPoints pullPoints, RecordingLog recordings, OnvifDispatcher dispatcher,
-    HttpRequest request, int rtspPort, bool hasH264)
+    CameraModel camera, WorldStore store, PtzSimulator ptz, PullPoints pullPoints, RecordingLog recordings, DeviceIoController deviceIo,
+    OnvifDispatcher dispatcher, HttpRequest request, int rtspPort, bool hasH264)
 {
     // The camera as it was when the request arrived.
     public CameraModel Camera => camera;
+    // The camera as it is in the world now, which a setter earlier in the request may have changed.
+    public CameraModel CurrentCamera =>
+        store.Current.Cameras.FirstOrDefault(c => string.Equals(c.Id, camera.Id, StringComparison.OrdinalIgnoreCase)) ?? camera;
     public bool HasPtz => camera.Kind == CameraKind.Ptz && camera.Ptz != null;
     // Whether the server can encode H.264, which gives every camera its H.264 profile.
     public bool HasH264 => hasH264;
@@ -23,6 +26,8 @@ public sealed class OnvifRequestContext(
     public PtzSimulator Ptz => ptz;
     public PullPoints PullPoints => pullPoints;
     public RecordingLog Recordings => recordings;
+    // The one place a relay's state changes, shared with the editor.
+    public DeviceIoController DeviceIo => deviceIo;
     // The path the request was posted to: a pull point's address names the subscription.
     public string Path => request.Path.Value ?? "";
     // Ends when the client gives up on the request, for an operation that waits.

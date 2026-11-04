@@ -196,6 +196,11 @@ public sealed class DeviceHandlers(OnvifRequestContext context)
                         Recording = new RecordingCapabilities { XAddr = context.XAddr("recording_service"), MediaProfileSource = true },
                         Search = new SearchCapabilities { XAddr = context.XAddr("search_service"), MetadataSearch = false },
                         Replay = new ReplayCapabilities { XAddr = context.XAddr("replay_service") },
+                        DeviceIO = new DeviceIOCapabilities
+                        {
+                            XAddr = context.XAddr(DeviceIoHandlers.ServicePath),
+                            RelayOutputs = Camera.RelayOutputs.Count,
+                        },
                     }
                     : null,
             },
@@ -272,7 +277,39 @@ public sealed class DeviceHandlers(OnvifRequestContext context)
     public GetStorageConfigurationsResponse GetStorageConfigurations(GetStorageConfigurationsRequest request) =>
         new() { StorageConfigurations = [] };
 
-    public GetRelayOutputsResponse GetRelayOutputs(GetRelayOutputsRequest request) => new() { RelayOutputs = [] };
+    // The camera's relay outputs as configuration: ONVIF has no getter for a relay's live state, which
+    // travels as a Device/Trigger/Relay property event instead. The DeviceIO service answers this too
+    // with the same message (the ONVIF WSDL defines it in the Device namespace), so it lives here once.
+    public GetRelayOutputsResponse GetRelayOutputs(GetRelayOutputsRequest request) => new()
+    {
+        RelayOutputs = context.CurrentCamera.RelayOutputs.Select(DeviceIoContract.RelayOutputOf).ToArray(),
+    };
+
+    // Switching goes through the same controller as the editor's switch, so a monostable relay falls
+    // back to its idle state on its delay however it was switched.
+    public SetRelayOutputStateResponse SetRelayOutputState(SetRelayOutputStateRequest request)
+    {
+        if (!context.DeviceIo.SetRelay(Camera.Id, request.RelayOutputToken, request.LogicalState == RelayLogicalState.active))
+            throw OnvifFault.InvalidArgValue($"The camera has no relay output '{request.RelayOutputToken}'.");
+        return new SetRelayOutputStateResponse();
+    }
+
+    public SetRelayOutputSettingsResponse SetRelayOutputSettings(SetRelayOutputSettingsRequest request)
+    {
+        var settings = request.Properties ?? throw OnvifFault.InvalidArgValue("SetRelayOutputSettings needs relay output settings.");
+        float? delay = DeviceIoContract.DelaySecondsOf(settings.DelayTime);
+        if (delay is < 0.05f or > 3600)
+            throw OnvifFault.InvalidArgValue("A monostable delay must be within 0.05..3600 s.");
+        context.Store.Update(world =>
+        {
+            var relay = DeviceIo.FindRelay(world, Camera.Id, request.RelayOutputToken)
+                ?? throw OnvifFault.InvalidArgValue($"The camera has no relay output '{request.RelayOutputToken}'.");
+            relay.Mode = DeviceIoContract.ModeOf(settings.Mode);
+            if (delay is { } seconds) relay.DelaySeconds = seconds;
+            relay.IdleState = DeviceIoContract.IdleStateOf(settings.IdleState);
+        });
+        return new SetRelayOutputSettingsResponse();
+    }
 
     private DeviceCapabilities DeviceCapabilities() => new()
     {
@@ -284,6 +321,12 @@ public sealed class DeviceHandlers(OnvifRequestContext context)
             SupportedVersions = [new OnvifVersion { Major = 21, Minor = 12 }],
         },
         Security = new SecurityCapabilities1(),
+        // Its relay outputs and digital inputs, for a client that asks before listing them.
+        IO = new IOCapabilities
+        {
+            InputConnectors = Camera.DigitalInputs.Count, InputConnectorsSpecified = true,
+            RelayOutputs = Camera.RelayOutputs.Count, RelayOutputsSpecified = true,
+        },
     };
 
     private MediaCapabilities MediaCapabilities() => new()

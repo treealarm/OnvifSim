@@ -14,11 +14,11 @@ public sealed class MediaHandlers(OnvifRequestContext context)
 {
     private CameraModel Camera => context.Camera;
 
-    // Capabilities1 and ProfileCapabilities1 are trt:Capabilities and trt:ProfileCapabilities: svcutil
+    // Capabilities2 and ProfileCapabilities1 are trt:Capabilities and trt:ProfileCapabilities: svcutil
     // numbers classes whose names other namespaces already took.
     public GetServiceCapabilitiesResponse GetServiceCapabilities(GetServiceCapabilitiesRequest request) => new()
     {
-        Capabilities = new Capabilities1
+        Capabilities = new Capabilities2
         {
             ProfileCapabilities = new ProfileCapabilities1 { MaximumNumberOfProfiles = VisibleStreams(context).Count, MaximumNumberOfProfilesSpecified = true },
             StreamingCapabilities = new StreamingCapabilities

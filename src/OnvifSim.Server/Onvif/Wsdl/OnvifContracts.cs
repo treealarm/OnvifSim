@@ -12496,8 +12496,8 @@ namespace OnvifSim.Onvif.Wsdl
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver20/media/wsdl")]
-    public partial class Capabilities2
+    [System.Xml.Serialization.XmlTypeAttribute(TypeName="Capabilities2", Namespace="http://www.onvif.org/ver20/media/wsdl")]
+    public partial class Capabilities21
     {
         
         private ProfileCapabilities2 profileCapabilitiesField;
@@ -14119,302 +14119,6 @@ namespace OnvifSim.Onvif.Wsdl
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/schema")]
-    public partial class FrequencyDecibelPair
-    {
-        
-        private int centerFrequencyField;
-        
-        private float decibelField;
-        
-        private System.Xml.XmlElement[] anyField;
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlElementAttribute(Order=0)]
-        public int CenterFrequency
-        {
-            get
-            {
-                return this.centerFrequencyField;
-            }
-            set
-            {
-                this.centerFrequencyField = value;
-            }
-        }
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlElementAttribute(Order=1)]
-        public float Decibel
-        {
-            get
-            {
-                return this.decibelField;
-            }
-            set
-            {
-                this.decibelField = value;
-            }
-        }
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlAnyElementAttribute(Order=2)]
-        public System.Xml.XmlElement[] Any
-        {
-            get
-            {
-                return this.anyField;
-            }
-            set
-            {
-                this.anyField = value;
-            }
-        }
-    }
-    
-    /// <remarks/>
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
-    [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/schema")]
-    public partial class EQPreset
-    {
-        
-        private string tokenField;
-        
-        private string nameField;
-        
-        private bool isDefaultField;
-        
-        private string scheduleTokenField;
-        
-        private bool isFrequencyDecibelEditableField;
-        
-        private FrequencyDecibelPair[] frequencyDecibelPairField;
-        
-        private System.Xml.XmlElement[] anyField;
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlElementAttribute(Order=0)]
-        public string Token
-        {
-            get
-            {
-                return this.tokenField;
-            }
-            set
-            {
-                this.tokenField = value;
-            }
-        }
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlElementAttribute(Order=1)]
-        public string Name
-        {
-            get
-            {
-                return this.nameField;
-            }
-            set
-            {
-                this.nameField = value;
-            }
-        }
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlElementAttribute(Order=2)]
-        public bool isDefault
-        {
-            get
-            {
-                return this.isDefaultField;
-            }
-            set
-            {
-                this.isDefaultField = value;
-            }
-        }
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlElementAttribute(Order=3)]
-        public string ScheduleToken
-        {
-            get
-            {
-                return this.scheduleTokenField;
-            }
-            set
-            {
-                this.scheduleTokenField = value;
-            }
-        }
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlElementAttribute(Order=4)]
-        public bool isFrequencyDecibelEditable
-        {
-            get
-            {
-                return this.isFrequencyDecibelEditableField;
-            }
-            set
-            {
-                this.isFrequencyDecibelEditableField = value;
-            }
-        }
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlElementAttribute("FrequencyDecibelPair", Order=5)]
-        public FrequencyDecibelPair[] FrequencyDecibelPair
-        {
-            get
-            {
-                return this.frequencyDecibelPairField;
-            }
-            set
-            {
-                this.frequencyDecibelPairField = value;
-            }
-        }
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlAnyElementAttribute(Order=6)]
-        public System.Xml.XmlElement[] Any
-        {
-            get
-            {
-                return this.anyField;
-            }
-            set
-            {
-                this.anyField = value;
-            }
-        }
-    }
-    
-    /// <remarks/>
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
-    [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/schema")]
-    public partial class AudioOutputConfigurationOptions
-    {
-        
-        private string[] outputTokensAvailableField;
-        
-        private string[] sendPrimacyOptionsField;
-        
-        private IntRange outputLevelRangeField;
-        
-        private bool eQPresetScheduleSupportField;
-        
-        private bool eQPresetScheduleSupportFieldSpecified;
-        
-        private EQPreset[] eQPresetsField;
-        
-        private System.Xml.XmlElement[] anyField;
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlElementAttribute("OutputTokensAvailable", Order=0)]
-        public string[] OutputTokensAvailable
-        {
-            get
-            {
-                return this.outputTokensAvailableField;
-            }
-            set
-            {
-                this.outputTokensAvailableField = value;
-            }
-        }
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlElementAttribute("SendPrimacyOptions", DataType="anyURI", Order=1)]
-        public string[] SendPrimacyOptions
-        {
-            get
-            {
-                return this.sendPrimacyOptionsField;
-            }
-            set
-            {
-                this.sendPrimacyOptionsField = value;
-            }
-        }
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlElementAttribute(Order=2)]
-        public IntRange OutputLevelRange
-        {
-            get
-            {
-                return this.outputLevelRangeField;
-            }
-            set
-            {
-                this.outputLevelRangeField = value;
-            }
-        }
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlElementAttribute(Order=3)]
-        public bool EQPresetScheduleSupport
-        {
-            get
-            {
-                return this.eQPresetScheduleSupportField;
-            }
-            set
-            {
-                this.eQPresetScheduleSupportField = value;
-            }
-        }
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlIgnoreAttribute()]
-        public bool EQPresetScheduleSupportSpecified
-        {
-            get
-            {
-                return this.eQPresetScheduleSupportFieldSpecified;
-            }
-            set
-            {
-                this.eQPresetScheduleSupportFieldSpecified = value;
-            }
-        }
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlElementAttribute("EQPresets", Order=4)]
-        public EQPreset[] EQPresets
-        {
-            get
-            {
-                return this.eQPresetsField;
-            }
-            set
-            {
-                this.eQPresetsField = value;
-            }
-        }
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlAnyElementAttribute(Order=5)]
-        public System.Xml.XmlElement[] Any
-        {
-            get
-            {
-                return this.anyField;
-            }
-            set
-            {
-                this.anyField = value;
-            }
-        }
-    }
-    
-    /// <remarks/>
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
-    [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/schema")]
     public partial class MetadataConfigurationOptionsExtension2
     {
         
@@ -14969,70 +14673,6 @@ namespace OnvifSim.Onvif.Wsdl
             set
             {
                 this.optionsField = value;
-            }
-        }
-    }
-    
-    /// <remarks/>
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
-    [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/schema")]
-    public partial class AudioSourceOptionsExtension
-    {
-        
-        private System.Xml.XmlElement[] anyField;
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlAnyElementAttribute(Order=0)]
-        public System.Xml.XmlElement[] Any
-        {
-            get
-            {
-                return this.anyField;
-            }
-            set
-            {
-                this.anyField = value;
-            }
-        }
-    }
-    
-    /// <remarks/>
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
-    [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/schema")]
-    public partial class AudioSourceConfigurationOptions
-    {
-        
-        private string[] inputTokensAvailableField;
-        
-        private AudioSourceOptionsExtension extensionField;
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlElementAttribute("InputTokensAvailable", Order=0)]
-        public string[] InputTokensAvailable
-        {
-            get
-            {
-                return this.inputTokensAvailableField;
-            }
-            set
-            {
-                this.inputTokensAvailableField = value;
-            }
-        }
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlElementAttribute(Order=1)]
-        public AudioSourceOptionsExtension Extension
-        {
-            get
-            {
-                return this.extensionField;
-            }
-            set
-            {
-                this.extensionField = value;
             }
         }
     }
@@ -15628,407 +15268,6 @@ namespace OnvifSim.Onvif.Wsdl
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/schema")]
-    public partial class VideoSourceConfigurationOptionsExtension2
-    {
-        
-        private SceneOrientationMode[] sceneOrientationModeField;
-        
-        private System.Xml.XmlElement[] anyField;
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlElementAttribute("SceneOrientationMode", Order=0)]
-        public SceneOrientationMode[] SceneOrientationMode
-        {
-            get
-            {
-                return this.sceneOrientationModeField;
-            }
-            set
-            {
-                this.sceneOrientationModeField = value;
-            }
-        }
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlAnyElementAttribute(Namespace="http://www.onvif.org/ver10/schema", Order=1)]
-        public System.Xml.XmlElement[] Any
-        {
-            get
-            {
-                return this.anyField;
-            }
-            set
-            {
-                this.anyField = value;
-            }
-        }
-    }
-    
-    /// <remarks/>
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
-    [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/schema")]
-    public partial class RotateOptionsExtension
-    {
-        
-        private System.Xml.XmlElement[] anyField;
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlAnyElementAttribute(Namespace="http://www.onvif.org/ver10/schema", Order=0)]
-        public System.Xml.XmlElement[] Any
-        {
-            get
-            {
-                return this.anyField;
-            }
-            set
-            {
-                this.anyField = value;
-            }
-        }
-    }
-    
-    /// <remarks/>
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
-    [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/schema")]
-    public partial class RotateOptions
-    {
-        
-        private RotateMode[] modeField;
-        
-        private int[] degreeListField;
-        
-        private RotateOptionsExtension extensionField;
-        
-        private bool rebootField;
-        
-        private bool rebootFieldSpecified;
-        
-        private bool mirrorField;
-        
-        private bool mirrorFieldSpecified;
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlElementAttribute("Mode", Order=0)]
-        public RotateMode[] Mode
-        {
-            get
-            {
-                return this.modeField;
-            }
-            set
-            {
-                this.modeField = value;
-            }
-        }
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlArrayAttribute(Order=1)]
-        [System.Xml.Serialization.XmlArrayItemAttribute("Items", IsNullable=false)]
-        public int[] DegreeList
-        {
-            get
-            {
-                return this.degreeListField;
-            }
-            set
-            {
-                this.degreeListField = value;
-            }
-        }
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlElementAttribute(Order=2)]
-        public RotateOptionsExtension Extension
-        {
-            get
-            {
-                return this.extensionField;
-            }
-            set
-            {
-                this.extensionField = value;
-            }
-        }
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlAttributeAttribute()]
-        public bool Reboot
-        {
-            get
-            {
-                return this.rebootField;
-            }
-            set
-            {
-                this.rebootField = value;
-            }
-        }
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlIgnoreAttribute()]
-        public bool RebootSpecified
-        {
-            get
-            {
-                return this.rebootFieldSpecified;
-            }
-            set
-            {
-                this.rebootFieldSpecified = value;
-            }
-        }
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlAttributeAttribute()]
-        public bool Mirror
-        {
-            get
-            {
-                return this.mirrorField;
-            }
-            set
-            {
-                this.mirrorField = value;
-            }
-        }
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlIgnoreAttribute()]
-        public bool MirrorSpecified
-        {
-            get
-            {
-                return this.mirrorFieldSpecified;
-            }
-            set
-            {
-                this.mirrorFieldSpecified = value;
-            }
-        }
-    }
-    
-    /// <remarks/>
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
-    [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/schema")]
-    public partial class VideoSourceConfigurationOptionsExtension
-    {
-        
-        private System.Xml.XmlElement[] anyField;
-        
-        private RotateOptions rotateField;
-        
-        private VideoSourceConfigurationOptionsExtension2 extensionField;
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlAnyElementAttribute(Order=0)]
-        public System.Xml.XmlElement[] Any
-        {
-            get
-            {
-                return this.anyField;
-            }
-            set
-            {
-                this.anyField = value;
-            }
-        }
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlElementAttribute(Order=1)]
-        public RotateOptions Rotate
-        {
-            get
-            {
-                return this.rotateField;
-            }
-            set
-            {
-                this.rotateField = value;
-            }
-        }
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlElementAttribute(Order=2)]
-        public VideoSourceConfigurationOptionsExtension2 Extension
-        {
-            get
-            {
-                return this.extensionField;
-            }
-            set
-            {
-                this.extensionField = value;
-            }
-        }
-    }
-    
-    /// <remarks/>
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
-    [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/schema")]
-    public partial class IntRectangleRange
-    {
-        
-        private IntRange xRangeField;
-        
-        private IntRange yRangeField;
-        
-        private IntRange widthRangeField;
-        
-        private IntRange heightRangeField;
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlElementAttribute(Order=0)]
-        public IntRange XRange
-        {
-            get
-            {
-                return this.xRangeField;
-            }
-            set
-            {
-                this.xRangeField = value;
-            }
-        }
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlElementAttribute(Order=1)]
-        public IntRange YRange
-        {
-            get
-            {
-                return this.yRangeField;
-            }
-            set
-            {
-                this.yRangeField = value;
-            }
-        }
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlElementAttribute(Order=2)]
-        public IntRange WidthRange
-        {
-            get
-            {
-                return this.widthRangeField;
-            }
-            set
-            {
-                this.widthRangeField = value;
-            }
-        }
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlElementAttribute(Order=3)]
-        public IntRange HeightRange
-        {
-            get
-            {
-                return this.heightRangeField;
-            }
-            set
-            {
-                this.heightRangeField = value;
-            }
-        }
-    }
-    
-    /// <remarks/>
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
-    [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/schema")]
-    public partial class VideoSourceConfigurationOptions
-    {
-        
-        private IntRectangleRange boundsRangeField;
-        
-        private string[] videoSourceTokensAvailableField;
-        
-        private VideoSourceConfigurationOptionsExtension extensionField;
-        
-        private int maximumNumberOfProfilesField;
-        
-        private bool maximumNumberOfProfilesFieldSpecified;
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlElementAttribute(Order=0)]
-        public IntRectangleRange BoundsRange
-        {
-            get
-            {
-                return this.boundsRangeField;
-            }
-            set
-            {
-                this.boundsRangeField = value;
-            }
-        }
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlElementAttribute("VideoSourceTokensAvailable", Order=1)]
-        public string[] VideoSourceTokensAvailable
-        {
-            get
-            {
-                return this.videoSourceTokensAvailableField;
-            }
-            set
-            {
-                this.videoSourceTokensAvailableField = value;
-            }
-        }
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlElementAttribute(Order=2)]
-        public VideoSourceConfigurationOptionsExtension Extension
-        {
-            get
-            {
-                return this.extensionField;
-            }
-            set
-            {
-                this.extensionField = value;
-            }
-        }
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlAttributeAttribute()]
-        public int MaximumNumberOfProfiles
-        {
-            get
-            {
-                return this.maximumNumberOfProfilesField;
-            }
-            set
-            {
-                this.maximumNumberOfProfilesField = value;
-            }
-        }
-        
-        /// <remarks/>
-        [System.Xml.Serialization.XmlIgnoreAttribute()]
-        public bool MaximumNumberOfProfilesSpecified
-        {
-            get
-            {
-                return this.maximumNumberOfProfilesFieldSpecified;
-            }
-            set
-            {
-                this.maximumNumberOfProfilesFieldSpecified = value;
-            }
-        }
-    }
-    
-    /// <remarks/>
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
-    [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/schema")]
     public partial class ProfileExtension2
     {
         
@@ -16565,7 +15804,7 @@ namespace OnvifSim.Onvif.Wsdl
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.Xml.Serialization.XmlTypeAttribute(TypeName="Capabilities", Namespace="http://www.onvif.org/ver10/media/wsdl")]
-    public partial class Capabilities1
+    public partial class Capabilities2
     {
         
         private ProfileCapabilities1 profileCapabilitiesField;
@@ -16805,6 +16044,1460 @@ namespace OnvifSim.Onvif.Wsdl
             set
             {
                 this.eXICompressionFieldSpecified = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl")]
+    public partial class SerialData
+    {
+        
+        private object itemField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute("Binary", typeof(byte[]), DataType="base64Binary", Order=0)]
+        [System.Xml.Serialization.XmlElementAttribute("String", typeof(string), Order=0)]
+        public object Item
+        {
+            get
+            {
+                return this.itemField;
+            }
+            set
+            {
+                this.itemField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl")]
+    public partial class SerialPortConfigurationOptions
+    {
+        
+        private int[] baudRateListField;
+        
+        private ParityBit[] parityBitListField;
+        
+        private int[] characterLengthListField;
+        
+        private float[] stopBitListField;
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        private string tokenField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlArrayAttribute(Order=0)]
+        [System.Xml.Serialization.XmlArrayItemAttribute("Items", Namespace="http://www.onvif.org/ver10/schema", IsNullable=false)]
+        public int[] BaudRateList
+        {
+            get
+            {
+                return this.baudRateListField;
+            }
+            set
+            {
+                this.baudRateListField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlArrayAttribute(Order=1)]
+        [System.Xml.Serialization.XmlArrayItemAttribute("Items", IsNullable=false)]
+        public ParityBit[] ParityBitList
+        {
+            get
+            {
+                return this.parityBitListField;
+            }
+            set
+            {
+                this.parityBitListField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlArrayAttribute(Order=2)]
+        [System.Xml.Serialization.XmlArrayItemAttribute("Items", Namespace="http://www.onvif.org/ver10/schema", IsNullable=false)]
+        public int[] CharacterLengthList
+        {
+            get
+            {
+                return this.characterLengthListField;
+            }
+            set
+            {
+                this.characterLengthListField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlArrayAttribute(Order=3)]
+        [System.Xml.Serialization.XmlArrayItemAttribute("Items", Namespace="http://www.onvif.org/ver10/schema", IsNullable=false)]
+        public float[] StopBitList
+        {
+            get
+            {
+                return this.stopBitListField;
+            }
+            set
+            {
+                this.stopBitListField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=4)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        public string token
+        {
+            get
+            {
+                return this.tokenField;
+            }
+            set
+            {
+                this.tokenField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl")]
+    public enum ParityBit
+    {
+        
+        /// <remarks/>
+        None,
+        
+        /// <remarks/>
+        Even,
+        
+        /// <remarks/>
+        Odd,
+        
+        /// <remarks/>
+        Mark,
+        
+        /// <remarks/>
+        Space,
+        
+        /// <remarks/>
+        Extended,
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl")]
+    public partial class SerialPortConfiguration
+    {
+        
+        private int baudRateField;
+        
+        private ParityBit parityBitField;
+        
+        private int characterLengthField;
+        
+        private float stopBitField;
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        private string tokenField;
+        
+        private SerialPortType typeField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=0)]
+        public int BaudRate
+        {
+            get
+            {
+                return this.baudRateField;
+            }
+            set
+            {
+                this.baudRateField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=1)]
+        public ParityBit ParityBit
+        {
+            get
+            {
+                return this.parityBitField;
+            }
+            set
+            {
+                this.parityBitField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=2)]
+        public int CharacterLength
+        {
+            get
+            {
+                return this.characterLengthField;
+            }
+            set
+            {
+                this.characterLengthField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=3)]
+        public float StopBit
+        {
+            get
+            {
+                return this.stopBitField;
+            }
+            set
+            {
+                this.stopBitField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=4)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        public string token
+        {
+            get
+            {
+                return this.tokenField;
+            }
+            set
+            {
+                this.tokenField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        public SerialPortType type
+        {
+            get
+            {
+                return this.typeField;
+            }
+            set
+            {
+                this.typeField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl")]
+    public enum SerialPortType
+    {
+        
+        /// <remarks/>
+        RS232,
+        
+        /// <remarks/>
+        RS422HalfDuplex,
+        
+        /// <remarks/>
+        RS422FullDuplex,
+        
+        /// <remarks/>
+        RS485HalfDuplex,
+        
+        /// <remarks/>
+        RS485FullDuplex,
+        
+        /// <remarks/>
+        Generic,
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl")]
+    public partial class DigitalInputConfigurationOptions
+    {
+        
+        private DigitalIdleState[] idleStateField;
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute("IdleState", Order=0)]
+        public DigitalIdleState[] IdleState
+        {
+            get
+            {
+                return this.idleStateField;
+            }
+            set
+            {
+                this.idleStateField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=1)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/schema")]
+    public enum DigitalIdleState
+    {
+        
+        /// <remarks/>
+        closed,
+        
+        /// <remarks/>
+        open,
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/schema")]
+    public partial class FrequencyDecibelPair
+    {
+        
+        private int centerFrequencyField;
+        
+        private float decibelField;
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=0)]
+        public int CenterFrequency
+        {
+            get
+            {
+                return this.centerFrequencyField;
+            }
+            set
+            {
+                this.centerFrequencyField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=1)]
+        public float Decibel
+        {
+            get
+            {
+                return this.decibelField;
+            }
+            set
+            {
+                this.decibelField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=2)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/schema")]
+    public partial class EQPreset
+    {
+        
+        private string tokenField;
+        
+        private string nameField;
+        
+        private bool isDefaultField;
+        
+        private string scheduleTokenField;
+        
+        private bool isFrequencyDecibelEditableField;
+        
+        private FrequencyDecibelPair[] frequencyDecibelPairField;
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=0)]
+        public string Token
+        {
+            get
+            {
+                return this.tokenField;
+            }
+            set
+            {
+                this.tokenField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=1)]
+        public string Name
+        {
+            get
+            {
+                return this.nameField;
+            }
+            set
+            {
+                this.nameField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=2)]
+        public bool isDefault
+        {
+            get
+            {
+                return this.isDefaultField;
+            }
+            set
+            {
+                this.isDefaultField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=3)]
+        public string ScheduleToken
+        {
+            get
+            {
+                return this.scheduleTokenField;
+            }
+            set
+            {
+                this.scheduleTokenField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=4)]
+        public bool isFrequencyDecibelEditable
+        {
+            get
+            {
+                return this.isFrequencyDecibelEditableField;
+            }
+            set
+            {
+                this.isFrequencyDecibelEditableField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute("FrequencyDecibelPair", Order=5)]
+        public FrequencyDecibelPair[] FrequencyDecibelPair
+        {
+            get
+            {
+                return this.frequencyDecibelPairField;
+            }
+            set
+            {
+                this.frequencyDecibelPairField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=6)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/schema")]
+    public partial class AudioOutputConfigurationOptions
+    {
+        
+        private string[] outputTokensAvailableField;
+        
+        private string[] sendPrimacyOptionsField;
+        
+        private IntRange outputLevelRangeField;
+        
+        private bool eQPresetScheduleSupportField;
+        
+        private bool eQPresetScheduleSupportFieldSpecified;
+        
+        private EQPreset[] eQPresetsField;
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute("OutputTokensAvailable", Order=0)]
+        public string[] OutputTokensAvailable
+        {
+            get
+            {
+                return this.outputTokensAvailableField;
+            }
+            set
+            {
+                this.outputTokensAvailableField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute("SendPrimacyOptions", DataType="anyURI", Order=1)]
+        public string[] SendPrimacyOptions
+        {
+            get
+            {
+                return this.sendPrimacyOptionsField;
+            }
+            set
+            {
+                this.sendPrimacyOptionsField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=2)]
+        public IntRange OutputLevelRange
+        {
+            get
+            {
+                return this.outputLevelRangeField;
+            }
+            set
+            {
+                this.outputLevelRangeField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=3)]
+        public bool EQPresetScheduleSupport
+        {
+            get
+            {
+                return this.eQPresetScheduleSupportField;
+            }
+            set
+            {
+                this.eQPresetScheduleSupportField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlIgnoreAttribute()]
+        public bool EQPresetScheduleSupportSpecified
+        {
+            get
+            {
+                return this.eQPresetScheduleSupportFieldSpecified;
+            }
+            set
+            {
+                this.eQPresetScheduleSupportFieldSpecified = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute("EQPresets", Order=4)]
+        public EQPreset[] EQPresets
+        {
+            get
+            {
+                return this.eQPresetsField;
+            }
+            set
+            {
+                this.eQPresetsField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=5)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/schema")]
+    public partial class AudioSourceOptionsExtension
+    {
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=0)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/schema")]
+    public partial class AudioSourceConfigurationOptions
+    {
+        
+        private string[] inputTokensAvailableField;
+        
+        private AudioSourceOptionsExtension extensionField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute("InputTokensAvailable", Order=0)]
+        public string[] InputTokensAvailable
+        {
+            get
+            {
+                return this.inputTokensAvailableField;
+            }
+            set
+            {
+                this.inputTokensAvailableField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=1)]
+        public AudioSourceOptionsExtension Extension
+        {
+            get
+            {
+                return this.extensionField;
+            }
+            set
+            {
+                this.extensionField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/schema")]
+    public partial class VideoOutputConfigurationOptions
+    {
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=0)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/schema")]
+    public partial class VideoSourceConfigurationOptionsExtension2
+    {
+        
+        private SceneOrientationMode[] sceneOrientationModeField;
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute("SceneOrientationMode", Order=0)]
+        public SceneOrientationMode[] SceneOrientationMode
+        {
+            get
+            {
+                return this.sceneOrientationModeField;
+            }
+            set
+            {
+                this.sceneOrientationModeField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Namespace="http://www.onvif.org/ver10/schema", Order=1)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/schema")]
+    public partial class RotateOptionsExtension
+    {
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Namespace="http://www.onvif.org/ver10/schema", Order=0)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/schema")]
+    public partial class RotateOptions
+    {
+        
+        private RotateMode[] modeField;
+        
+        private int[] degreeListField;
+        
+        private RotateOptionsExtension extensionField;
+        
+        private bool rebootField;
+        
+        private bool rebootFieldSpecified;
+        
+        private bool mirrorField;
+        
+        private bool mirrorFieldSpecified;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute("Mode", Order=0)]
+        public RotateMode[] Mode
+        {
+            get
+            {
+                return this.modeField;
+            }
+            set
+            {
+                this.modeField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlArrayAttribute(Order=1)]
+        [System.Xml.Serialization.XmlArrayItemAttribute("Items", IsNullable=false)]
+        public int[] DegreeList
+        {
+            get
+            {
+                return this.degreeListField;
+            }
+            set
+            {
+                this.degreeListField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=2)]
+        public RotateOptionsExtension Extension
+        {
+            get
+            {
+                return this.extensionField;
+            }
+            set
+            {
+                this.extensionField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        public bool Reboot
+        {
+            get
+            {
+                return this.rebootField;
+            }
+            set
+            {
+                this.rebootField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlIgnoreAttribute()]
+        public bool RebootSpecified
+        {
+            get
+            {
+                return this.rebootFieldSpecified;
+            }
+            set
+            {
+                this.rebootFieldSpecified = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        public bool Mirror
+        {
+            get
+            {
+                return this.mirrorField;
+            }
+            set
+            {
+                this.mirrorField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlIgnoreAttribute()]
+        public bool MirrorSpecified
+        {
+            get
+            {
+                return this.mirrorFieldSpecified;
+            }
+            set
+            {
+                this.mirrorFieldSpecified = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/schema")]
+    public partial class VideoSourceConfigurationOptionsExtension
+    {
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        private RotateOptions rotateField;
+        
+        private VideoSourceConfigurationOptionsExtension2 extensionField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=0)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=1)]
+        public RotateOptions Rotate
+        {
+            get
+            {
+                return this.rotateField;
+            }
+            set
+            {
+                this.rotateField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=2)]
+        public VideoSourceConfigurationOptionsExtension2 Extension
+        {
+            get
+            {
+                return this.extensionField;
+            }
+            set
+            {
+                this.extensionField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/schema")]
+    public partial class IntRectangleRange
+    {
+        
+        private IntRange xRangeField;
+        
+        private IntRange yRangeField;
+        
+        private IntRange widthRangeField;
+        
+        private IntRange heightRangeField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=0)]
+        public IntRange XRange
+        {
+            get
+            {
+                return this.xRangeField;
+            }
+            set
+            {
+                this.xRangeField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=1)]
+        public IntRange YRange
+        {
+            get
+            {
+                return this.yRangeField;
+            }
+            set
+            {
+                this.yRangeField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=2)]
+        public IntRange WidthRange
+        {
+            get
+            {
+                return this.widthRangeField;
+            }
+            set
+            {
+                this.widthRangeField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=3)]
+        public IntRange HeightRange
+        {
+            get
+            {
+                return this.heightRangeField;
+            }
+            set
+            {
+                this.heightRangeField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/schema")]
+    public partial class VideoSourceConfigurationOptions
+    {
+        
+        private IntRectangleRange boundsRangeField;
+        
+        private string[] videoSourceTokensAvailableField;
+        
+        private VideoSourceConfigurationOptionsExtension extensionField;
+        
+        private int maximumNumberOfProfilesField;
+        
+        private bool maximumNumberOfProfilesFieldSpecified;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=0)]
+        public IntRectangleRange BoundsRange
+        {
+            get
+            {
+                return this.boundsRangeField;
+            }
+            set
+            {
+                this.boundsRangeField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute("VideoSourceTokensAvailable", Order=1)]
+        public string[] VideoSourceTokensAvailable
+        {
+            get
+            {
+                return this.videoSourceTokensAvailableField;
+            }
+            set
+            {
+                this.videoSourceTokensAvailableField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=2)]
+        public VideoSourceConfigurationOptionsExtension Extension
+        {
+            get
+            {
+                return this.extensionField;
+            }
+            set
+            {
+                this.extensionField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        public int MaximumNumberOfProfiles
+        {
+            get
+            {
+                return this.maximumNumberOfProfilesField;
+            }
+            set
+            {
+                this.maximumNumberOfProfilesField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlIgnoreAttribute()]
+        public bool MaximumNumberOfProfilesSpecified
+        {
+            get
+            {
+                return this.maximumNumberOfProfilesFieldSpecified;
+            }
+            set
+            {
+                this.maximumNumberOfProfilesFieldSpecified = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl")]
+    public partial class RelayOutputOptionsExtension
+    {
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=0)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl")]
+    public partial class RelayOutputOptions
+    {
+        
+        private RelayMode[] modeField;
+        
+        private string delayTimesField;
+        
+        private bool discreteField;
+        
+        private bool discreteFieldSpecified;
+        
+        private RelayOutputOptionsExtension extensionField;
+        
+        private string tokenField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute("Mode", Order=0)]
+        public RelayMode[] Mode
+        {
+            get
+            {
+                return this.modeField;
+            }
+            set
+            {
+                this.modeField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=1)]
+        public string DelayTimes
+        {
+            get
+            {
+                return this.delayTimesField;
+            }
+            set
+            {
+                this.delayTimesField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=2)]
+        public bool Discrete
+        {
+            get
+            {
+                return this.discreteField;
+            }
+            set
+            {
+                this.discreteField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlIgnoreAttribute()]
+        public bool DiscreteSpecified
+        {
+            get
+            {
+                return this.discreteFieldSpecified;
+            }
+            set
+            {
+                this.discreteFieldSpecified = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlElementAttribute(Order=3)]
+        public RelayOutputOptionsExtension Extension
+        {
+            get
+            {
+                return this.extensionField;
+            }
+            set
+            {
+                this.extensionField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        public string token
+        {
+            get
+            {
+                return this.tokenField;
+            }
+            set
+            {
+                this.tokenField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/schema")]
+    public enum RelayMode
+    {
+        
+        /// <remarks/>
+        Monostable,
+        
+        /// <remarks/>
+        Bistable,
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(TypeName="Capabilities", Namespace="http://www.onvif.org/ver10/deviceIO/wsdl")]
+    public partial class Capabilities1
+    {
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        private int videoSourcesField;
+        
+        private int videoOutputsField;
+        
+        private int audioSourcesField;
+        
+        private int audioOutputsField;
+        
+        private int relayOutputsField;
+        
+        private int serialPortsField;
+        
+        private int digitalInputsField;
+        
+        private bool digitalInputOptionsField;
+        
+        public Capabilities1()
+        {
+            this.videoSourcesField = 0;
+            this.videoOutputsField = 0;
+            this.audioSourcesField = 0;
+            this.audioOutputsField = 0;
+            this.relayOutputsField = 0;
+            this.serialPortsField = 0;
+            this.digitalInputsField = 0;
+            this.digitalInputOptionsField = false;
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=0)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        [System.ComponentModel.DefaultValueAttribute(0)]
+        public int VideoSources
+        {
+            get
+            {
+                return this.videoSourcesField;
+            }
+            set
+            {
+                this.videoSourcesField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        [System.ComponentModel.DefaultValueAttribute(0)]
+        public int VideoOutputs
+        {
+            get
+            {
+                return this.videoOutputsField;
+            }
+            set
+            {
+                this.videoOutputsField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        [System.ComponentModel.DefaultValueAttribute(0)]
+        public int AudioSources
+        {
+            get
+            {
+                return this.audioSourcesField;
+            }
+            set
+            {
+                this.audioSourcesField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        [System.ComponentModel.DefaultValueAttribute(0)]
+        public int AudioOutputs
+        {
+            get
+            {
+                return this.audioOutputsField;
+            }
+            set
+            {
+                this.audioOutputsField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        [System.ComponentModel.DefaultValueAttribute(0)]
+        public int RelayOutputs
+        {
+            get
+            {
+                return this.relayOutputsField;
+            }
+            set
+            {
+                this.relayOutputsField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        [System.ComponentModel.DefaultValueAttribute(0)]
+        public int SerialPorts
+        {
+            get
+            {
+                return this.serialPortsField;
+            }
+            set
+            {
+                this.serialPortsField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        [System.ComponentModel.DefaultValueAttribute(0)]
+        public int DigitalInputs
+        {
+            get
+            {
+                return this.digitalInputsField;
+            }
+            set
+            {
+                this.digitalInputsField = value;
+            }
+        }
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAttributeAttribute()]
+        [System.ComponentModel.DefaultValueAttribute(false)]
+        public bool DigitalInputOptions
+        {
+            get
+            {
+                return this.digitalInputOptionsField;
+            }
+            set
+            {
+                this.digitalInputOptionsField = value;
             }
         }
     }
@@ -20921,19 +21614,6 @@ namespace OnvifSim.Onvif.Wsdl
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
     [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/schema")]
-    public enum RelayMode
-    {
-        
-        /// <remarks/>
-        Monostable,
-        
-        /// <remarks/>
-        Bistable,
-    }
-    
-    /// <remarks/>
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/schema")]
     public enum RelayIdleState
     {
         
@@ -24578,6 +25258,7 @@ namespace OnvifSim.Onvif.Wsdl
     [System.Xml.Serialization.XmlIncludeAttribute(typeof(VideoOutput))]
     [System.Xml.Serialization.XmlIncludeAttribute(typeof(AudioSource))]
     [System.Xml.Serialization.XmlIncludeAttribute(typeof(VideoSource))]
+    [System.Xml.Serialization.XmlIncludeAttribute(typeof(SerialPort))]
     [System.Xml.Serialization.XmlIncludeAttribute(typeof(StorageConfiguration))]
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
@@ -24928,19 +25609,6 @@ namespace OnvifSim.Onvif.Wsdl
                 this.idleStateFieldSpecified = value;
             }
         }
-    }
-    
-    /// <remarks/>
-    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
-    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/schema")]
-    public enum DigitalIdleState
-    {
-        
-        /// <remarks/>
-        closed,
-        
-        /// <remarks/>
-        open,
     }
     
     /// <remarks/>
@@ -25339,6 +26007,30 @@ namespace OnvifSim.Onvif.Wsdl
             set
             {
                 this.extensionField = value;
+            }
+        }
+    }
+    
+    /// <remarks/>
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl")]
+    public partial class SerialPort : DeviceEntity
+    {
+        
+        private System.Xml.XmlElement[] anyField;
+        
+        /// <remarks/>
+        [System.Xml.Serialization.XmlAnyElementAttribute(Order=0)]
+        public System.Xml.XmlElement[] Any
+        {
+            get
+            {
+                return this.anyField;
+            }
+            set
+            {
+                this.anyField = value;
             }
         }
     }
@@ -32971,7 +33663,7 @@ namespace OnvifSim.Onvif.Wsdl
     public partial class TopicType : ExtensibleDocumented
     {
         
-        private QueryExpressionType1 messagePatternField;
+        private QueryExpressionType messagePatternField;
         
         private TopicType[] topicField;
         
@@ -32990,7 +33682,7 @@ namespace OnvifSim.Onvif.Wsdl
         
         /// <remarks/>
         [System.Xml.Serialization.XmlElementAttribute(Order=0)]
-        public QueryExpressionType1 MessagePattern
+        public QueryExpressionType MessagePattern
         {
             get
             {
@@ -33077,8 +33769,8 @@ namespace OnvifSim.Onvif.Wsdl
     /// <remarks/>
     [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
     [System.Diagnostics.DebuggerStepThroughAttribute()]
-    [System.Xml.Serialization.XmlTypeAttribute(TypeName="QueryExpressionType", Namespace="http://docs.oasis-open.org/wsn/t-1")]
-    public partial class QueryExpressionType1
+    [System.Xml.Serialization.XmlTypeAttribute(Namespace="http://docs.oasis-open.org/wsn/t-1")]
+    public partial class QueryExpressionType
     {
         
         private System.Xml.XmlNode[] anyField;
@@ -43142,6 +43834,1553 @@ namespace OnvifSim.Onvif.Wsdl.Device
         #endif
     }
 }
+namespace OnvifSim.Onvif.Wsdl.DeviceIo
+{
+    
+    
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.ServiceContractAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", ConfigurationName="OnvifSim.Onvif.Wsdl.DeviceIo.DeviceIOPort")]
+    public interface DeviceIOPort
+    {
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/deviceio/wsdl/GetServiceCapabilities", ReplyAction="*")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetServiceCapabilitiesResponse> GetServiceCapabilitiesAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetServiceCapabilitiesRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/deviceio/wsdl/GetRelayOutputOptions", ReplyAction="*")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetRelayOutputOptionsResponse> GetRelayOutputOptionsAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetRelayOutputOptionsRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/deviceio/wsdl/GetAudioSources", ReplyAction="*")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetAudioSourcesResponse> GetAudioSourcesAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetAudioSourcesRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/deviceio/wsdl/GetAudioOutputs", ReplyAction="*")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetAudioOutputsResponse> GetAudioOutputsAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetAudioOutputsRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/deviceio/wsdl/GetVideoSources", ReplyAction="*")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetVideoSourcesResponse> GetVideoSourcesAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetVideoSourcesRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/deviceio/wsdl/GetVideoOutputs", ReplyAction="*")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetVideoOutputsResponse> GetVideoOutputsAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetVideoOutputsRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/deviceio/wsdl/GetVideoSourceConfiguration", ReplyAction="*")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetVideoSourceConfigurationResponse> GetVideoSourceConfigurationAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetVideoSourceConfigurationRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/deviceio/wsdl/GetVideoOutputConfiguration", ReplyAction="*")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetVideoOutputConfigurationResponse> GetVideoOutputConfigurationAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetVideoOutputConfigurationRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/deviceio/wsdl/GetAudioSourceConfiguration", ReplyAction="*")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetAudioSourceConfigurationResponse> GetAudioSourceConfigurationAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetAudioSourceConfigurationRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/deviceio/wsdl/GetAudioOutputConfiguration", ReplyAction="*")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetAudioOutputConfigurationResponse> GetAudioOutputConfigurationAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetAudioOutputConfigurationRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/deviceio/wsdl/SetVideoSourceConfiguration", ReplyAction="*")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.SetVideoSourceConfigurationResponse> SetVideoSourceConfigurationAsync(OnvifSim.Onvif.Wsdl.DeviceIo.SetVideoSourceConfigurationRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/deviceio/wsdl/SetVideoOutputConfiguration", ReplyAction="*")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.SetVideoOutputConfigurationResponse> SetVideoOutputConfigurationAsync(OnvifSim.Onvif.Wsdl.DeviceIo.SetVideoOutputConfigurationRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/deviceio/wsdl/SetAudioSourceConfiguration", ReplyAction="*")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.SetAudioSourceConfigurationResponse> SetAudioSourceConfigurationAsync(OnvifSim.Onvif.Wsdl.DeviceIo.SetAudioSourceConfigurationRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/deviceio/wsdl/SetAudioOutputConfiguration", ReplyAction="*")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.SetAudioOutputConfigurationResponse> SetAudioOutputConfigurationAsync(OnvifSim.Onvif.Wsdl.DeviceIo.SetAudioOutputConfigurationRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/deviceio/wsdl/GetVideoSourceConfigurationOptions", ReplyAction="*")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetVideoSourceConfigurationOptionsResponse> GetVideoSourceConfigurationOptionsAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetVideoSourceConfigurationOptionsRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/deviceio/wsdl/GetVideoOutputConfigurationOptions", ReplyAction="*")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetVideoOutputConfigurationOptionsResponse> GetVideoOutputConfigurationOptionsAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetVideoOutputConfigurationOptionsRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/deviceio/wsdl/GetAudioSourceConfigurationOptions", ReplyAction="*")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetAudioSourceConfigurationOptionsResponse> GetAudioSourceConfigurationOptionsAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetAudioSourceConfigurationOptionsRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/deviceio/wsdl/GetAudioOutputConfigurationOptions", ReplyAction="*")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetAudioOutputConfigurationOptionsResponse> GetAudioOutputConfigurationOptionsAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetAudioOutputConfigurationOptionsRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/deviceio/wsdl/GetRelayOutputs", ReplyAction="*")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetRelayOutputsResponse> GetRelayOutputsAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetRelayOutputsRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/deviceio/wsdl/SetRelayOutputSettings", ReplyAction="*")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.SetRelayOutputSettingsResponse> SetRelayOutputSettingsAsync(OnvifSim.Onvif.Wsdl.DeviceIo.SetRelayOutputSettingsRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/deviceio/wsdl/SetRelayOutputState", ReplyAction="*")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.SetRelayOutputStateResponse> SetRelayOutputStateAsync(OnvifSim.Onvif.Wsdl.DeviceIo.SetRelayOutputStateRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/deviceio/wsdl/GetDigitalInputs", ReplyAction="*")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetDigitalInputsResponse> GetDigitalInputsAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetDigitalInputsRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/deviceio/wsdl/GetDigitalInputConfigurationOptions", ReplyAction="*")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetDigitalInputConfigurationOptionsResponse> GetDigitalInputConfigurationOptionsAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetDigitalInputConfigurationOptionsRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/deviceio/wsdl/SetDigitalInputConfigurations", ReplyAction="*")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.SetDigitalInputConfigurationsResponse> SetDigitalInputConfigurationsAsync(OnvifSim.Onvif.Wsdl.DeviceIo.SetDigitalInputConfigurationsRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/deviceio/wsdl/GetSerialPorts", ReplyAction="*")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetSerialPortsResponse> GetSerialPortsAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetSerialPortsRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/deviceio/wsdl/GetSerialPortConfigurations", ReplyAction="*")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetSerialPortConfigurationResponse> GetSerialPortConfigurationAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetSerialPortConfigurationRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/deviceio/wsdl/SetSerialPortConfiguration", ReplyAction="*")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.SetSerialPortConfigurationResponse> SetSerialPortConfigurationAsync(OnvifSim.Onvif.Wsdl.DeviceIo.SetSerialPortConfigurationRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/deviceio/wsdl/GetSerialPortConfigurationOptions", ReplyAction="*")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetSerialPortConfigurationOptionsResponse> GetSerialPortConfigurationOptionsAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetSerialPortConfigurationOptionsRequest request);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://www.onvif.org/ver10/deviceio/wsdl/SendReceiveSerialCommand", ReplyAction="*")]
+        [System.ServiceModel.XmlSerializerFormatAttribute(SupportFaults=true)]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ReceiverConfiguration))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(ConfigurationEntity))]
+        [System.ServiceModel.ServiceKnownTypeAttribute(typeof(DeviceEntity))]
+        System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.SendReceiveSerialCommandResponse> SendReceiveSerialCommandAsync(OnvifSim.Onvif.Wsdl.DeviceIo.SendReceiveSerialCommandRequest request);
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetServiceCapabilities", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetServiceCapabilitiesRequest
+    {
+        
+        public GetServiceCapabilitiesRequest()
+        {
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetServiceCapabilitiesResponse", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetServiceCapabilitiesResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        public OnvifSim.Onvif.Wsdl.Capabilities1 Capabilities;
+        
+        public GetServiceCapabilitiesResponse()
+        {
+        }
+        
+        public GetServiceCapabilitiesResponse(OnvifSim.Onvif.Wsdl.Capabilities1 Capabilities)
+        {
+            this.Capabilities = Capabilities;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetRelayOutputOptions", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetRelayOutputOptionsRequest
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        public string RelayOutputToken;
+        
+        public GetRelayOutputOptionsRequest()
+        {
+        }
+        
+        public GetRelayOutputOptionsRequest(string RelayOutputToken)
+        {
+            this.RelayOutputToken = RelayOutputToken;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetRelayOutputOptionsResponse", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetRelayOutputOptionsResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        [System.Xml.Serialization.XmlElementAttribute("RelayOutputOptions")]
+        public OnvifSim.Onvif.Wsdl.RelayOutputOptions[] RelayOutputOptions;
+        
+        public GetRelayOutputOptionsResponse()
+        {
+        }
+        
+        public GetRelayOutputOptionsResponse(OnvifSim.Onvif.Wsdl.RelayOutputOptions[] RelayOutputOptions)
+        {
+            this.RelayOutputOptions = RelayOutputOptions;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetAudioSources", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetAudioSourcesRequest
+    {
+        
+        public GetAudioSourcesRequest()
+        {
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetAudioSourcesResponse", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetAudioSourcesResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        [System.Xml.Serialization.XmlElementAttribute("Token")]
+        public string[] Token;
+        
+        public GetAudioSourcesResponse()
+        {
+        }
+        
+        public GetAudioSourcesResponse(string[] Token)
+        {
+            this.Token = Token;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetAudioOutputs", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetAudioOutputsRequest
+    {
+        
+        public GetAudioOutputsRequest()
+        {
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetAudioOutputsResponse", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetAudioOutputsResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        [System.Xml.Serialization.XmlElementAttribute("Token")]
+        public string[] Token;
+        
+        public GetAudioOutputsResponse()
+        {
+        }
+        
+        public GetAudioOutputsResponse(string[] Token)
+        {
+            this.Token = Token;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetVideoSources", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetVideoSourcesRequest
+    {
+        
+        public GetVideoSourcesRequest()
+        {
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetVideoSourcesResponse", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetVideoSourcesResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        [System.Xml.Serialization.XmlElementAttribute("Token")]
+        public string[] Token;
+        
+        public GetVideoSourcesResponse()
+        {
+        }
+        
+        public GetVideoSourcesResponse(string[] Token)
+        {
+            this.Token = Token;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetVideoOutputs", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetVideoOutputsRequest
+    {
+        
+        public GetVideoOutputsRequest()
+        {
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetVideoOutputsResponse", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetVideoOutputsResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        [System.Xml.Serialization.XmlElementAttribute("VideoOutputs")]
+        public OnvifSim.Onvif.Wsdl.VideoOutput[] VideoOutputs;
+        
+        public GetVideoOutputsResponse()
+        {
+        }
+        
+        public GetVideoOutputsResponse(OnvifSim.Onvif.Wsdl.VideoOutput[] VideoOutputs)
+        {
+            this.VideoOutputs = VideoOutputs;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetVideoSourceConfiguration", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetVideoSourceConfigurationRequest
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        public string VideoSourceToken;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="", Order=1)]
+        [System.Xml.Serialization.XmlAnyElementAttribute()]
+        public System.Xml.XmlElement[] Any;
+        
+        public GetVideoSourceConfigurationRequest()
+        {
+        }
+        
+        public GetVideoSourceConfigurationRequest(string VideoSourceToken, System.Xml.XmlElement[] Any)
+        {
+            this.VideoSourceToken = VideoSourceToken;
+            this.Any = Any;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetVideoSourceConfigurationResponse", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetVideoSourceConfigurationResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        public OnvifSim.Onvif.Wsdl.VideoSourceConfiguration VideoSourceConfiguration;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="", Order=1)]
+        [System.Xml.Serialization.XmlAnyElementAttribute()]
+        public System.Xml.XmlElement[] Any;
+        
+        public GetVideoSourceConfigurationResponse()
+        {
+        }
+        
+        public GetVideoSourceConfigurationResponse(OnvifSim.Onvif.Wsdl.VideoSourceConfiguration VideoSourceConfiguration, System.Xml.XmlElement[] Any)
+        {
+            this.VideoSourceConfiguration = VideoSourceConfiguration;
+            this.Any = Any;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetVideoOutputConfiguration", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetVideoOutputConfigurationRequest
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        public string VideoOutputToken;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="", Order=1)]
+        [System.Xml.Serialization.XmlAnyElementAttribute()]
+        public System.Xml.XmlElement[] Any;
+        
+        public GetVideoOutputConfigurationRequest()
+        {
+        }
+        
+        public GetVideoOutputConfigurationRequest(string VideoOutputToken, System.Xml.XmlElement[] Any)
+        {
+            this.VideoOutputToken = VideoOutputToken;
+            this.Any = Any;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetVideoOutputConfigurationResponse", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetVideoOutputConfigurationResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        public OnvifSim.Onvif.Wsdl.VideoOutputConfiguration VideoOutputConfiguration;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="", Order=1)]
+        [System.Xml.Serialization.XmlAnyElementAttribute()]
+        public System.Xml.XmlElement[] Any;
+        
+        public GetVideoOutputConfigurationResponse()
+        {
+        }
+        
+        public GetVideoOutputConfigurationResponse(OnvifSim.Onvif.Wsdl.VideoOutputConfiguration VideoOutputConfiguration, System.Xml.XmlElement[] Any)
+        {
+            this.VideoOutputConfiguration = VideoOutputConfiguration;
+            this.Any = Any;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetAudioSourceConfiguration", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetAudioSourceConfigurationRequest
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        public string AudioSourceToken;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="", Order=1)]
+        [System.Xml.Serialization.XmlAnyElementAttribute()]
+        public System.Xml.XmlElement[] Any;
+        
+        public GetAudioSourceConfigurationRequest()
+        {
+        }
+        
+        public GetAudioSourceConfigurationRequest(string AudioSourceToken, System.Xml.XmlElement[] Any)
+        {
+            this.AudioSourceToken = AudioSourceToken;
+            this.Any = Any;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetAudioSourceConfigurationResponse", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetAudioSourceConfigurationResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        public OnvifSim.Onvif.Wsdl.AudioSourceConfiguration AudioSourceConfiguration;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="", Order=1)]
+        [System.Xml.Serialization.XmlAnyElementAttribute()]
+        public System.Xml.XmlElement[] Any;
+        
+        public GetAudioSourceConfigurationResponse()
+        {
+        }
+        
+        public GetAudioSourceConfigurationResponse(OnvifSim.Onvif.Wsdl.AudioSourceConfiguration AudioSourceConfiguration, System.Xml.XmlElement[] Any)
+        {
+            this.AudioSourceConfiguration = AudioSourceConfiguration;
+            this.Any = Any;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetAudioOutputConfiguration", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetAudioOutputConfigurationRequest
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        public string AudioOutputToken;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="", Order=1)]
+        [System.Xml.Serialization.XmlAnyElementAttribute()]
+        public System.Xml.XmlElement[] Any;
+        
+        public GetAudioOutputConfigurationRequest()
+        {
+        }
+        
+        public GetAudioOutputConfigurationRequest(string AudioOutputToken, System.Xml.XmlElement[] Any)
+        {
+            this.AudioOutputToken = AudioOutputToken;
+            this.Any = Any;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetAudioOutputConfigurationResponse", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetAudioOutputConfigurationResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        public OnvifSim.Onvif.Wsdl.AudioOutputConfiguration AudioOutputConfiguration;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="", Order=1)]
+        [System.Xml.Serialization.XmlAnyElementAttribute()]
+        public System.Xml.XmlElement[] Any;
+        
+        public GetAudioOutputConfigurationResponse()
+        {
+        }
+        
+        public GetAudioOutputConfigurationResponse(OnvifSim.Onvif.Wsdl.AudioOutputConfiguration AudioOutputConfiguration, System.Xml.XmlElement[] Any)
+        {
+            this.AudioOutputConfiguration = AudioOutputConfiguration;
+            this.Any = Any;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="SetVideoSourceConfiguration", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class SetVideoSourceConfigurationRequest
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        public OnvifSim.Onvif.Wsdl.VideoSourceConfiguration Configuration;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=1)]
+        public bool ForcePersistence;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="", Order=2)]
+        [System.Xml.Serialization.XmlAnyElementAttribute()]
+        public System.Xml.XmlElement[] Any;
+        
+        public SetVideoSourceConfigurationRequest()
+        {
+        }
+        
+        public SetVideoSourceConfigurationRequest(OnvifSim.Onvif.Wsdl.VideoSourceConfiguration Configuration, bool ForcePersistence, System.Xml.XmlElement[] Any)
+        {
+            this.Configuration = Configuration;
+            this.ForcePersistence = ForcePersistence;
+            this.Any = Any;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="SetVideoSourceConfigurationResponse", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class SetVideoSourceConfigurationResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="", Order=0)]
+        [System.Xml.Serialization.XmlAnyElementAttribute()]
+        public System.Xml.XmlElement[] Any;
+        
+        public SetVideoSourceConfigurationResponse()
+        {
+        }
+        
+        public SetVideoSourceConfigurationResponse(System.Xml.XmlElement[] Any)
+        {
+            this.Any = Any;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="SetVideoOutputConfiguration", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class SetVideoOutputConfigurationRequest
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        public OnvifSim.Onvif.Wsdl.VideoOutputConfiguration Configuration;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=1)]
+        public bool ForcePersistence;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="", Order=2)]
+        [System.Xml.Serialization.XmlAnyElementAttribute()]
+        public System.Xml.XmlElement[] Any;
+        
+        public SetVideoOutputConfigurationRequest()
+        {
+        }
+        
+        public SetVideoOutputConfigurationRequest(OnvifSim.Onvif.Wsdl.VideoOutputConfiguration Configuration, bool ForcePersistence, System.Xml.XmlElement[] Any)
+        {
+            this.Configuration = Configuration;
+            this.ForcePersistence = ForcePersistence;
+            this.Any = Any;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="SetVideoOutputConfigurationResponse", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class SetVideoOutputConfigurationResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="", Order=0)]
+        [System.Xml.Serialization.XmlAnyElementAttribute()]
+        public System.Xml.XmlElement[] Any;
+        
+        public SetVideoOutputConfigurationResponse()
+        {
+        }
+        
+        public SetVideoOutputConfigurationResponse(System.Xml.XmlElement[] Any)
+        {
+            this.Any = Any;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="SetAudioSourceConfiguration", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class SetAudioSourceConfigurationRequest
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        public OnvifSim.Onvif.Wsdl.AudioSourceConfiguration Configuration;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=1)]
+        public bool ForcePersistence;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="", Order=2)]
+        [System.Xml.Serialization.XmlAnyElementAttribute()]
+        public System.Xml.XmlElement[] Any;
+        
+        public SetAudioSourceConfigurationRequest()
+        {
+        }
+        
+        public SetAudioSourceConfigurationRequest(OnvifSim.Onvif.Wsdl.AudioSourceConfiguration Configuration, bool ForcePersistence, System.Xml.XmlElement[] Any)
+        {
+            this.Configuration = Configuration;
+            this.ForcePersistence = ForcePersistence;
+            this.Any = Any;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="SetAudioSourceConfigurationResponse", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class SetAudioSourceConfigurationResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="", Order=0)]
+        [System.Xml.Serialization.XmlAnyElementAttribute()]
+        public System.Xml.XmlElement[] Any;
+        
+        public SetAudioSourceConfigurationResponse()
+        {
+        }
+        
+        public SetAudioSourceConfigurationResponse(System.Xml.XmlElement[] Any)
+        {
+            this.Any = Any;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="SetAudioOutputConfiguration", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class SetAudioOutputConfigurationRequest
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        public OnvifSim.Onvif.Wsdl.AudioOutputConfiguration Configuration;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=1)]
+        public bool ForcePersistence;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="", Order=2)]
+        [System.Xml.Serialization.XmlAnyElementAttribute()]
+        public System.Xml.XmlElement[] Any;
+        
+        public SetAudioOutputConfigurationRequest()
+        {
+        }
+        
+        public SetAudioOutputConfigurationRequest(OnvifSim.Onvif.Wsdl.AudioOutputConfiguration Configuration, bool ForcePersistence, System.Xml.XmlElement[] Any)
+        {
+            this.Configuration = Configuration;
+            this.ForcePersistence = ForcePersistence;
+            this.Any = Any;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="SetAudioOutputConfigurationResponse", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class SetAudioOutputConfigurationResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="", Order=0)]
+        [System.Xml.Serialization.XmlAnyElementAttribute()]
+        public System.Xml.XmlElement[] Any;
+        
+        public SetAudioOutputConfigurationResponse()
+        {
+        }
+        
+        public SetAudioOutputConfigurationResponse(System.Xml.XmlElement[] Any)
+        {
+            this.Any = Any;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetVideoSourceConfigurationOptions", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetVideoSourceConfigurationOptionsRequest
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        public string VideoSourceToken;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="", Order=1)]
+        [System.Xml.Serialization.XmlAnyElementAttribute()]
+        public System.Xml.XmlElement[] Any;
+        
+        public GetVideoSourceConfigurationOptionsRequest()
+        {
+        }
+        
+        public GetVideoSourceConfigurationOptionsRequest(string VideoSourceToken, System.Xml.XmlElement[] Any)
+        {
+            this.VideoSourceToken = VideoSourceToken;
+            this.Any = Any;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetVideoSourceConfigurationOptionsResponse", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetVideoSourceConfigurationOptionsResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        public OnvifSim.Onvif.Wsdl.VideoSourceConfigurationOptions VideoSourceConfigurationOptions;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="", Order=1)]
+        [System.Xml.Serialization.XmlAnyElementAttribute()]
+        public System.Xml.XmlElement[] Any;
+        
+        public GetVideoSourceConfigurationOptionsResponse()
+        {
+        }
+        
+        public GetVideoSourceConfigurationOptionsResponse(OnvifSim.Onvif.Wsdl.VideoSourceConfigurationOptions VideoSourceConfigurationOptions, System.Xml.XmlElement[] Any)
+        {
+            this.VideoSourceConfigurationOptions = VideoSourceConfigurationOptions;
+            this.Any = Any;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetVideoOutputConfigurationOptions", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetVideoOutputConfigurationOptionsRequest
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        public string VideoOutputToken;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="", Order=1)]
+        [System.Xml.Serialization.XmlAnyElementAttribute()]
+        public System.Xml.XmlElement[] Any;
+        
+        public GetVideoOutputConfigurationOptionsRequest()
+        {
+        }
+        
+        public GetVideoOutputConfigurationOptionsRequest(string VideoOutputToken, System.Xml.XmlElement[] Any)
+        {
+            this.VideoOutputToken = VideoOutputToken;
+            this.Any = Any;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetVideoOutputConfigurationOptionsResponse", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetVideoOutputConfigurationOptionsResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        public OnvifSim.Onvif.Wsdl.VideoOutputConfigurationOptions VideoOutputConfigurationOptions;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="", Order=1)]
+        [System.Xml.Serialization.XmlAnyElementAttribute()]
+        public System.Xml.XmlElement[] Any;
+        
+        public GetVideoOutputConfigurationOptionsResponse()
+        {
+        }
+        
+        public GetVideoOutputConfigurationOptionsResponse(OnvifSim.Onvif.Wsdl.VideoOutputConfigurationOptions VideoOutputConfigurationOptions, System.Xml.XmlElement[] Any)
+        {
+            this.VideoOutputConfigurationOptions = VideoOutputConfigurationOptions;
+            this.Any = Any;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetAudioSourceConfigurationOptions", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetAudioSourceConfigurationOptionsRequest
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        public string AudioSourceToken;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="", Order=1)]
+        [System.Xml.Serialization.XmlAnyElementAttribute()]
+        public System.Xml.XmlElement[] Any;
+        
+        public GetAudioSourceConfigurationOptionsRequest()
+        {
+        }
+        
+        public GetAudioSourceConfigurationOptionsRequest(string AudioSourceToken, System.Xml.XmlElement[] Any)
+        {
+            this.AudioSourceToken = AudioSourceToken;
+            this.Any = Any;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetAudioSourceConfigurationOptionsResponse", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetAudioSourceConfigurationOptionsResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        public OnvifSim.Onvif.Wsdl.AudioSourceConfigurationOptions AudioSourceOptions;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="", Order=1)]
+        [System.Xml.Serialization.XmlAnyElementAttribute()]
+        public System.Xml.XmlElement[] Any;
+        
+        public GetAudioSourceConfigurationOptionsResponse()
+        {
+        }
+        
+        public GetAudioSourceConfigurationOptionsResponse(OnvifSim.Onvif.Wsdl.AudioSourceConfigurationOptions AudioSourceOptions, System.Xml.XmlElement[] Any)
+        {
+            this.AudioSourceOptions = AudioSourceOptions;
+            this.Any = Any;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetAudioOutputConfigurationOptions", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetAudioOutputConfigurationOptionsRequest
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        public string AudioOutputToken;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="", Order=1)]
+        [System.Xml.Serialization.XmlAnyElementAttribute()]
+        public System.Xml.XmlElement[] Any;
+        
+        public GetAudioOutputConfigurationOptionsRequest()
+        {
+        }
+        
+        public GetAudioOutputConfigurationOptionsRequest(string AudioOutputToken, System.Xml.XmlElement[] Any)
+        {
+            this.AudioOutputToken = AudioOutputToken;
+            this.Any = Any;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetAudioOutputConfigurationOptionsResponse", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetAudioOutputConfigurationOptionsResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        public OnvifSim.Onvif.Wsdl.AudioOutputConfigurationOptions AudioOutputOptions;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="", Order=1)]
+        [System.Xml.Serialization.XmlAnyElementAttribute()]
+        public System.Xml.XmlElement[] Any;
+        
+        public GetAudioOutputConfigurationOptionsResponse()
+        {
+        }
+        
+        public GetAudioOutputConfigurationOptionsResponse(OnvifSim.Onvif.Wsdl.AudioOutputConfigurationOptions AudioOutputOptions, System.Xml.XmlElement[] Any)
+        {
+            this.AudioOutputOptions = AudioOutputOptions;
+            this.Any = Any;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetRelayOutputs", WrapperNamespace="http://www.onvif.org/ver10/device/wsdl", IsWrapped=true)]
+    public partial class GetRelayOutputsRequest
+    {
+        
+        public GetRelayOutputsRequest()
+        {
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetRelayOutputsResponse", WrapperNamespace="http://www.onvif.org/ver10/device/wsdl", IsWrapped=true)]
+    public partial class GetRelayOutputsResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/device/wsdl", Order=0)]
+        [System.Xml.Serialization.XmlElementAttribute("RelayOutputs")]
+        public OnvifSim.Onvif.Wsdl.RelayOutput[] RelayOutputs;
+        
+        public GetRelayOutputsResponse()
+        {
+        }
+        
+        public GetRelayOutputsResponse(OnvifSim.Onvif.Wsdl.RelayOutput[] RelayOutputs)
+        {
+            this.RelayOutputs = RelayOutputs;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="SetRelayOutputSettings", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class SetRelayOutputSettingsRequest
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        public OnvifSim.Onvif.Wsdl.RelayOutput RelayOutput;
+        
+        public SetRelayOutputSettingsRequest()
+        {
+        }
+        
+        public SetRelayOutputSettingsRequest(OnvifSim.Onvif.Wsdl.RelayOutput RelayOutput)
+        {
+            this.RelayOutput = RelayOutput;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="SetRelayOutputSettingsResponse", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class SetRelayOutputSettingsResponse
+    {
+        
+        public SetRelayOutputSettingsResponse()
+        {
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="SetRelayOutputState", WrapperNamespace="http://www.onvif.org/ver10/device/wsdl", IsWrapped=true)]
+    public partial class SetRelayOutputStateRequest
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/device/wsdl", Order=0)]
+        public string RelayOutputToken;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/device/wsdl", Order=1)]
+        public OnvifSim.Onvif.Wsdl.RelayLogicalState LogicalState;
+        
+        public SetRelayOutputStateRequest()
+        {
+        }
+        
+        public SetRelayOutputStateRequest(string RelayOutputToken, OnvifSim.Onvif.Wsdl.RelayLogicalState LogicalState)
+        {
+            this.RelayOutputToken = RelayOutputToken;
+            this.LogicalState = LogicalState;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="SetRelayOutputStateResponse", WrapperNamespace="http://www.onvif.org/ver10/device/wsdl", IsWrapped=true)]
+    public partial class SetRelayOutputStateResponse
+    {
+        
+        public SetRelayOutputStateResponse()
+        {
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetDigitalInputs", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetDigitalInputsRequest
+    {
+        
+        public GetDigitalInputsRequest()
+        {
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetDigitalInputsResponse", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetDigitalInputsResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        [System.Xml.Serialization.XmlElementAttribute("DigitalInputs")]
+        public OnvifSim.Onvif.Wsdl.DigitalInput[] DigitalInputs;
+        
+        public GetDigitalInputsResponse()
+        {
+        }
+        
+        public GetDigitalInputsResponse(OnvifSim.Onvif.Wsdl.DigitalInput[] DigitalInputs)
+        {
+            this.DigitalInputs = DigitalInputs;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetDigitalInputConfigurationOptions", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetDigitalInputConfigurationOptionsRequest
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        public string Token;
+        
+        public GetDigitalInputConfigurationOptionsRequest()
+        {
+        }
+        
+        public GetDigitalInputConfigurationOptionsRequest(string Token)
+        {
+            this.Token = Token;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetDigitalInputConfigurationOptionsResponse", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetDigitalInputConfigurationOptionsResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        public OnvifSim.Onvif.Wsdl.DigitalInputConfigurationOptions DigitalInputOptions;
+        
+        public GetDigitalInputConfigurationOptionsResponse()
+        {
+        }
+        
+        public GetDigitalInputConfigurationOptionsResponse(OnvifSim.Onvif.Wsdl.DigitalInputConfigurationOptions DigitalInputOptions)
+        {
+            this.DigitalInputOptions = DigitalInputOptions;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="SetDigitalInputConfigurations", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class SetDigitalInputConfigurationsRequest
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        [System.Xml.Serialization.XmlElementAttribute("DigitalInputs")]
+        public OnvifSim.Onvif.Wsdl.DigitalInput[] DigitalInputs;
+        
+        public SetDigitalInputConfigurationsRequest()
+        {
+        }
+        
+        public SetDigitalInputConfigurationsRequest(OnvifSim.Onvif.Wsdl.DigitalInput[] DigitalInputs)
+        {
+            this.DigitalInputs = DigitalInputs;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="SetDigitalInputConfigurationsResponse", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class SetDigitalInputConfigurationsResponse
+    {
+        
+        public SetDigitalInputConfigurationsResponse()
+        {
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetSerialPorts", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetSerialPortsRequest
+    {
+        
+        public GetSerialPortsRequest()
+        {
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetSerialPortsResponse", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetSerialPortsResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        [System.Xml.Serialization.XmlElementAttribute("SerialPort")]
+        public OnvifSim.Onvif.Wsdl.SerialPort[] SerialPort;
+        
+        public GetSerialPortsResponse()
+        {
+        }
+        
+        public GetSerialPortsResponse(OnvifSim.Onvif.Wsdl.SerialPort[] SerialPort)
+        {
+            this.SerialPort = SerialPort;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetSerialPortConfiguration", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetSerialPortConfigurationRequest
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        public string SerialPortToken;
+        
+        public GetSerialPortConfigurationRequest()
+        {
+        }
+        
+        public GetSerialPortConfigurationRequest(string SerialPortToken)
+        {
+            this.SerialPortToken = SerialPortToken;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetSerialPortConfigurationResponse", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetSerialPortConfigurationResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        public OnvifSim.Onvif.Wsdl.SerialPortConfiguration SerialPortConfiguration;
+        
+        public GetSerialPortConfigurationResponse()
+        {
+        }
+        
+        public GetSerialPortConfigurationResponse(OnvifSim.Onvif.Wsdl.SerialPortConfiguration SerialPortConfiguration)
+        {
+            this.SerialPortConfiguration = SerialPortConfiguration;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="SetSerialPortConfiguration", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class SetSerialPortConfigurationRequest
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        public OnvifSim.Onvif.Wsdl.SerialPortConfiguration SerialPortConfiguration;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=1)]
+        public bool ForcePersistance;
+        
+        public SetSerialPortConfigurationRequest()
+        {
+        }
+        
+        public SetSerialPortConfigurationRequest(OnvifSim.Onvif.Wsdl.SerialPortConfiguration SerialPortConfiguration, bool ForcePersistance)
+        {
+            this.SerialPortConfiguration = SerialPortConfiguration;
+            this.ForcePersistance = ForcePersistance;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="SetSerialPortConfigurationResponse", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class SetSerialPortConfigurationResponse
+    {
+        
+        public SetSerialPortConfigurationResponse()
+        {
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetSerialPortConfigurationOptions", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetSerialPortConfigurationOptionsRequest
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        public string SerialPortToken;
+        
+        public GetSerialPortConfigurationOptionsRequest()
+        {
+        }
+        
+        public GetSerialPortConfigurationOptionsRequest(string SerialPortToken)
+        {
+            this.SerialPortToken = SerialPortToken;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="GetSerialPortConfigurationOptionsResponse", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class GetSerialPortConfigurationOptionsResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        public OnvifSim.Onvif.Wsdl.SerialPortConfigurationOptions SerialPortOptions;
+        
+        public GetSerialPortConfigurationOptionsResponse()
+        {
+        }
+        
+        public GetSerialPortConfigurationOptionsResponse(OnvifSim.Onvif.Wsdl.SerialPortConfigurationOptions SerialPortOptions)
+        {
+            this.SerialPortOptions = SerialPortOptions;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="SendReceiveSerialCommand", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class SendReceiveSerialCommandRequest
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        public string Token;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=1)]
+        public OnvifSim.Onvif.Wsdl.SerialData SerialData;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=2)]
+        [System.Xml.Serialization.XmlElementAttribute(DataType="duration")]
+        public string TimeOut;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=3)]
+        [System.Xml.Serialization.XmlElementAttribute(DataType="integer")]
+        public string DataLength;
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=4)]
+        public string Delimiter;
+        
+        public SendReceiveSerialCommandRequest()
+        {
+        }
+        
+        public SendReceiveSerialCommandRequest(string Token, OnvifSim.Onvif.Wsdl.SerialData SerialData, string TimeOut, string DataLength, string Delimiter)
+        {
+            this.Token = Token;
+            this.SerialData = SerialData;
+            this.TimeOut = TimeOut;
+            this.DataLength = DataLength;
+            this.Delimiter = Delimiter;
+        }
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    [System.ServiceModel.MessageContractAttribute(WrapperName="SendReceiveSerialCommandResponse", WrapperNamespace="http://www.onvif.org/ver10/deviceIO/wsdl", IsWrapped=true)]
+    public partial class SendReceiveSerialCommandResponse
+    {
+        
+        [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/deviceIO/wsdl", Order=0)]
+        public OnvifSim.Onvif.Wsdl.SerialData SerialData;
+        
+        public SendReceiveSerialCommandResponse()
+        {
+        }
+        
+        public SendReceiveSerialCommandResponse(OnvifSim.Onvif.Wsdl.SerialData SerialData)
+        {
+            this.SerialData = SerialData;
+        }
+    }
+    
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    public interface DeviceIOPortChannel : OnvifSim.Onvif.Wsdl.DeviceIo.DeviceIOPort, System.ServiceModel.IClientChannel
+    {
+    }
+    
+    [System.Diagnostics.DebuggerStepThroughAttribute()]
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.Tools.ServiceModel.Svcutil", "8.0.0")]
+    public partial class DeviceIOPortClient : System.ServiceModel.ClientBase<OnvifSim.Onvif.Wsdl.DeviceIo.DeviceIOPort>, OnvifSim.Onvif.Wsdl.DeviceIo.DeviceIOPort
+    {
+        
+        public DeviceIOPortClient(System.ServiceModel.Channels.Binding binding, System.ServiceModel.EndpointAddress remoteAddress) : 
+                base(binding, remoteAddress)
+        {
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetServiceCapabilitiesResponse> GetServiceCapabilitiesAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetServiceCapabilitiesRequest request)
+        {
+            return base.Channel.GetServiceCapabilitiesAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetRelayOutputOptionsResponse> GetRelayOutputOptionsAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetRelayOutputOptionsRequest request)
+        {
+            return base.Channel.GetRelayOutputOptionsAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetAudioSourcesResponse> GetAudioSourcesAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetAudioSourcesRequest request)
+        {
+            return base.Channel.GetAudioSourcesAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetAudioOutputsResponse> GetAudioOutputsAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetAudioOutputsRequest request)
+        {
+            return base.Channel.GetAudioOutputsAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetVideoSourcesResponse> GetVideoSourcesAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetVideoSourcesRequest request)
+        {
+            return base.Channel.GetVideoSourcesAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetVideoOutputsResponse> GetVideoOutputsAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetVideoOutputsRequest request)
+        {
+            return base.Channel.GetVideoOutputsAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetVideoSourceConfigurationResponse> GetVideoSourceConfigurationAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetVideoSourceConfigurationRequest request)
+        {
+            return base.Channel.GetVideoSourceConfigurationAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetVideoOutputConfigurationResponse> GetVideoOutputConfigurationAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetVideoOutputConfigurationRequest request)
+        {
+            return base.Channel.GetVideoOutputConfigurationAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetAudioSourceConfigurationResponse> GetAudioSourceConfigurationAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetAudioSourceConfigurationRequest request)
+        {
+            return base.Channel.GetAudioSourceConfigurationAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetAudioOutputConfigurationResponse> GetAudioOutputConfigurationAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetAudioOutputConfigurationRequest request)
+        {
+            return base.Channel.GetAudioOutputConfigurationAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.SetVideoSourceConfigurationResponse> SetVideoSourceConfigurationAsync(OnvifSim.Onvif.Wsdl.DeviceIo.SetVideoSourceConfigurationRequest request)
+        {
+            return base.Channel.SetVideoSourceConfigurationAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.SetVideoOutputConfigurationResponse> SetVideoOutputConfigurationAsync(OnvifSim.Onvif.Wsdl.DeviceIo.SetVideoOutputConfigurationRequest request)
+        {
+            return base.Channel.SetVideoOutputConfigurationAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.SetAudioSourceConfigurationResponse> SetAudioSourceConfigurationAsync(OnvifSim.Onvif.Wsdl.DeviceIo.SetAudioSourceConfigurationRequest request)
+        {
+            return base.Channel.SetAudioSourceConfigurationAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.SetAudioOutputConfigurationResponse> SetAudioOutputConfigurationAsync(OnvifSim.Onvif.Wsdl.DeviceIo.SetAudioOutputConfigurationRequest request)
+        {
+            return base.Channel.SetAudioOutputConfigurationAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetVideoSourceConfigurationOptionsResponse> GetVideoSourceConfigurationOptionsAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetVideoSourceConfigurationOptionsRequest request)
+        {
+            return base.Channel.GetVideoSourceConfigurationOptionsAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetVideoOutputConfigurationOptionsResponse> GetVideoOutputConfigurationOptionsAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetVideoOutputConfigurationOptionsRequest request)
+        {
+            return base.Channel.GetVideoOutputConfigurationOptionsAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetAudioSourceConfigurationOptionsResponse> GetAudioSourceConfigurationOptionsAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetAudioSourceConfigurationOptionsRequest request)
+        {
+            return base.Channel.GetAudioSourceConfigurationOptionsAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetAudioOutputConfigurationOptionsResponse> GetAudioOutputConfigurationOptionsAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetAudioOutputConfigurationOptionsRequest request)
+        {
+            return base.Channel.GetAudioOutputConfigurationOptionsAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetRelayOutputsResponse> GetRelayOutputsAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetRelayOutputsRequest request)
+        {
+            return base.Channel.GetRelayOutputsAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.SetRelayOutputSettingsResponse> SetRelayOutputSettingsAsync(OnvifSim.Onvif.Wsdl.DeviceIo.SetRelayOutputSettingsRequest request)
+        {
+            return base.Channel.SetRelayOutputSettingsAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.SetRelayOutputStateResponse> SetRelayOutputStateAsync(OnvifSim.Onvif.Wsdl.DeviceIo.SetRelayOutputStateRequest request)
+        {
+            return base.Channel.SetRelayOutputStateAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetDigitalInputsResponse> GetDigitalInputsAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetDigitalInputsRequest request)
+        {
+            return base.Channel.GetDigitalInputsAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetDigitalInputConfigurationOptionsResponse> GetDigitalInputConfigurationOptionsAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetDigitalInputConfigurationOptionsRequest request)
+        {
+            return base.Channel.GetDigitalInputConfigurationOptionsAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.SetDigitalInputConfigurationsResponse> SetDigitalInputConfigurationsAsync(OnvifSim.Onvif.Wsdl.DeviceIo.SetDigitalInputConfigurationsRequest request)
+        {
+            return base.Channel.SetDigitalInputConfigurationsAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetSerialPortsResponse> GetSerialPortsAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetSerialPortsRequest request)
+        {
+            return base.Channel.GetSerialPortsAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetSerialPortConfigurationResponse> GetSerialPortConfigurationAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetSerialPortConfigurationRequest request)
+        {
+            return base.Channel.GetSerialPortConfigurationAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.SetSerialPortConfigurationResponse> SetSerialPortConfigurationAsync(OnvifSim.Onvif.Wsdl.DeviceIo.SetSerialPortConfigurationRequest request)
+        {
+            return base.Channel.SetSerialPortConfigurationAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.GetSerialPortConfigurationOptionsResponse> GetSerialPortConfigurationOptionsAsync(OnvifSim.Onvif.Wsdl.DeviceIo.GetSerialPortConfigurationOptionsRequest request)
+        {
+            return base.Channel.GetSerialPortConfigurationOptionsAsync(request);
+        }
+        
+        public System.Threading.Tasks.Task<OnvifSim.Onvif.Wsdl.DeviceIo.SendReceiveSerialCommandResponse> SendReceiveSerialCommandAsync(OnvifSim.Onvif.Wsdl.DeviceIo.SendReceiveSerialCommandRequest request)
+        {
+            return base.Channel.SendReceiveSerialCommandAsync(request);
+        }
+        
+        public virtual System.Threading.Tasks.Task OpenAsync()
+        {
+            return System.Threading.Tasks.Task.Factory.FromAsync(((System.ServiceModel.ICommunicationObject)(this)).BeginOpen(null, null), new System.Action<System.IAsyncResult>(((System.ServiceModel.ICommunicationObject)(this)).EndOpen));
+        }
+        
+        #if !NET6_0_OR_GREATER
+        public virtual System.Threading.Tasks.Task CloseAsync()
+        {
+            return System.Threading.Tasks.Task.Factory.FromAsync(((System.ServiceModel.ICommunicationObject)(this)).BeginClose(null, null), new System.Action<System.IAsyncResult>(((System.ServiceModel.ICommunicationObject)(this)).EndClose));
+        }
+        #endif
+    }
+}
 namespace OnvifSim.Onvif.Wsdl.Media
 {
     
@@ -43723,13 +45962,13 @@ namespace OnvifSim.Onvif.Wsdl.Media
     {
         
         [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver10/media/wsdl", Order=0)]
-        public OnvifSim.Onvif.Wsdl.Capabilities1 Capabilities;
+        public OnvifSim.Onvif.Wsdl.Capabilities2 Capabilities;
         
         public GetServiceCapabilitiesResponse()
         {
         }
         
-        public GetServiceCapabilitiesResponse(OnvifSim.Onvif.Wsdl.Capabilities1 Capabilities)
+        public GetServiceCapabilitiesResponse(OnvifSim.Onvif.Wsdl.Capabilities2 Capabilities)
         {
             this.Capabilities = Capabilities;
         }
@@ -47412,13 +49651,13 @@ namespace OnvifSim.Onvif.Wsdl.Media2
     {
         
         [System.ServiceModel.MessageBodyMemberAttribute(Namespace="http://www.onvif.org/ver20/media/wsdl", Order=0)]
-        public OnvifSim.Onvif.Wsdl.Capabilities2 Capabilities;
+        public OnvifSim.Onvif.Wsdl.Capabilities21 Capabilities;
         
         public GetServiceCapabilitiesResponse()
         {
         }
         
-        public GetServiceCapabilitiesResponse(OnvifSim.Onvif.Wsdl.Capabilities2 Capabilities)
+        public GetServiceCapabilitiesResponse(OnvifSim.Onvif.Wsdl.Capabilities21 Capabilities)
         {
             this.Capabilities = Capabilities;
         }

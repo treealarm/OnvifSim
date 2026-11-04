@@ -17,7 +17,8 @@ namespace OnvifSim.Onvif;
 // world changes.
 public sealed class OnvifHost(
     SimOptions options, WorldStore store, SceneState scene, PtzSimulator ptz, PullPoints pullPoints, RecordingLog recordings, CameraNetwork network,
-    OnvifDispatcher dispatcher, FeedManager feeds, HttpAuthenticator authenticator, RtspServer rtsp, ILoggerFactory loggers) : IHostedService
+    DeviceIoController deviceIo, OnvifDispatcher dispatcher, FeedManager feeds, HttpAuthenticator authenticator, RtspServer rtsp,
+    ILoggerFactory loggers) : IHostedService
 {
     private sealed record Listener(string? RequestedAddress, int RequestedPort, int Port, WebApplication App);
 
@@ -192,7 +193,7 @@ public sealed class OnvifHost(
             http.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
             return;
         }
-        await dispatcher.HandleAsync(http, new OnvifRequestContext(camera, store, ptz, pullPoints, recordings, dispatcher, http.Request,
+        await dispatcher.HandleAsync(http, new OnvifRequestContext(camera, store, ptz, pullPoints, recordings, deviceIo, dispatcher, http.Request,
             CameraStreamsModel.EffectiveRtspPort(camera, rtsp.Port), feeds.H264Available));
     }
 

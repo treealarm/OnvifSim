@@ -27,6 +27,7 @@ cd "$work/proj"
     -ser XmlSerializer -mc -ct System.Array \
     -n "*,OnvifSim.Onvif.Wsdl" \
     -n "http://www.onvif.org/ver10/device/wsdl,OnvifSim.Onvif.Wsdl.Device" \
+    -n "http://www.onvif.org/ver10/deviceIO/wsdl,OnvifSim.Onvif.Wsdl.DeviceIo" \
     -n "http://www.onvif.org/ver10/media/wsdl,OnvifSim.Onvif.Wsdl.Media" \
     -n "http://www.onvif.org/ver20/media/wsdl,OnvifSim.Onvif.Wsdl.Media2" \
     -n "http://www.onvif.org/ver20/ptz/wsdl,OnvifSim.Onvif.Wsdl.Ptz" \

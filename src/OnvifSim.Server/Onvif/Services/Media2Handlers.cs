@@ -17,11 +17,11 @@ public sealed class Media2Handlers(OnvifRequestContext context)
 
     private CameraModel Camera => context.Camera;
 
-    // Capabilities2, ProfileCapabilities2 and StreamingCapabilities1 are the tr2: types: svcutil numbers
+    // Capabilities21, ProfileCapabilities2 and StreamingCapabilities1 are the tr2: types: svcutil numbers
     // classes whose names other namespaces already took.
     public GetServiceCapabilitiesResponse GetServiceCapabilities(GetServiceCapabilitiesRequest request) => new()
     {
-        Capabilities = new Capabilities2
+        Capabilities = new Capabilities21
         {
             ProfileCapabilities = new ProfileCapabilities2
             {

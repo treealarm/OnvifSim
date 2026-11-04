@@ -54,8 +54,8 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<RtspServer>());
 builder.Services.AddSingleton<RtspHost>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<RtspHost>());
 builder.Services.AddSingleton(sp => new OnvifDispatcher(
-    [typeof(DeviceHandlers), typeof(MediaHandlers), typeof(Media2Handlers), typeof(PtzHandlers), typeof(ImagingHandlers),
-     typeof(EventHandlers), typeof(PullPointHandlers), typeof(SubscriptionManagerHandlers),
+    [typeof(DeviceHandlers), typeof(DeviceIoHandlers), typeof(MediaHandlers), typeof(Media2Handlers), typeof(PtzHandlers),
+     typeof(ImagingHandlers), typeof(EventHandlers), typeof(PullPointHandlers), typeof(SubscriptionManagerHandlers),
      typeof(RecordingHandlers), typeof(SearchHandlers), typeof(ReplayHandlers)],
     sp.GetRequiredService<HttpAuthenticator>(), sp.GetRequiredService<ILogger<OnvifDispatcher>>()));
 builder.Services.AddSingleton<OnvifHost>();
