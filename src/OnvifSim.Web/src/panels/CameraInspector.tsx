@@ -87,9 +87,11 @@ export function CameraInspector({ camera }: { camera: CameraModel }) {
 
       {camera.kind === 'ptz' && camera.ptz && <PtzLimits ptz={camera.ptz} onChange={(ptz) => change({ ptz })} />}
 
-      <StreamsSection camera={camera} h264Available={status?.h264 !== false} onChange={(streams) => change({ streams })} />
-
+      {/* Before the streams: a relay and the input it drives are what an installer wires, and the
+          section is of no use buried under two panels of encoder settings. */}
       <DeviceIoSection camera={camera} />
+
+      <StreamsSection camera={camera} h264Available={status?.h264 !== false} onChange={(streams) => change({ streams })} />
 
       <Section title="Image">
         <NumberField label="Brightness" value={camera.imaging.brightness} min={0} max={100} slider onChange={(brightness) => change({ imaging: { ...camera.imaging, brightness } })} />
