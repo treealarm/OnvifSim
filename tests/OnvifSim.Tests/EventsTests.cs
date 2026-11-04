@@ -44,7 +44,18 @@ public class EventsTests
         using var dir = new TempDir();
         var time = new FakeTimeProvider(DateTimeOffset.UnixEpoch.AddDays(20000));
         var store = new WorldStore(dir.Path);
-        store.Update(w => (w.Objects, w.Walkers, w.Vehicles) = ([], [new WalkerModel { Id = "p", Route = [new GroundPoint(3, 40)] }], []));
+        // No devices: the subscription has no topic filter, and the default world's own lamp would
+        // otherwise be the first notification it reads.
+        store.Update(w =>
+        {
+            (w.Objects, w.Walkers, w.Vehicles) = ([], [new WalkerModel { Id = "p", Route = [new GroundPoint(3, 40)] }], []);
+            foreach (var camera in w.Cameras)
+            {
+                camera.RelayOutputs.Clear();
+                camera.DigitalInputs.Clear();
+            }
+            w.Wires.Clear();
+        });
         var scene = new SceneState(store);
         using var ptz = new PtzSimulator(store, time, NullLogger<PtzSimulator>.Instance);
         using var pullPoints = new PullPoints(

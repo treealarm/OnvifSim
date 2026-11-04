@@ -301,6 +301,13 @@ public class DeviceIoTests(SimFactory factory) : IClassFixture<SimFactory>
     private WorldModel WorldWithDevices()
     {
         var world = DefaultWorld.Create();
+        // The default world ships a lamp and a sensor of its own; these tests want only theirs.
+        foreach (var camera in world.Cameras)
+        {
+            camera.RelayOutputs.Clear();
+            camera.DigitalInputs.Clear();
+        }
+        world.Wires.Clear();
         world.Cameras.Single(c => c.Id == "cam1").RelayOutputs.Add(new RelayOutputModel
         {
             Token = "lamp", Name = "Lamp", Mode = RelayModeModel.Monostable, DelaySeconds = 2.5f,
@@ -323,10 +330,10 @@ public class DeviceIoTests(SimFactory factory) : IClassFixture<SimFactory>
     private static WorldStore StoreWithRelay(TempDir dir, RelayModeModel mode, IdleStateModel idle)
     {
         var store = new WorldStore(dir.Path);
-        store.Update(world => world.Cameras.Single(c => c.Id == "cam1").RelayOutputs.Add(new RelayOutputModel
-        {
-            Token = "lamp", Mode = mode, DelaySeconds = 3, IdleState = idle,
-        }));
+        store.Update(world => world.Cameras.Single(c => c.Id == "cam1").RelayOutputs =
+        [
+            new RelayOutputModel { Token = "lamp", Mode = mode, DelaySeconds = 3, IdleState = idle },
+        ]);
         return store;
     }
 

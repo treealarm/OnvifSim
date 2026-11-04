@@ -1,7 +1,7 @@
 import { Line } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { useRef, type ComponentRef, type RefObject } from 'react';
-import type { Group } from 'three';
+import type { Group, Plane } from 'three';
 import {
   inputActive,
   sameId,
@@ -14,6 +14,7 @@ import {
   type Wire,
   type World,
 } from '../model';
+import { useCutawayPlanes } from './cutaway';
 import { devicePoint, isMounted } from './devicePoint';
 
 // As Geometry/DeviceMesh.cs builds them on the server: the lamp's shade sits at the top of its post, and
@@ -29,6 +30,7 @@ const wireColor = '#2a2a2e';
 // The lamps and sensor blocks that stand for every camera's relay outputs and digital inputs, and the
 // wires between them. A camera on a car carries its devices, and the wires touching them, along.
 export function DeviceIoView({ world }: { world: World }) {
+  const clippingPlanes = useCutawayPlanes();
   return (
     <>
       {world.cameras.flatMap((camera) => [
@@ -39,6 +41,7 @@ export function DeviceIoView({ world }: { world: World }) {
             relay={relay}
             terrain={world.terrain}
             vehicles={world.vehicles}
+            clippingPlanes={clippingPlanes}
           />
         )),
         ...camera.digitalInputs.map((input) => (
@@ -49,6 +52,7 @@ export function DeviceIoView({ world }: { world: World }) {
             active={inputActive(world, camera.id, input.token) === true}
             terrain={world.terrain}
             vehicles={world.vehicles}
+            clippingPlanes={clippingPlanes}
           />
         )),
       ])}
@@ -63,18 +67,35 @@ export function DeviceIoView({ world }: { world: World }) {
   );
 }
 
-function Lamp({ camera, relay, terrain, vehicles }: { camera: CameraModel; relay: RelayOutput; terrain: Terrain; vehicles: Vehicle[] }) {
+function Lamp({
+  camera,
+  relay,
+  terrain,
+  vehicles,
+  clippingPlanes,
+}: {
+  camera: CameraModel;
+  relay: RelayOutput;
+  terrain: Terrain;
+  vehicles: Vehicle[];
+  clippingPlanes: Plane[];
+}) {
   const { group, initial } = useDeviceGroup(camera, relay.position, terrain, vehicles);
   const color = relay.active ? lampLit : lampDark;
   return (
     <group ref={group} position={[initial.x, initial.y, initial.z]}>
       <mesh position={[0, (lampHeight - 0.3) / 2, 0]}>
         <cylinderGeometry args={[0.05, 0.08, lampHeight - 0.3, 6]} />
-        <meshLambertMaterial color="#424448" />
+        <meshLambertMaterial color="#424448" clippingPlanes={clippingPlanes} />
       </mesh>
       <mesh position={[0, lampHeight - 0.25, 0]} rotation={[Math.PI, 0, 0]}>
         <coneGeometry args={[0.38, 0.45, 8]} />
-        <meshLambertMaterial color={color} emissive={relay.active ? color : '#000000'} emissiveIntensity={0.6} />
+        <meshLambertMaterial
+          color={color}
+          emissive={relay.active ? color : '#000000'}
+          emissiveIntensity={0.6}
+          clippingPlanes={clippingPlanes}
+        />
       </mesh>
     </group>
   );
@@ -86,12 +107,14 @@ function Sensor({
   active,
   terrain,
   vehicles,
+  clippingPlanes,
 }: {
   camera: CameraModel;
   input: DigitalInput;
   active: boolean;
   terrain: Terrain;
   vehicles: Vehicle[];
+  clippingPlanes: Plane[];
 }) {
   const { group, initial } = useDeviceGroup(camera, input.position, terrain, vehicles);
   const color = active ? sensorLit : sensorDark;
@@ -99,11 +122,16 @@ function Sensor({
     <group ref={group} position={[initial.x, initial.y, initial.z]}>
       <mesh position={[0, (sensorHeight - 0.12) / 2, 0]}>
         <boxGeometry args={[0.26, sensorHeight - 0.12, 0.26]} />
-        <meshLambertMaterial color="#34363a" />
+        <meshLambertMaterial color="#34363a" clippingPlanes={clippingPlanes} />
       </mesh>
       <mesh position={[0, sensorHeight - 0.06, 0]}>
         <boxGeometry args={[0.34, 0.12, 0.34]} />
-        <meshLambertMaterial color={color} emissive={active ? color : '#000000'} emissiveIntensity={0.6} />
+        <meshLambertMaterial
+          color={color}
+          emissive={active ? color : '#000000'}
+          emissiveIntensity={0.6}
+          clippingPlanes={clippingPlanes}
+        />
       </mesh>
     </group>
   );

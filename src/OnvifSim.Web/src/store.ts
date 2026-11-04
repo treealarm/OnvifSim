@@ -57,6 +57,8 @@ interface EditorState {
   tool: Tool;
   toolGroup: ToolGroup;
   gizmo: 'move' | 'rotate';
+  // Hide everything above a horizontal plane, so a room's inside can be seen and edited.
+  cutaway: boolean;
   brushRadius: number;
   brushStrength: number;
   // The point of the selected road or route being dragged over the ground.
@@ -79,6 +81,7 @@ export const useEditor = create<EditorState>()(() => ({
   tool: { kind: 'select' },
   toolGroup: 'select',
   gizmo: 'move',
+  cutaway: false,
   brushRadius: 12,
   brushStrength: 0.5,
   draggedPoint: null,

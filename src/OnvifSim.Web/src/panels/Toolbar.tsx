@@ -74,6 +74,7 @@ export function Toolbar() {
   const strength = useEditor((s) => s.brushStrength);
   const undoSteps = useEditor((s) => s.undoSteps);
   const redoSteps = useEditor((s) => s.redoSteps);
+  const cutaway = useEditor((s) => s.cutaway);
 
   return (
     <div className="toolbar">
@@ -92,6 +93,16 @@ export function Toolbar() {
           </button>
           <button type="button" disabled={redoSteps === 0} onClick={redo} title="Ctrl+Shift+Z, Ctrl+Y">
             Redo
+          </button>
+        </div>
+        <div className="group" role="group" aria-label="View">
+          <button
+            type="button"
+            aria-pressed={cutaway}
+            onClick={() => useEditor.setState({ cutaway: !cutaway })}
+            title="Hide everything above 2.5 m, to see and edit inside a building"
+          >
+            Cutaway
           </button>
         </div>
         {palette === 'select' && (

@@ -6,7 +6,11 @@ obj/
 TestResults/
 node_modules/
 dist/
-# Local world data when running with --data ./data
-data/
+# Local world data when running with --data ./data. The demo world is the exception: ta_install
+# seeds it into a deployment, and a test keeps the file equal to MarylandWorld.Create().
+data/*
+!data/worlds/
+data/worlds/*
+!data/worlds/maryland.json
 test-results/
 playwright-report/

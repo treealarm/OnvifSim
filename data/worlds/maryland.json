@@ -1,0 +1,1064 @@
+{
+  "version": 1,
+  "geo": {
+    "latitude": 38.9923,
+    "longitude": -76.9378,
+    "elevation": 0,
+    "north": 0
+  },
+  "terrain": {
+    "size": 400,
+    "resolution": 128,
+    "heights": "",
+    "color": "#5c803c"
+  },
+  "environment": {
+    "sunAzimuth": 135,
+    "sunElevation": 45,
+    "skyZenith": "#4a7fc1",
+    "skyHorizon": "#c9dcef",
+    "fogStart": 150,
+    "fogEnd": 600,
+    "showCameras": true,
+    "showFrustums": false,
+    "frustumLength": 40
+  },
+  "objects": [
+    {
+      "id": "building-floor",
+      "type": "box",
+      "position": {
+        "x": 4.326046,
+        "y": -0.25,
+        "z": 0
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 216.30228,
+        "y": 0.3,
+        "z": 111.31949
+      },
+      "color": "#8f959d",
+      "color2": null,
+      "seed": 0
+    },
+    {
+      "id": "building-roof",
+      "type": "box",
+      "position": {
+        "x": 4.326046,
+        "y": 3.6,
+        "z": 0
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 216.30228,
+        "y": 0.35,
+        "z": 111.31949
+      },
+      "color": "#6f747c",
+      "color2": null,
+      "seed": 0
+    },
+    {
+      "id": "building-wall-n",
+      "type": "box",
+      "position": {
+        "x": 4.326046,
+        "y": 0,
+        "z": -55.659744
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 216.70227,
+        "y": 3.6,
+        "z": 0.4
+      },
+      "color": "#c8ccd2",
+      "color2": null,
+      "seed": 0
+    },
+    {
+      "id": "building-wall-s",
+      "type": "box",
+      "position": {
+        "x": 4.326046,
+        "y": 0,
+        "z": 55.659744
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 216.70227,
+        "y": 3.6,
+        "z": 0.4
+      },
+      "color": "#c8ccd2",
+      "color2": null,
+      "seed": 0
+    },
+    {
+      "id": "building-wall-w",
+      "type": "box",
+      "position": {
+        "x": -103.82509,
+        "y": 0,
+        "z": 0
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 0.4,
+        "y": 3.6,
+        "z": 110.91949
+      },
+      "color": "#c8ccd2",
+      "color2": null,
+      "seed": 0
+    },
+    {
+      "id": "building-wall-e",
+      "type": "box",
+      "position": {
+        "x": 112.47718,
+        "y": 0,
+        "z": 0
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 0.4,
+        "y": 3.6,
+        "z": 110.91949
+      },
+      "color": "#c8ccd2",
+      "color2": null,
+      "seed": 0
+    },
+    {
+      "id": "room-101-wall-n",
+      "type": "box",
+      "position": {
+        "x": -56.238586,
+        "y": 0,
+        "z": -22.263899
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 17.50418,
+        "y": 3.6,
+        "z": 0.2
+      },
+      "color": "#c8ccd2",
+      "color2": null,
+      "seed": 0
+    },
+    {
+      "id": "room-101-wall-w",
+      "type": "box",
+      "position": {
+        "x": -64.89068,
+        "y": 0,
+        "z": -15.584729
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 0.2,
+        "y": 3.6,
+        "z": 13.358339
+      },
+      "color": "#c8ccd2",
+      "color2": null,
+      "seed": 0
+    },
+    {
+      "id": "room-101-wall-e",
+      "type": "box",
+      "position": {
+        "x": -47.5865,
+        "y": 0,
+        "z": -15.584729
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 0.2,
+        "y": 3.6,
+        "z": 13.358339
+      },
+      "color": "#c8ccd2",
+      "color2": null,
+      "seed": 0
+    },
+    {
+      "id": "room-101-wall-s-1",
+      "type": "box",
+      "position": {
+        "x": -60.914635,
+        "y": 0,
+        "z": -8.90556
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 7.952091,
+        "y": 3.6,
+        "z": 0.2
+      },
+      "color": "#c8ccd2",
+      "color2": null,
+      "seed": 0
+    },
+    {
+      "id": "room-101-wall-s-2",
+      "type": "box",
+      "position": {
+        "x": -51.562542,
+        "y": 0,
+        "z": -8.90556
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 7.9520874,
+        "y": 3.6,
+        "z": 0.2
+      },
+      "color": "#c8ccd2",
+      "color2": null,
+      "seed": 0
+    },
+    {
+      "id": "room-102-wall-n",
+      "type": "box",
+      "position": {
+        "x": 25.956272,
+        "y": 0,
+        "z": -22.263897
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 17.504179,
+        "y": 3.6,
+        "z": 0.2
+      },
+      "color": "#c8ccd2",
+      "color2": null,
+      "seed": 0
+    },
+    {
+      "id": "room-102-wall-w",
+      "type": "box",
+      "position": {
+        "x": 17.304182,
+        "y": 0,
+        "z": -15.584728
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 0.2,
+        "y": 3.6,
+        "z": 13.358338
+      },
+      "color": "#c8ccd2",
+      "color2": null,
+      "seed": 0
+    },
+    {
+      "id": "room-102-wall-e",
+      "type": "box",
+      "position": {
+        "x": 34.60836,
+        "y": 0,
+        "z": -15.584728
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 0.2,
+        "y": 3.6,
+        "z": 13.358338
+      },
+      "color": "#c8ccd2",
+      "color2": null,
+      "seed": 0
+    },
+    {
+      "id": "room-102-wall-s-1",
+      "type": "box",
+      "position": {
+        "x": 21.280228,
+        "y": 0,
+        "z": -8.905559
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 7.9520893,
+        "y": 3.6,
+        "z": 0.2
+      },
+      "color": "#c8ccd2",
+      "color2": null,
+      "seed": 0
+    },
+    {
+      "id": "room-102-wall-s-2",
+      "type": "box",
+      "position": {
+        "x": 30.632317,
+        "y": 0,
+        "z": -8.905559
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 7.9520874,
+        "y": 3.6,
+        "z": 0.2
+      },
+      "color": "#c8ccd2",
+      "color2": null,
+      "seed": 0
+    },
+    {
+      "id": "room-101-rack-1",
+      "type": "box",
+      "position": {
+        "x": -61.89068,
+        "y": 0,
+        "z": -21.063898
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 0.6,
+        "y": 2,
+        "z": 1.2
+      },
+      "color": "#3d4149",
+      "color2": null,
+      "seed": 0
+    },
+    {
+      "id": "room-101-rack-2",
+      "type": "box",
+      "position": {
+        "x": -58.690678,
+        "y": 0,
+        "z": -21.063898
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 0.6,
+        "y": 2,
+        "z": 1.2
+      },
+      "color": "#3d4149",
+      "color2": null,
+      "seed": 0
+    },
+    {
+      "id": "room-101-rack-3",
+      "type": "box",
+      "position": {
+        "x": -55.490677,
+        "y": 0,
+        "z": -21.063898
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 0.6,
+        "y": 2,
+        "z": 1.2
+      },
+      "color": "#3d4149",
+      "color2": null,
+      "seed": 0
+    },
+    {
+      "id": "room-101-rack-4",
+      "type": "box",
+      "position": {
+        "x": -52.29068,
+        "y": 0,
+        "z": -21.063898
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 0.6,
+        "y": 2,
+        "z": 1.2
+      },
+      "color": "#3d4149",
+      "color2": null,
+      "seed": 0
+    },
+    {
+      "id": "room-102-rack-1",
+      "type": "box",
+      "position": {
+        "x": 20.304182,
+        "y": 0,
+        "z": -21.063896
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 0.6,
+        "y": 2,
+        "z": 1.2
+      },
+      "color": "#3d4149",
+      "color2": null,
+      "seed": 0
+    },
+    {
+      "id": "room-102-rack-2",
+      "type": "box",
+      "position": {
+        "x": 23.504183,
+        "y": 0,
+        "z": -21.063896
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 0.6,
+        "y": 2,
+        "z": 1.2
+      },
+      "color": "#3d4149",
+      "color2": null,
+      "seed": 0
+    },
+    {
+      "id": "parking",
+      "type": "box",
+      "position": {
+        "x": 80,
+        "y": 0,
+        "z": 142
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 90,
+        "y": 0.06,
+        "z": 24
+      },
+      "color": "#5f6165",
+      "color2": null,
+      "seed": 0
+    },
+    {
+      "id": "office-ne",
+      "type": "office",
+      "position": {
+        "x": 165,
+        "y": 0,
+        "z": 145
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 44,
+        "y": 11,
+        "z": 28
+      },
+      "color": "#d0d4da",
+      "color2": "#5c6068",
+      "seed": 0
+    },
+    {
+      "id": "tree-1",
+      "type": "tree.pine",
+      "position": {
+        "x": -192,
+        "y": 0,
+        "z": -70
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 4.5499997,
+        "y": 13,
+        "z": 4.5499997
+      },
+      "color": null,
+      "color2": null,
+      "seed": 1
+    },
+    {
+      "id": "tree-2",
+      "type": "tree.pine",
+      "position": {
+        "x": -186,
+        "y": 0,
+        "z": 120
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 3.85,
+        "y": 11,
+        "z": 3.85
+      },
+      "color": null,
+      "color2": null,
+      "seed": 2
+    },
+    {
+      "id": "tree-3",
+      "type": "tree.oak",
+      "position": {
+        "x": -110,
+        "y": 0,
+        "z": -150
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 6.2999997,
+        "y": 9,
+        "z": 6.2999997
+      },
+      "color": null,
+      "color2": null,
+      "seed": 3
+    },
+    {
+      "id": "tree-4",
+      "type": "tree.pine",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": -160
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 4.2,
+        "y": 12,
+        "z": 4.2
+      },
+      "color": null,
+      "color2": null,
+      "seed": 4
+    },
+    {
+      "id": "tree-5",
+      "type": "tree.oak",
+      "position": {
+        "x": 120,
+        "y": 0,
+        "z": -150
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 7,
+        "y": 10,
+        "z": 7
+      },
+      "color": null,
+      "color2": null,
+      "seed": 5
+    },
+    {
+      "id": "tree-6",
+      "type": "tree.pine",
+      "position": {
+        "x": 195,
+        "y": 0,
+        "z": -110
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 4.2,
+        "y": 12,
+        "z": 4.2
+      },
+      "color": null,
+      "color2": null,
+      "seed": 6
+    },
+    {
+      "id": "tree-7",
+      "type": "tree.oak",
+      "position": {
+        "x": 198,
+        "y": 0,
+        "z": 20
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 6.2999997,
+        "y": 9,
+        "z": 6.2999997
+      },
+      "color": null,
+      "color2": null,
+      "seed": 7
+    },
+    {
+      "id": "tree-8",
+      "type": "tree.pine",
+      "position": {
+        "x": -60,
+        "y": 0,
+        "z": 158
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 3.85,
+        "y": 11,
+        "z": 3.85
+      },
+      "color": null,
+      "color2": null,
+      "seed": 8
+    },
+    {
+      "id": "tree-9",
+      "type": "tree.oak",
+      "position": {
+        "x": 10,
+        "y": 0,
+        "z": 160
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 7,
+        "y": 10,
+        "z": 7
+      },
+      "color": null,
+      "color2": null,
+      "seed": 9
+    },
+    {
+      "id": "tree-10",
+      "type": "tree.pine",
+      "position": {
+        "x": 140,
+        "y": 0,
+        "z": 168
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 4.2,
+        "y": 12,
+        "z": 4.2
+      },
+      "color": null,
+      "color2": null,
+      "seed": 10
+    }
+  ],
+  "roads": [
+    {
+      "id": "ring-road",
+      "points": [
+        {
+          "x": -140,
+          "z": -100
+        },
+        {
+          "x": 60,
+          "z": -100
+        },
+        {
+          "x": 170,
+          "z": -40
+        },
+        {
+          "x": 170,
+          "z": 60
+        },
+        {
+          "x": 60,
+          "z": 110
+        },
+        {
+          "x": -140,
+          "z": 110
+        },
+        {
+          "x": -175,
+          "z": 40
+        },
+        {
+          "x": -175,
+          "z": -40
+        }
+      ],
+      "width": 7,
+      "color": "#7d7f82",
+      "closed": true
+    }
+  ],
+  "walkers": [],
+  "vehicles": [
+    {
+      "id": "v1",
+      "route": [
+        {
+          "x": -140,
+          "z": -100
+        },
+        {
+          "x": 60,
+          "z": -100
+        },
+        {
+          "x": 170,
+          "z": -40
+        },
+        {
+          "x": 170,
+          "z": 60
+        },
+        {
+          "x": 60,
+          "z": 110
+        },
+        {
+          "x": -140,
+          "z": 110
+        },
+        {
+          "x": -175,
+          "z": 40
+        },
+        {
+          "x": -175,
+          "z": -40
+        }
+      ],
+      "speed": 8,
+      "return": "loop",
+      "width": 1.8,
+      "height": 1.45,
+      "length": 4.4,
+      "color": "#2f6fde",
+      "color2": "#f0f0ea",
+      "plate": "M777MM",
+      "detectable": true
+    }
+  ],
+  "cameras": [
+    {
+      "id": "master",
+      "name": "Room 101 master",
+      "kind": "fixed",
+      "position": {
+        "x": -62.29505,
+        "y": 2.8,
+        "z": -11.131949
+      },
+      "heading": 55,
+      "pitch": -10,
+      "roll": 0,
+      "hFov": 70,
+      "angleGrid": false,
+      "color": null,
+      "video": {
+        "width": 640,
+        "height": 360,
+        "fps": 10,
+        "quality": 70,
+        "rotate": 0
+      },
+      "h264": {
+        "width": 640,
+        "height": 360,
+        "fps": 10,
+        "bitrateKbps": 1024,
+        "govLength": 10
+      },
+      "imaging": {
+        "brightness": 50,
+        "contrast": 50,
+        "colorSaturation": 50
+      },
+      "metadata": {
+        "analytics": true,
+        "ptzStatus": false
+      },
+      "ptz": null,
+      "relayOutputs": [
+        {
+          "token": "lamp",
+          "name": "Room lamp",
+          "mode": "bistable",
+          "delaySeconds": 5,
+          "idleState": "open",
+          "active": false,
+          "position": {
+            "x": 1.5,
+            "y": 0,
+            "z": -1
+          }
+        }
+      ],
+      "digitalInputs": [],
+      "onvifPort": 0,
+      "rtspPort": 0,
+      "users": [
+        {
+          "username": "admin",
+          "password": "admin"
+        }
+      ],
+      "recordingRetentionHours": 1
+    },
+    {
+      "id": "ptz",
+      "name": "Room 102 slave (PTZ)",
+      "kind": "ptz",
+      "position": {
+        "x": 19.899809,
+        "y": 2.8,
+        "z": -11.131949
+      },
+      "heading": 50,
+      "pitch": 0,
+      "roll": 0,
+      "hFov": 65,
+      "angleGrid": false,
+      "color": null,
+      "video": {
+        "width": 640,
+        "height": 360,
+        "fps": 10,
+        "quality": 70,
+        "rotate": 0
+      },
+      "h264": {
+        "width": 640,
+        "height": 360,
+        "fps": 10,
+        "bitrateKbps": 1024,
+        "govLength": 10
+      },
+      "imaging": {
+        "brightness": 50,
+        "contrast": 50,
+        "colorSaturation": 50
+      },
+      "metadata": {
+        "analytics": true,
+        "ptzStatus": false
+      },
+      "ptz": {
+        "panMin": -180,
+        "panMax": 180,
+        "tiltMin": -90,
+        "tiltMax": 20,
+        "fovWide": 65,
+        "fovTele": 3,
+        "panSpeed": 90,
+        "tiltSpeed": 60,
+        "zoomSpeed": 0.5,
+        "panReverse": false,
+        "tiltReverse": false,
+        "pan": 0,
+        "tilt": -10,
+        "zoom": 0,
+        "home": {
+          "pan": 0,
+          "tilt": -10,
+          "zoom": 0
+        },
+        "presets": []
+      },
+      "relayOutputs": [],
+      "digitalInputs": [],
+      "onvifPort": 0,
+      "rtspPort": 0,
+      "users": [
+        {
+          "username": "admin",
+          "password": "admin"
+        }
+      ],
+      "recordingRetentionHours": 1
+    },
+    {
+      "id": "master2",
+      "name": "Building master 2",
+      "kind": "fixed",
+      "position": {
+        "x": -99.49905,
+        "y": 3,
+        "z": -51.206966
+      },
+      "heading": 135,
+      "pitch": -10,
+      "roll": 0,
+      "hFov": 80,
+      "angleGrid": false,
+      "color": null,
+      "video": {
+        "width": 640,
+        "height": 360,
+        "fps": 10,
+        "quality": 70,
+        "rotate": 0
+      },
+      "h264": {
+        "width": 640,
+        "height": 360,
+        "fps": 10,
+        "bitrateKbps": 1024,
+        "govLength": 10
+      },
+      "imaging": {
+        "brightness": 50,
+        "contrast": 50,
+        "colorSaturation": 50
+      },
+      "metadata": {
+        "analytics": true,
+        "ptzStatus": false
+      },
+      "ptz": null,
+      "relayOutputs": [],
+      "digitalInputs": [],
+      "onvifPort": 0,
+      "rtspPort": 0,
+      "users": [
+        {
+          "username": "admin",
+          "password": "admin"
+        }
+      ],
+      "recordingRetentionHours": 1
+    },
+    {
+      "id": "ptz2",
+      "name": "Campus slave 2 (PTZ)",
+      "kind": "ptz",
+      "position": {
+        "x": -147.08554,
+        "y": 6,
+        "z": -22.263899
+      },
+      "heading": 90,
+      "pitch": 0,
+      "roll": 0,
+      "hFov": 60,
+      "angleGrid": false,
+      "color": null,
+      "video": {
+        "width": 640,
+        "height": 360,
+        "fps": 10,
+        "quality": 70,
+        "rotate": 0
+      },
+      "h264": {
+        "width": 640,
+        "height": 360,
+        "fps": 10,
+        "bitrateKbps": 1024,
+        "govLength": 10
+      },
+      "imaging": {
+        "brightness": 50,
+        "contrast": 50,
+        "colorSaturation": 50
+      },
+      "metadata": {
+        "analytics": true,
+        "ptzStatus": false
+      },
+      "ptz": {
+        "panMin": -180,
+        "panMax": 180,
+        "tiltMin": -90,
+        "tiltMax": 20,
+        "fovWide": 60,
+        "fovTele": 3,
+        "panSpeed": 90,
+        "tiltSpeed": 60,
+        "zoomSpeed": 0.5,
+        "panReverse": false,
+        "tiltReverse": false,
+        "pan": 0,
+        "tilt": -10,
+        "zoom": 0,
+        "home": {
+          "pan": 0,
+          "tilt": -10,
+          "zoom": 0
+        },
+        "presets": []
+      },
+      "relayOutputs": [],
+      "digitalInputs": [],
+      "onvifPort": 0,
+      "rtspPort": 0,
+      "users": [
+        {
+          "username": "admin",
+          "password": "admin"
+        }
+      ],
+      "recordingRetentionHours": 1
+    },
+    {
+      "id": "vehicle",
+      "name": "Vehicle camera",
+      "kind": "fixed",
+      "mountedOnVehicleId": "v1",
+      "position": {
+        "x": 0,
+        "y": 1.55,
+        "z": -0.6
+      },
+      "heading": 0,
+      "pitch": -5,
+      "roll": 0,
+      "hFov": 70,
+      "angleGrid": false,
+      "color": null,
+      "video": {
+        "width": 640,
+        "height": 360,
+        "fps": 10,
+        "quality": 70,
+        "rotate": 0
+      },
+      "h264": {
+        "width": 640,
+        "height": 360,
+        "fps": 10,
+        "bitrateKbps": 1024,
+        "govLength": 10
+      },
+      "imaging": {
+        "brightness": 50,
+        "contrast": 50,
+        "colorSaturation": 50
+      },
+      "metadata": {
+        "analytics": true,
+        "ptzStatus": false
+      },
+      "ptz": null,
+      "relayOutputs": [],
+      "digitalInputs": [
+        {
+          "token": "input",
+          "name": "Car sensor",
+          "idleState": "open",
+          "position": {
+            "x": 0.6,
+            "y": 0.2,
+            "z": 0.9
+          }
+        }
+      ],
+      "onvifPort": 0,
+      "rtspPort": 0,
+      "users": [
+        {
+          "username": "admin",
+          "password": "admin"
+        }
+      ],
+      "recordingRetentionHours": 1
+    }
+  ],
+  "wires": [
+    {
+      "relayCameraId": "master",
+      "relayToken": "lamp",
+      "inputCameraId": "vehicle",
+      "inputToken": "input"
+    }
+  ]
+}

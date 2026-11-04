@@ -129,6 +129,23 @@ public static class DefaultWorld
             Position = new(0, 2.2f, 0.5f), Heading = 0, Pitch = -5, HFov = 70,
             Users = [new UserModel { Username = "admin", Password = "admin" }],
         });
+
+        // A relay lamp and a digital input, wired together, so a fresh install shows the devices and
+        // their wire before anyone opens the editor: the village camera's lamp stands by the road and
+        // the tower camera watches the sensor. Both stand still — a wire from a car would make every
+        // camera that sees either end redraw at every frame of its drive.
+        world.Cameras[0].RelayOutputs.Add(new RelayOutputModel
+        {
+            Token = "lamp", Name = "Village lamp", Position = new(4, 0, 6),
+        });
+        world.Cameras[1].DigitalInputs.Add(new DigitalInputModel
+        {
+            Token = "sensor", Name = "Gate sensor", Position = new(-3, 0.2f, 2),
+        });
+        world.Wires.Add(new WireModel
+        {
+            RelayCameraId = "cam1", RelayToken = "lamp", InputCameraId = "cam2", InputToken = "sensor",
+        });
         return world;
     }
 }

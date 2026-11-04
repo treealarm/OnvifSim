@@ -129,6 +129,17 @@ public class DeviceEventsTests
         public Rig(Action<WorldModel>? setup = null)
         {
             Store = new WorldStore(Directory.Path);
+            // The default world brings a lamp and a sensor of its own; each test says which devices
+            // it means, so the default ones are not in the way of its pull points.
+            Store.Update(world =>
+            {
+                foreach (var camera in world.Cameras)
+                {
+                    camera.RelayOutputs.Clear();
+                    camera.DigitalInputs.Clear();
+                }
+                world.Wires.Clear();
+            });
             if (setup != null) Store.Update(setup);
             var scene = new SceneState(Store);
             Clock = new FakeTimeProvider(DateTimeOffset.UnixEpoch.AddDays(20000));

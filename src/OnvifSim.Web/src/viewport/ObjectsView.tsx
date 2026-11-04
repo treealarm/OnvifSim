@@ -1,10 +1,11 @@
 import { TransformControls } from '@react-three/drei';
 import type { ThreeEvent } from '@react-three/fiber';
 import { useEffect, useState } from 'react';
-import type { BufferGeometry, Object3D } from 'three';
+import type { BufferGeometry, Object3D, Plane } from 'three';
 import { api } from '../api';
 import { heightAt, type Terrain, type WorldObject } from '../model';
 import { select, showError, updateObject, useEditor } from '../store';
+import { useCutawayPlanes } from './cutaway';
 import { yawDegrees } from './orientation';
 
 // Meshes come from the server, which alone knows how to build a tree or a house. They depend on the
@@ -51,8 +52,16 @@ function useObjectGeometries(objects: WorldObject[]): Map<string, BufferGeometry
 export function ObjectsView({ objects, terrain }: { objects: WorldObject[]; terrain: Terrain }) {
   const loaded = useObjectGeometries(objects);
   const selectedId = useEditor((s) => (s.selection?.kind === 'object' ? s.selection.id : null));
+  const clippingPlanes = useCutawayPlanes();
   return objects.map((obj) => (
-    <ObjectView key={obj.id} obj={obj} terrain={terrain} geometry={loaded.get(meshKey(obj))} selected={obj.id === selectedId} />
+    <ObjectView
+      key={obj.id}
+      obj={obj}
+      terrain={terrain}
+      geometry={loaded.get(meshKey(obj))}
+      selected={obj.id === selectedId}
+      clippingPlanes={clippingPlanes}
+    />
   ));
 }
 
@@ -61,9 +70,10 @@ interface ObjectViewProps {
   terrain: Terrain;
   geometry: BufferGeometry | undefined;
   selected: boolean;
+  clippingPlanes: Plane[];
 }
 
-function ObjectView({ obj, terrain, geometry, selected }: ObjectViewProps) {
+function ObjectView({ obj, terrain, geometry, selected, clippingPlanes }: ObjectViewProps) {
   const [group, setGroup] = useState<Object3D | null>(null);
   const gizmo = useEditor((s) => s.gizmo);
   const ground = heightAt(terrain, obj.position.x, obj.position.z);
@@ -97,7 +107,7 @@ function ObjectView({ obj, terrain, geometry, selected }: ObjectViewProps) {
       >
         {geometry && (
           <mesh geometry={geometry} onClick={onClick}>
-            <meshLambertMaterial vertexColors emissive={selected ? '#333322' : '#000000'} />
+            <meshLambertMaterial vertexColors emissive={selected ? '#333322' : '#000000'} clippingPlanes={clippingPlanes} />
           </mesh>
         )}
       </group>
