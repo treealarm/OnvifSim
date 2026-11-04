@@ -3,6 +3,7 @@ using System.Net.Sockets;
 using OnvifSim.Onvif.Wsdl;
 using OnvifSim.Onvif.Wsdl.Device;
 using OnvifSim.Onvif.Soap;
+using OnvifSim.Rendering;
 using OnvifSim.World;
 
 namespace OnvifSim.Onvif.Services;
@@ -23,6 +24,77 @@ public sealed class DeviceHandlers(OnvifRequestContext context)
         SerialNumber = Camera.Id,
         HardwareId = CameraIdentity.HardwareId(Camera),
     };
+
+    // Where the camera is on the Earth. The world has one geo anchor (Geo), so the answer is its pose
+    // through that frame; the camera on a vehicle follows the vehicle, and its location changes with
+    // the clock. Fixed cameras can be moved by SetGeoLocation; a vehicle-mounted one cannot.
+    public GetGeoLocationResponse GetGeoLocation(GetGeoLocationRequest request)
+    {
+        var world = context.Store.Current;
+        var pose = CameraPose.From(Camera, new Terrain(world.Terrain));
+        var geo = WorldGeo.ToGeo(world, new Vec3(pose.Position.X, pose.Position.Y, pose.Position.Z));
+        return new GetGeoLocationResponse
+        {
+            Location =
+            [
+                new LocationEntity
+                {
+                    Entity = "Device",
+                    Token = Camera.Id,
+                    Fixed = true,
+                    FixedSpecified = true,
+                    GeoLocation = new GeoLocation
+                    {
+                        lon = geo.Longitude, lonSpecified = true,
+                        lat = geo.Latitude, latSpecified = true,
+                        elevation = (float)geo.Elevation, elevationSpecified = true,
+                    },
+                    GeoOrientation = new GeoOrientation
+                    {
+                        yaw = WorldGeo.TrueHeading(world, pose.Heading), yawSpecified = true,
+                        pitch = pose.Pitch, pitchSpecified = true,
+                        roll = pose.Roll, rollSpecified = true,
+                    },
+                },
+            ],
+        };
+    }
+
+    // The request names the camera's place on the Earth. It is converted into the world's metres and
+    // the fixed camera is moved there, provided that place is inside the terrain and not below its
+    // ground; the world's geo anchor itself never moves. The orientation in the request is ignored:
+    // the camera's mount sets where it looks.
+    public SetGeoLocationResponse SetGeoLocation(SetGeoLocationRequest request)
+    {
+        var location = request.Location?.FirstOrDefault(l => string.Equals(l.Entity, "Device", StringComparison.OrdinalIgnoreCase))
+            ?? request.Location?.FirstOrDefault();
+        var geo = location?.GeoLocation
+            ?? throw OnvifFault.InvalidArgValue("SetGeoLocation needs a Device location.");
+        if (!geo.latSpecified || !geo.lonSpecified)
+            throw OnvifFault.InvalidArgValue("SetGeoLocation needs both a latitude and a longitude.");
+        if (geo.lat is < -90 or > 90 || geo.lon is < -180 or > 180)
+            throw OnvifFault.InvalidArgValue($"Latitude {geo.lat} / longitude {geo.lon} is outside the Earth.");
+
+        var world = context.Store.Current;
+        var currentEye = CameraPose.From(Camera, new Terrain(world.Terrain)).Position.Y;
+        var target = WorldGeo.ToWorld(world, geo.lat, geo.lon, geo.elevationSpecified ? geo.elevation : currentEye);
+        var half = world.Terrain.Size / 2;
+        if (Math.Abs(target.X) > half || Math.Abs(target.Z) > half)
+            throw OnvifFault.InvalidArgValue("The requested location is outside the world.");
+        if (target.Y < new Terrain(world.Terrain).HeightAt(target.X, target.Z))
+            throw OnvifFault.InvalidArgValue("The requested location is below the ground.");
+
+        context.Store.Update(w =>
+        {
+            var camera = w.Cameras.FirstOrDefault(c => string.Equals(c.Id, Camera.Id, StringComparison.OrdinalIgnoreCase))
+                ?? throw OnvifFault.InvalidArgValue($"No camera with id '{Camera.Id}'.");
+            camera.Position = new Vec3(
+                target.X,
+                target.Y - new Terrain(w.Terrain).HeightAt(target.X, target.Z),
+                target.Z);
+        });
+        return new SetGeoLocationResponse();
+    }
 
     // The simulator's clock is the host's, kept by NTP and reported as UTC.
     [PreAuth]
@@ -79,6 +151,7 @@ public sealed class DeviceHandlers(OnvifRequestContext context)
                 SystemLogging = false, SystemLoggingSpecified = true,
                 HttpFirmwareUpgrade = false, HttpFirmwareUpgradeSpecified = true,
                 StorageConfiguration = false, StorageConfigurationSpecified = true,
+                GeoLocationEntries = 1, GeoLocationEntriesSpecified = true,
             },
             Misc = new MiscCapabilities(),
         },

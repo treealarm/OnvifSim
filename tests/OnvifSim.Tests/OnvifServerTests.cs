@@ -339,6 +339,45 @@ public class OnvifServerTests(SimFactory factory) : IClassFixture<SimFactory>
         ptz.Presets.Clear();
     });
 
+    [Fact]
+    public async Task GeoLocation_ReportsTheCamera_AndSetMovesAFixedCameraWithinTheWorld()
+    {
+        var store = Store;
+        var security = UsernameToken("admin", "admin", DateTime.UtcNow);
+        XNamespace tds = "http://www.onvif.org/ver10/device/wsdl";
+        XNamespace tt = "http://www.onvif.org/ver10/schema";
+
+        var before = await PostAsync("cam1", Envelope($"<GetGeoLocation xmlns=\"{tds}\"/>", security));
+        Assert.Equal(HttpStatusCode.OK, before.StatusCode);
+        var first = XDocument.Parse(await before.Content.ReadAsStringAsync());
+        var location = first.Descendants(tds + "Location").Single();
+        Assert.Equal("cam1", location.Attribute("Token")?.Value);
+        Assert.Equal("true", location.Attribute("Fixed")?.Value);
+        Assert.NotNull(first.Descendants(tt + "GeoLocation").Single().Attribute("lat"));
+
+        const double lat = 39.2001, lon = -77.3499;
+        var set = await PostAsync("cam1", Envelope(
+            $"<SetGeoLocation xmlns=\"{tds}\"><Location Entity=\"Device\" Token=\"cam1\">" +
+            $"<tt:GeoLocation xmlns:tt=\"{tt}\" lat=\"{lat}\" lon=\"{lon}\" elevation=\"10\"/>" +
+            "</Location></SetGeoLocation>", security));
+        Assert.Equal(HttpStatusCode.OK, set.StatusCode);
+
+        var after = XDocument.Parse(await (await PostAsync("cam1", Envelope($"<GetGeoLocation xmlns=\"{tds}\"/>", security))).Content.ReadAsStringAsync());
+        var moved = after.Descendants(tt + "GeoLocation").Single();
+        Assert.Equal(lat, (double)moved.Attribute("lat")!, 6);
+        Assert.Equal(lon, (double)moved.Attribute("lon")!, 6);
+        Assert.Equal(10d, (double)moved.Attribute("elevation")!, 3);
+
+        var outside = await PostAsync("cam1", Envelope(
+            $"<SetGeoLocation xmlns=\"{tds}\"><Location Entity=\"Device\">" +
+            $"<tt:GeoLocation xmlns:tt=\"{tt}\" lat=\"39.3\" lon=\"-77.35\"/>" +
+            "</Location></SetGeoLocation>", security));
+        Assert.Contains("ter:InvalidArgVal", await SubcodesAsync(outside));
+
+        // The other tests share this simulator: put the camera back where the default world had it.
+        store.Update(w => w.Cameras.Single(c => c.Id == "cam1").Position = new Vec3(0, 6, 60));
+    }
+
     private async Task<HttpResponseMessage> PostAsync(
         string cameraId, string envelope, string contentType = "application/soap+xml; charset=utf-8", string path = "device_service")
     {
