@@ -5,7 +5,7 @@ import type { BufferGeometry, Object3D, Plane } from 'three';
 import { api } from '../api';
 import { heightAt, type Terrain, type WorldObject } from '../model';
 import { select, showError, updateObject, useEditor } from '../store';
-import { useCutawayPlanes } from './cutaway';
+import { CUTAWAY_HEIGHT_M, useCutawayPlanes } from './cutaway';
 import { yawDegrees } from './orientation';
 
 // Meshes come from the server, which alone knows how to build a tree or a house. They depend on the
@@ -80,6 +80,9 @@ function ObjectView({ obj, terrain, geometry, selected, clippingPlanes }: Object
 
   function onClick(e: ThreeEvent<MouseEvent>) {
     if (e.delta > 4 || useEditor.getState().tool.kind !== 'select') return;
+    // A face the cutaway hides still catches the ray. Above the cut, let the click through to what
+    // stands behind it, or a room's roof would be what clicking into the room selects.
+    if (useEditor.getState().cutaway && e.point.y > CUTAWAY_HEIGHT_M) return;
     e.stopPropagation();
     select({ kind: 'object', id: obj.id });
   }
