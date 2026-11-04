@@ -4,6 +4,7 @@ import { Color, Vector3 } from 'three';
 import type { Environment, World } from '../model';
 import { useEditor } from '../store';
 import { CameraGizmo } from './CameraGizmo';
+import { DeviceIoView } from './DeviceIoView';
 import { ObjectsView } from './ObjectsView';
 import { RoutesView } from './RoutesView';
 import { TerrainView } from './TerrainView';
@@ -29,6 +30,7 @@ export function Viewport({ world }: { world: World }) {
       <TerrainView terrain={world.terrain} />
       <ObjectsView objects={world.objects} terrain={world.terrain} />
       <RoutesView roads={world.roads} walkers={world.walkers} vehicles={world.vehicles} terrain={world.terrain} />
+      <DeviceIoView world={world} />
       {world.cameras.map((camera) => (
         <CameraGizmo
           key={camera.id}

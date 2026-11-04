@@ -19,9 +19,9 @@ public static partial class WorldValidation
     private const int MaxTerrainResolution = 1024;
     private const int MaxStreamPathLength = 128;
 
-    // Camera ids stay URL-safe: they are the default RTSP paths and appear in editor API URLs.
+    // Camera ids and device tokens stay URL-safe: they are RTSP paths, and appear in editor API URLs.
     [GeneratedRegex("^[A-Za-z0-9_-]{1,32}$")]
-    private static partial Regex CameraIdPattern();
+    private static partial Regex TokenPattern();
 
     // Profile_1 ... Profile_8, and the legacy two.
     [GeneratedRegex("^Profile_[0-9]{1,3}$")]
@@ -53,6 +53,7 @@ public static partial class WorldValidation
         }
         RequireUnique(world.Cameras.Select(c => c.Id), "Camera id");
         CheckStreams(world);
+        CheckWires(world);
         CheckEndpoints(world, onvifBasePort, defaultRtspPort);
     }
 
@@ -135,7 +136,8 @@ public static partial class WorldValidation
     private static void CheckCamera(CameraModel camera)
     {
         string id = camera.Id;
-        Require(CameraIdPattern().IsMatch(id), $"Camera id '{id}' must be 1..32 letters, digits, '-' or '_'.");
+        Require(TokenPattern().IsMatch(id), $"Camera id '{id}' must be 1..32 letters, digits, '-' or '_'.");
+        CheckDevices(camera);
         Require(IsFinite(camera.Position) && float.IsFinite(camera.Heading) && float.IsFinite(camera.Pitch) && float.IsFinite(camera.Roll),
             $"Camera {id}: position and orientation must be finite.");
         Require(camera.HFov is >= 1 and <= 170, $"Camera {id}: field of view {camera.HFov} is outside 1..170.");
@@ -177,6 +179,50 @@ public static partial class WorldValidation
         {
             Require(camera.Ptz != null, $"Camera {id} is a PTZ camera without PTZ settings.");
             CheckPtz(id, camera.Ptz!);
+        }
+    }
+
+    // Relay outputs and digital inputs: tokens address them in URLs and in ONVIF requests, so they are
+    // unique per camera and URL-safe; positions are metres offset from the camera.
+    private static void CheckDevices(CameraModel camera)
+    {
+        string id = camera.Id;
+        RequireUnique(camera.RelayOutputs.Select(r => r.Token), $"Camera {id}: relay output token");
+        RequireUnique(camera.DigitalInputs.Select(i => i.Token), $"Camera {id}: digital input token");
+        foreach (var relay in camera.RelayOutputs)
+        {
+            Require(TokenPattern().IsMatch(relay.Token),
+                $"Camera {id}: relay output token '{relay.Token}' must be 1..32 letters, digits, '-' or '_'.");
+            Require(relay.Name.Length <= 64, $"Camera {id}: relay output {relay.Token}: the name must be at most 64 characters.");
+            Require(IsFinite(relay.Position), $"Camera {id}: relay output {relay.Token}: the position must be finite.");
+            Require(relay.Mode == RelayModeModel.Bistable || relay.DelaySeconds is >= 0.05f and <= 3600,
+                $"Camera {id}: relay output {relay.Token}: a monostable delay must be within 0.05..3600 s.");
+        }
+        foreach (var input in camera.DigitalInputs)
+        {
+            Require(TokenPattern().IsMatch(input.Token),
+                $"Camera {id}: digital input token '{input.Token}' must be 1..32 letters, digits, '-' or '_'.");
+            Require(input.Name.Length <= 64, $"Camera {id}: digital input {input.Token}: the name must be at most 64 characters.");
+            Require(IsFinite(input.Position), $"Camera {id}: digital input {input.Token}: the position must be finite.");
+        }
+    }
+
+    // A wire joins a relay output of one camera to a digital input of any camera: both must exist, and
+    // an input takes at most one wire.
+    private static void CheckWires(WorldModel world)
+    {
+        var driven = new HashSet<(string Camera, string Token)>();
+        foreach (var wire in world.Wires)
+        {
+            string where = $"Wire {wire.RelayCameraId}/{wire.RelayToken} -> {wire.InputCameraId}/{wire.InputToken}";
+            Require(DeviceIo.FindCamera(world, wire.RelayCameraId) != null, $"{where}: no camera '{wire.RelayCameraId}'.");
+            Require(DeviceIo.FindRelay(world, wire.RelayCameraId, wire.RelayToken) != null,
+                $"{where}: camera {wire.RelayCameraId} has no relay output '{wire.RelayToken}'.");
+            Require(DeviceIo.FindCamera(world, wire.InputCameraId) != null, $"{where}: no camera '{wire.InputCameraId}'.");
+            Require(DeviceIo.FindInput(world, wire.InputCameraId, wire.InputToken) != null,
+                $"{where}: camera {wire.InputCameraId} has no digital input '{wire.InputToken}'.");
+            Require(driven.Add((wire.InputCameraId.ToLowerInvariant(), wire.InputToken.ToLowerInvariant())),
+                $"{where}: that digital input is already driven by another wire.");
         }
     }
 

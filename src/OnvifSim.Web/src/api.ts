@@ -1,6 +1,7 @@
 import { BufferAttribute, BufferGeometry } from 'three';
 import {
   encodeTerrain,
+  type CameraIo,
   type CameraModel,
   type Environment,
   type Geo,
@@ -65,6 +66,11 @@ export const api = {
   putCamera: (camera: CameraDraft) =>
     send('PUT', `/api/cameras/${encodeURIComponent(camera.id)}`, camera),
   deleteCamera: (id: string) => send('DELETE', `/api/cameras/${encodeURIComponent(id)}`),
+  // Relays, inputs and wires are saved apart from the camera: their state changes on its own, and a
+  // wire reaches another camera's input.
+  putCameraIo: (id: string, io: CameraIo) => send('PUT', `/api/cameras/${encodeURIComponent(id)}/io`, io),
+  putRelay: (id: string, token: string, active: boolean) =>
+    send('PUT', `/api/cameras/${encodeURIComponent(id)}/relays/${encodeURIComponent(token)}`, { active }),
   putRoad: (road: Partial<Road> & Pick<Road, 'id'>) => send('PUT', `/api/roads/${encodeURIComponent(road.id)}`, road),
   deleteRoad: (id: string) => send('DELETE', `/api/roads/${encodeURIComponent(id)}`),
   putWalker: (walker: Partial<Walker> & Pick<Walker, 'id'>) => send('PUT', `/api/walkers/${encodeURIComponent(walker.id)}`, walker),

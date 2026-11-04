@@ -33,6 +33,7 @@ builder.Services.AddSingleton(store);
 builder.Services.AddSingleton<SceneState>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<PtzSimulator>();
+builder.Services.AddSingleton<DeviceIoController>();
 builder.Services.AddSingleton(sp => H264Support.Detect(options, sp.GetRequiredService<ILogger<H264Support>>()));
 builder.Services.AddSingleton<FeedManager>();
 builder.Services.AddSingleton<AnalyticsManager>();

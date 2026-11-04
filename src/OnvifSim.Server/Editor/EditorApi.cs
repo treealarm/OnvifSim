@@ -35,6 +35,7 @@ public static class EditorApi
         MapWorld(app);
         WorldLibraryApi.MapWorldLibrary(app);
         MapCameraStreams(app);
+        MapDeviceIo(app);
         MapPtz(app);
         MapAnalytics(app);
         MapGroundTruth(app);
@@ -129,12 +130,66 @@ public static class EditorApi
                 }
                 // An editor too old to know about streams leaves the field out; it must not erase them.
                 if (stored?.Streams != null && camera.Streams == null) camera.Streams = stored.Streams;
+                // Relays and inputs are edited through /io, and their state changes on its own; a saved
+                // panel must not put a stale switch position back.
+                if (stored != null)
+                {
+                    camera.RelayOutputs = stored.RelayOutputs;
+                    camera.DigitalInputs = stored.DigitalInputs;
+                }
                 Upsert(world.Cameras, camera, c => SameId(c.Id, id));
             });
         });
 
+        // A camera's wires go with it; other cameras' wires into its inputs would dangle.
         app.MapDelete("/api/cameras/{id}", (string id, WorldStore store, SimOptions options) =>
-            Remove(store, options, world => world.Cameras, c => SameId(c.Id, id)));
+            store.Current.Cameras.Any(c => SameId(c.Id, id))
+                ? Change(store, options, world =>
+                {
+                    world.Cameras.RemoveAll(c => SameId(c.Id, id));
+                    world.Wires.RemoveAll(w => SameId(w.RelayCameraId, id) || SameId(w.InputCameraId, id));
+                })
+                : Results.NotFound());
+    }
+
+    // A camera's relay outputs and digital inputs, and the wires running from its relays.
+    public sealed record CameraIoModel(
+        List<RelayOutputModel>? RelayOutputs,
+        List<DigitalInputModel>? DigitalInputs,
+        List<WireModel>? Wires);
+
+    public sealed record RelaySwitch(bool Active);
+
+    // Relays, inputs and wires are saved apart from the camera: a switch or a wire changes what other
+    // cameras' inputs read, and the live relay state must survive a save of the panel that shows it.
+    private static void MapDeviceIo(WebApplication app)
+    {
+        app.MapPut("/api/cameras/{id}/io", (string id, CameraIoModel io, WorldStore store, SimOptions options) =>
+        {
+            if (!store.Current.Cameras.Any(c => SameId(c.Id, id))) return Results.NotFound();
+            return Change(store, options, world =>
+            {
+                var camera = world.Cameras.First(c => SameId(c.Id, id));
+                var relays = io.RelayOutputs ?? [];
+                var inputs = io.DigitalInputs ?? [];
+                // The state belongs to the event stream, not to a saved copy of the panel.
+                foreach (var relay in relays)
+                    relay.Active = camera.RelayOutputs.FirstOrDefault(r => DeviceIo.Same(r.Token, relay.Token))?.Active ?? false;
+                camera.RelayOutputs = relays;
+                camera.DigitalInputs = inputs;
+                // This camera's wires are exactly what it sends; a wire into an input that is gone goes too.
+                world.Wires.RemoveAll(w => DeviceIo.Same(w.RelayCameraId, id));
+                world.Wires.RemoveAll(w => DeviceIo.Same(w.InputCameraId, id) && !inputs.Any(i => DeviceIo.Same(i.Token, w.InputToken)));
+                foreach (var wire in io.Wires ?? [])
+                {
+                    wire.RelayCameraId = id;
+                    world.Wires.Add(wire);
+                }
+            });
+        });
+
+        app.MapPut("/api/cameras/{id}/relays/{token}", (string id, string token, RelaySwitch body, DeviceIoController switches) =>
+            switches.SetRelay(id, token, body.Active) ? Results.NoContent() : Results.NotFound());
     }
 
     private static void MapCameraStreams(WebApplication app)

@@ -364,6 +364,36 @@ dialog::backdrop {
   margin-top: 8px;
 }
 
+.io-card {
+  margin: 8px 0;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+}
+
+.io-head {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.io-head span {
+  flex: 1;
+}
+
+/* An input's live state, which follows the relay its wire runs from. */
+.io-state {
+  margin: 4px 0;
+  color: var(--muted);
+}
+
+.io-state.on {
+  color: #2f9e44;
+}
+
 .section {
   margin: 12px 0;
   padding-top: 10px;

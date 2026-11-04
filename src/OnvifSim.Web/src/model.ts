@@ -168,6 +168,49 @@ export interface PtzSettings {
   presets: { token: string; name: string; position: PtzPosition }[];
 }
 
+// A relay output: a switch with a lamp, whose state the editor or ONVIF sets and a wire may pass on.
+export type RelayMode = 'bistable' | 'monostable';
+
+// The electrical state a relay sits in when nothing drives it; closed carries current (ONVIF: active).
+export type IdleState = 'closed' | 'open';
+
+export interface RelayOutput {
+  // URL-safe and unique within the camera: it addresses the relay in the API.
+  token: string;
+  name: string;
+  mode: RelayMode;
+  // Seconds a monostable relay stays switched on.
+  delaySeconds: number;
+  idleState: IdleState;
+  // The live state, which travels as ONVIF Device/Trigger events.
+  active: boolean;
+  // Offset from the camera: x to its right, z behind it, y above the ground there — as on the server.
+  position: Vec3;
+}
+
+// A digital input: it has no state of its own, a wire from a relay output drives it.
+export interface DigitalInput {
+  token: string;
+  name: string;
+  idleState: IdleState;
+  position: Vec3;
+}
+
+// A wire runs from a relay output of one camera to a digital input of any camera.
+export interface Wire {
+  relayCameraId: string;
+  relayToken: string;
+  inputCameraId: string;
+  inputToken: string;
+}
+
+// A camera's devices and the wires from its relays, as the editor edits them at once.
+export interface CameraIo {
+  relays: RelayOutput[];
+  inputs: DigitalInput[];
+  wires: Wire[];
+}
+
 export interface CameraModel {
   id: string;
   name: string;
@@ -190,6 +233,9 @@ export interface CameraModel {
   // What the metadata track of the camera's RTSP streams carries: people as boxes, the PTZ position.
   metadata: { analytics: boolean; ptzStatus: boolean };
   ptz: PtzSettings | null;
+  // The camera's relay outputs and digital inputs, with the lamps and sensor blocks that stand for them.
+  relayOutputs: RelayOutput[];
+  digitalInputs: DigitalInput[];
   onvifPort: number;
   // The address the camera listens on; null or absent is every interface.
   bindAddress?: string | null;
@@ -236,6 +282,7 @@ export interface World {
   walkers: Walker[];
   vehicles: Vehicle[];
   cameras: CameraModel[];
+  wires: Wire[];
 }
 
 // What the server says about the running services.
@@ -364,6 +411,38 @@ export function walkerPoseAt(walker: Walker, timeMs: number): WalkerPose {
 
 export function vehiclePoseAt(vehicle: Vehicle, timeMs: number): WalkerPose {
   return routePoseAt(vehicle.route, vehicle.speed, vehicle.return, timeMs);
+}
+
+// ---- Relay outputs, digital inputs and the wires between them ----
+
+// Case-insensitive comparison for ids and tokens, as the server compares them.
+export function sameId(a: string, b: string): boolean {
+  return a.toLowerCase() === b.toLowerCase();
+}
+
+// A camera's devices and the wires running from its relays, which the editor saves in one go.
+export function cameraIoOf(world: World, camera: CameraModel): CameraIo {
+  return {
+    relays: camera.relayOutputs,
+    inputs: camera.digitalInputs,
+    wires: world.wires.filter((wire) => sameId(wire.relayCameraId, camera.id)),
+  };
+}
+
+// The wire driving an input, if any.
+export function wireToInput(world: World, cameraId: string, token: string): Wire | undefined {
+  return world.wires.find((wire) => sameId(wire.inputCameraId, cameraId) && sameId(wire.inputToken, token));
+}
+
+// Whether an input is on: the state of the relay its wire runs from. Null when no wire drives it, which
+// is not the same as a wire from a relay that happens to be off.
+export function inputActive(world: World, cameraId: string, token: string): boolean | null {
+  const wire = wireToInput(world, cameraId, token);
+  if (!wire) return null;
+  const relay = world.cameras
+    .find((camera) => sameId(camera.id, wire.relayCameraId))
+    ?.relayOutputs.find((output) => sameId(output.token, wire.relayToken));
+  return relay ? relay.active : null;
 }
 
 // The font on a plate has no lower case and only Latin letters, digits, spaces and hyphens.

@@ -12,6 +12,7 @@ import {
 } from '../model';
 import { changeCameraKind, removeSelected, updateCamera, useEditor } from '../store';
 import { CameraPicture } from './CameraPicture';
+import { DeviceIoSection } from './DeviceIoSection';
 import { BlurTextField, CheckboxField, ColorField, NumberField, Section, SelectField, TextField } from './fields';
 import { PtzControl } from './PtzControl';
 
@@ -87,6 +88,8 @@ export function CameraInspector({ camera }: { camera: CameraModel }) {
       {camera.kind === 'ptz' && camera.ptz && <PtzLimits ptz={camera.ptz} onChange={(ptz) => change({ ptz })} />}
 
       <StreamsSection camera={camera} h264Available={status?.h264 !== false} onChange={(streams) => change({ streams })} />
+
+      <DeviceIoSection camera={camera} />
 
       <Section title="Image">
         <NumberField label="Brightness" value={camera.imaging.brightness} min={0} max={100} slider onChange={(brightness) => change({ imaging: { ...camera.imaging, brightness } })} />

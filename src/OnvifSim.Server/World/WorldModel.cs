@@ -18,6 +18,9 @@ public sealed class WorldModel
     public List<WalkerModel> Walkers { get; set; } = [];
     public List<VehicleModel> Vehicles { get; set; } = [];
     public List<CameraModel> Cameras { get; set; } = [];
+    // Wires between a camera's relay output and a digital input of any camera. Each device also knows
+    // its own wiring through these; keeping them here lets a wire join two cameras in one place.
+    public List<WireModel> Wires { get; set; } = [];
 }
 
 public sealed class TerrainModel
@@ -186,6 +189,10 @@ public sealed class CameraModel
     public ImagingModel Imaging { get; set; } = new();
     public MetadataModel Metadata { get; set; } = new();
     public PtzModel? Ptz { get; set; }
+    // Relay outputs and digital inputs of the camera, and the lamps and sensor blocks that stand for
+    // them in the world. Their live state travels as ONVIF Device/Trigger events.
+    public List<RelayOutputModel> RelayOutputs { get; set; } = [];
+    public List<DigitalInputModel> DigitalInputs { get; set; } = [];
     // Port of the camera's ONVIF service; 0 means automatic: 8001 for the first camera, 8002 for the
     // second and so on (--onvif-base-port moves the start).
     public int OnvifPort { get; set; }
@@ -210,6 +217,51 @@ public sealed class UserModel
 {
     public string Username { get; set; } = "";
     public string Password { get; set; } = "";
+}
+
+public enum RelayModeModel { Bistable, Monostable }
+
+// Electrical state a relay sits in when nothing drives it. Closed is the state that carries current,
+// which ONVIF reports as active.
+public enum IdleStateModel { Closed, Open }
+
+// A relay output of a camera, drawn as a lamp: a switch a client or the editor sets, and which a wire
+// may pass on to a digital input of any camera.
+public sealed class RelayOutputModel
+{
+    public string Token { get; set; } = "";
+    public string Name { get; set; } = "";
+    public RelayModeModel Mode { get; set; } = RelayModeModel.Bistable;
+    // How long a monostable relay stays switched on, seconds; a bistable one ignores it.
+    public float DelaySeconds { get; set; } = 5;
+    public IdleStateModel IdleState { get; set; } = IdleStateModel.Open;
+    // The logical state now: what the editor or ONVIF set it to, and what a wire passes on.
+    public bool Active { get; set; }
+    // Where the lamp stands, as an offset from the camera: X to its right and Z behind it in the mount's
+    // level frame, metres, and Y above the ground there, which is the height of the lamp's post. A
+    // camera on a car carries its devices with it.
+    public Vec3 Position { get; set; }
+}
+
+// A digital input of a camera, drawn as a small block. It has no state of its own: a wire from a relay
+// output drives it, and without a wire it is simply not wired.
+public sealed class DigitalInputModel
+{
+    public string Token { get; set; } = "";
+    public string Name { get; set; } = "";
+    public IdleStateModel IdleState { get; set; } = IdleStateModel.Open;
+    // As RelayOutputModel.Position: X to the camera's right, Z behind it, Y above the ground there.
+    public Vec3 Position { get; set; }
+}
+
+// A wire: the relay output of one camera drives the digital input of any camera, the same one or
+// another. An input takes at most one wire; one relay may drive several inputs.
+public sealed class WireModel
+{
+    public string RelayCameraId { get; set; } = "";
+    public string RelayToken { get; set; } = "";
+    public string InputCameraId { get; set; } = "";
+    public string InputToken { get; set; } = "";
 }
 
 // What the camera's metadata track (in both RTSP streams, ONVIF's metadata configuration) carries:

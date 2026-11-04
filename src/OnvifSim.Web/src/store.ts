@@ -1,8 +1,11 @@
 import { create } from 'zustand';
 import { api, ApiError } from './api';
 import {
+  cameraIoOf,
   decodeWorld,
   nextId,
+  sameId,
+  type CameraIo,
   type CameraKind,
   type CameraModel,
   type Environment,
@@ -265,6 +268,10 @@ type Part =
   | { kind: 'road'; id: string; value: Road | null }
   | { kind: 'walker'; id: string; value: Walker | null }
   | { kind: 'vehicle'; id: string; value: Vehicle | null }
+  // A camera's relays, inputs and the wires from its relays, which are saved together.
+  | { kind: 'camera-io'; id: string; value: CameraIo | null }
+  // One relay's switch position, saved on its own: ONVIF clients change it too.
+  | { kind: 'relay'; id: string; token: string; value: { active: boolean } | null }
   // One parked car becoming a moving one, or the way back. Both ends are kept so the step undoes as
   // a whole: a car conversion is one action, not a creation and a deletion.
   | { kind: 'driving-car'; object: WorldObject; vehicle: Vehicle; moving: boolean }
@@ -288,6 +295,7 @@ const redoStack: HistoryEntry[] = [];
 function keyOf(part: Part): string {
   if (part.kind === 'terrain' || part.kind === 'environment' || part.kind === 'geo') return part.kind;
   if (part.kind === 'driving-car') return `driving-car:${part.object.id}:${part.vehicle.id}`;
+  if (part.kind === 'relay') return `relay:${part.id}:${part.token}`;
   return `${part.kind}:${part.id}`;
 }
 
@@ -304,6 +312,16 @@ function currentOf(world: World, part: Part): Part {
       return { ...part, value: world.walkers.find((w) => w.id === part.id) ?? null };
     case 'vehicle':
       return { ...part, value: world.vehicles.find((v) => v.id === part.id) ?? null };
+    case 'camera-io': {
+      const camera = world.cameras.find((c) => sameId(c.id, part.id));
+      return { ...part, value: camera ? cameraIoOf(world, camera) : null };
+    }
+    case 'relay': {
+      const relay = world.cameras
+        .find((c) => sameId(c.id, part.id))
+        ?.relayOutputs.find((output) => sameId(output.token, part.token));
+      return { ...part, value: { active: relay?.active ?? false } };
+    }
     case 'driving-car': {
       const object = world.objects.find((o) => o.id === part.object.id);
       if (object) return { ...part, object, moving: false };
@@ -336,6 +354,36 @@ function applyPart(world: World, part: Part): World {
       return { ...world, walkers: upsert(world.walkers, part.id, part.value) };
     case 'vehicle':
       return { ...world, vehicles: upsert(world.vehicles, part.id, part.value) };
+    case 'camera-io': {
+      const io = part.value;
+      if (!io) return world;
+      const inputs = new Set(io.inputs.map((input) => input.token.toLowerCase()));
+      return {
+        ...world,
+        cameras: world.cameras.map((camera) =>
+          sameId(camera.id, part.id) ? { ...camera, relayOutputs: io.relays, digitalInputs: io.inputs } : camera),
+        // This camera's wires are the ones sent; a wire into an input that is gone goes too, as on the server.
+        wires: [
+          ...world.wires.filter(
+            (wire) =>
+              !sameId(wire.relayCameraId, part.id) &&
+              !(sameId(wire.inputCameraId, part.id) && !inputs.has(wire.inputToken.toLowerCase())),
+          ),
+          ...io.wires,
+        ],
+      };
+    }
+    case 'relay': {
+      const value = part.value;
+      if (!value) return world;
+      return {
+        ...world,
+        cameras: world.cameras.map((camera) =>
+          sameId(camera.id, part.id)
+            ? { ...camera, relayOutputs: camera.relayOutputs.map((relay) => (sameId(relay.token, part.token) ? { ...relay, active: value.active } : relay)) }
+            : camera),
+      };
+    }
     case 'driving-car': {
       const objects = world.objects.filter((o) => o.id !== part.object.id);
       const vehicles = world.vehicles.filter((v) => v.id !== part.vehicle.id);
@@ -364,6 +412,10 @@ async function sendPart(part: Part): Promise<unknown> {
       return part.value ? api.putWalker(part.value) : ignoreMissing(api.deleteWalker(part.id));
     case 'vehicle':
       return part.value ? api.putVehicle(part.value) : ignoreMissing(api.deleteVehicle(part.id));
+    case 'camera-io':
+      return part.value ? api.putCameraIo(part.id, part.value) : undefined;
+    case 'relay':
+      return part.value ? api.putRelay(part.id, part.token, part.value.active) : undefined;
     case 'driving-car':
       if (part.moving) {
         await api.putVehicle(part.vehicle);
@@ -438,6 +490,18 @@ export function updateObject(obj: WorldObject) {
 
 export function updateCamera(camera: CameraModel) {
   change({ kind: 'camera', id: camera.id, value: camera });
+}
+
+// Saves a camera's relay outputs, digital inputs and the wires from its relays in one edit, so a wire
+// and the device it reaches always travel together.
+export function updateCameraIo(camera: CameraModel, io: CameraIo) {
+  change({ kind: 'camera-io', id: camera.id, value: io });
+}
+
+// Switches one relay. Its state is the camera's and ONVIF clients change it too, so it goes on its own
+// rather than with the rest of the panel.
+export function updateRelay(cameraId: string, token: string, active: boolean) {
+  change({ kind: 'relay', id: cameraId, token, value: { active } });
 }
 
 export function updateRoad(road: Road) {
