@@ -1,14 +1,17 @@
 import { plateText, type GroundPoint, type Road, type Vehicle, type Walker } from '../model';
 import { removeSelected, startDrawing, updateRoad, updateVehicle, updateWalker } from '../store';
 import { CheckboxField, ColorField, NumberField, Section, TextField } from './fields';
+import { InspectorTitle } from './FindButton';
 
 export function RoadInspector({ road }: { road: Road }) {
   const change = (patch: Partial<Road>) => updateRoad({ ...road, ...patch });
   return (
     <>
-      <h2>
-        Road <span className="muted">{road.id}</span>
-      </h2>
+      <InspectorTitle>
+        <h2>
+          Road <span className="muted">{road.id}</span>
+        </h2>
+      </InspectorTitle>
       <Section title="Road">
         <NumberField label="Width, m" value={road.width} min={0.5} max={50} step={0.5} onChange={(width) => change({ width })} />
         <ColorField label="Surface" value={road.color ?? '#55575a'} onChange={(color) => change({ color })} />
@@ -33,9 +36,11 @@ export function WalkerInspector({ walker }: { walker: Walker }) {
   const change = (patch: Partial<Walker>) => updateWalker({ ...walker, ...patch });
   return (
     <>
-      <h2>
-        Person <span className="muted">{walker.id}</span>
-      </h2>
+      <InspectorTitle>
+        <h2>
+          Person <span className="muted">{walker.id}</span>
+        </h2>
+      </InspectorTitle>
       <Section title="Walk">
         <NumberField label="Speed, m/s" value={walker.speed} min={0} max={10} step={0.1} onChange={(speed) => change({ speed })} />
         <NumberField label="Height, m" value={walker.height} min={0.5} max={3} step={0.05} onChange={(height) => change({ height })} />
@@ -63,9 +68,11 @@ export function VehicleInspector({ vehicle }: { vehicle: Vehicle }) {
   const change = (patch: Partial<Vehicle>) => updateVehicle({ ...vehicle, ...patch });
   return (
     <>
-      <h2>
-        Car <span className="muted">{vehicle.id}</span>
-      </h2>
+      <InspectorTitle>
+        <h2>
+          Car <span className="muted">{vehicle.id}</span>
+        </h2>
+      </InspectorTitle>
       <Section title="Drive">
         <NumberField label="Speed, m/s" value={vehicle.speed} min={0} max={50} step={0.5} onChange={(speed) => change({ speed })} />
         <CheckboxField label="Seen by analytics" checked={vehicle.detectable} onChange={(detectable) => change({ detectable })} />

@@ -1,6 +1,7 @@
-import { lampLit, nextId, wiresToLamp, type Environment, type Geo, type Lamp, type World } from '../model';
+import { defaultLampColor, lampLit, wiresToLamp, type Environment, type Geo, type Lamp, type World } from '../model';
 import { removeLamp, updateEnvironment, updateGeo, updateLamp, updateTerrain, useEditor } from '../store';
 import { BlurTextField, CheckboxField, ColorField, NumberField, Section } from './fields';
+import { InspectorTitle } from './FindButton';
 
 // What shows when nothing is selected: settings of the world as a whole.
 export function WorldInspector({ world }: { world: World }) {
@@ -40,27 +41,8 @@ export function WorldInspector({ world }: { world: World }) {
         <ColorField label="Ground" value={world.terrain.color} onChange={(color) => updateTerrain({ ...world.terrain, color })} />
         <p className="muted">Steep slopes still turn to rock, with lighter patches breaking up the colour.</p>
       </Section>
-      <Section title="Lamps">
-        {world.lamps.length === 0 && (
-          <p className="muted">No lamps. A relay can drive one, so its firing is seen in the world.</p>
-        )}
-        {world.lamps.map((lamp) => (
-          <LampCard key={lamp.id} lamp={lamp} world={world} />
-        ))}
-        <button
-          type="button"
-          onClick={() =>
-            updateLamp({
-              id: nextId('lamp', world.lamps.map((l) => l.id)),
-              name: 'Lamp',
-              normallyClosed: false,
-              position: { x: 0, y: 0, z: 0 },
-            })
-          }
-        >
-          Add lamp
-        </button>
-      </Section>
+      {/* A lamp is a thing of the world, like a camera: it is placed from the palette and edited in
+          its own card, not in the world's settings. */}
       <p className="muted">
         {world.objects.length} objects, {world.roads.length} roads, {world.walkers.length} people, {world.cameras.length} cameras,{' '}
         {world.lamps.length} lamps.
@@ -69,15 +51,16 @@ export function WorldInspector({ world }: { world: World }) {
   );
 }
 
-// The lamp picked in the viewport or in Contents: the same card the world panel shows, with the
-// devices it is wired to.
+// The lamp picked in the viewport or in Contents: its card, with the devices it is wired to.
 export function LampInspector({ lamp }: { lamp: Lamp }) {
   const world = useEditor((s) => s.world);
   return (
     <>
-      <h2>
-        {lamp.name || lamp.id} <span className="muted">{lamp.id}</span>
-      </h2>
+      <InspectorTitle>
+        <h2>
+          {lamp.name || lamp.id} <span className="muted">{lamp.id}</span>
+        </h2>
+      </InspectorTitle>
       {world && <LampCard lamp={lamp} world={world} />}
     </>
   );
@@ -103,6 +86,11 @@ function LampCard({ lamp, world }: { lamp: Lamp; world: World }) {
         label="Normally closed (lit while no relay is closed)"
         checked={lamp.normallyClosed}
         onChange={(normallyClosed) => updateLamp({ ...lamp, normallyClosed })}
+      />
+      <ColorField
+        label="Glow colour"
+        value={lamp.color ?? defaultLampColor}
+        onChange={(color) => updateLamp({ ...lamp, color })}
       />
       <NumberField label="X (east)" value={lamp.position.x} step={0.5} onChange={(x) => move({ x })} />
       <NumberField label="Z (south)" value={lamp.position.z} step={0.5} onChange={(z) => move({ z })} />

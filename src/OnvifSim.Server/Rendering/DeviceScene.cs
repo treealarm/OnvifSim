@@ -23,7 +23,7 @@ public static class DeviceScene
                 chunks.AddRange(Devices(world, terrain, camera, DateTimeOffset.MinValue));
         // A lamp belongs to the world, not to a camera, so it never moves with one.
         foreach (var lamp in world.Lamps)
-            chunks.Add(Placed($"lamp/{lamp.Id}", DeviceMesh.Lamp(DeviceIo.LampLit(world, lamp.Id)),
+            chunks.Add(Placed($"lamp/{lamp.Id}", DeviceMesh.Lamp(DeviceIo.LampLit(world, lamp.Id), lamp.Color),
                 new Vector3(lamp.Position.X, terrain.HeightAt(lamp.Position.X, lamp.Position.Z) + lamp.Position.Y, lamp.Position.Z)));
         return chunks;
     }

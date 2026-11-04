@@ -1,5 +1,6 @@
 import { OrbitControls } from '@react-three/drei';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { useEffect, useRef } from 'react';
 import { Color, Vector3 } from 'three';
 import type { Environment, World } from '../model';
 import { useEditor } from '../store';
@@ -27,6 +28,7 @@ export function Viewport({ world }: { world: World }) {
       <hemisphereLight args={[new Color(world.environment.skyZenith), new Color('#6b6455'), 1.2]} />
       <directionalLight position={sun} intensity={2.2} />
       <OrbitControls makeDefault maxPolarAngle={Math.PI / 2 - 0.02} />
+      <FocusFlight />
       <TerrainView terrain={world.terrain} />
       <ObjectsView objects={world.objects} terrain={world.terrain} />
       <RoutesView roads={world.roads} walkers={world.walkers} vehicles={world.vehicles} terrain={world.terrain} />
@@ -44,6 +46,46 @@ export function Viewport({ world }: { world: World }) {
       ))}
     </Canvas>
   );
+}
+
+const flightMs = 450;
+
+// The editor camera flying to a point, from the direction it is looked at now — what an inspector's
+// Find button asks for. The flight is short and eased, so the eye follows the move instead of
+// arriving somewhere unfamiliar.
+function FocusFlight() {
+  const camera = useThree((state) => state.camera);
+  const controls = useThree((state) => state.controls) as unknown as
+    | { target: Vector3; update: () => void }
+    | null;
+  const request = useEditor((state) => state.focus);
+  const flight = useRef<{ from: Vector3; to: Vector3; fromTarget: Vector3; toTarget: Vector3; start: number } | null>(null);
+
+  useEffect(() => {
+    if (!request || !controls) return;
+    const target = new Vector3(...request.point);
+    const direction = new Vector3().subVectors(camera.position, controls.target).normalize();
+    flight.current = {
+      from: camera.position.clone(),
+      to: target.clone().addScaledVector(direction, request.distance),
+      fromTarget: controls.target.clone(),
+      toTarget: target,
+      start: performance.now(),
+    };
+  }, [request, controls, camera]);
+
+  useFrame(() => {
+    const move = flight.current;
+    if (!move || !controls) return;
+    const progress = Math.min(1, (performance.now() - move.start) / flightMs);
+    const eased = progress * progress * (3 - 2 * progress);
+    camera.position.lerpVectors(move.from, move.to, eased);
+    controls.target.lerpVectors(move.fromTarget, move.toTarget, eased);
+    controls.update();
+    if (progress >= 1) flight.current = null;
+  });
+
+  return null;
 }
 
 // Towards the sun: azimuth clockwise from north (-Z), as RenderScene lights the server's picture.

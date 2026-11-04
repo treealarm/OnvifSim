@@ -1,8 +1,9 @@
 import { Line } from '@react-three/drei';
 import { useFrame, type ThreeEvent } from '@react-three/fiber';
 import { useRef, type ComponentRef, type RefObject } from 'react';
-import type { Group, Plane } from 'three';
+import { DoubleSide, type Group, type Plane } from 'three';
 import {
+  defaultLampColor,
   heightAt,
   inputActive,
   lampLit as lampIsLit,
@@ -19,12 +20,14 @@ import {
 import { select, useEditor, type Selection } from '../store';
 import { useCutawayPlanes } from './cutaway';
 import { devicePoint, isMounted } from './devicePoint';
+import { Label } from './Label';
 
-// As Geometry/DeviceMesh.cs builds them on the server: the lamp's shade sits at the top of its post, and
+// As Geometry/DeviceMesh.cs builds them on the server: the lamp's bulb sits at the top of its post, and
 // the sensor's lit top at sensorHeight.
 const lampHeight = 2.6;
+const bulbHeight = 2.32;
+const bulbRadius = 0.28;
 const sensorHeight = 0.42;
-const lampLit = '#ffd866';
 const lampDark = '#5c5e62';
 const sensorLit = '#52d06c';
 const sensorDark = '#5e6a76';
@@ -34,32 +37,42 @@ const wireColor = '#2a2a2e';
 // wires between them. A camera on a car carries its devices, and the wires touching them, along.
 export function DeviceIoView({ world }: { world: World }) {
   const clippingPlanes = useCutawayPlanes();
+  // A camera's devices are a few centimetres wide at the world's scale: their names and states are
+  // shown while that camera is the one being edited, and not for every camera at once.
+  const selectedCamera = useEditor((s) => (s.selection?.kind === 'camera' ? s.selection.id : null));
   return (
     <>
-      {world.cameras.flatMap((camera) => [
-        ...camera.relayOutputs.map((relay) => (
-          <Lamp
-            key={`${camera.id}/relay/${relay.token}`}
-            camera={camera}
-            position={relay.position}
-            lit={relay.active}
-            terrain={world.terrain}
-            vehicles={world.vehicles}
-            clippingPlanes={clippingPlanes}
-          />
-        )),
-        ...camera.digitalInputs.map((input) => (
-          <Sensor
-            key={`${camera.id}/input/${input.token}`}
-            camera={camera}
-            input={input}
-            active={inputActive(world, camera.id, input.token) === true}
-            terrain={world.terrain}
-            vehicles={world.vehicles}
-            clippingPlanes={clippingPlanes}
-          />
-        )),
-      ])}
+      {world.cameras.flatMap((camera) => {
+        const labelled = sameId(selectedCamera ?? '', camera.id);
+        return [
+          ...camera.relayOutputs.map((relay) => (
+            <Lamp
+              key={`${camera.id}/relay/${relay.token}`}
+              camera={camera}
+              name={relay.name || relay.token}
+              labelled={labelled}
+              position={relay.position}
+              lit={relay.active}
+              terrain={world.terrain}
+              vehicles={world.vehicles}
+              clippingPlanes={clippingPlanes}
+            />
+          )),
+          ...camera.digitalInputs.map((input) => (
+            <Sensor
+              key={`${camera.id}/input/${input.token}`}
+              camera={camera}
+              name={input.name || input.token}
+              labelled={labelled}
+              input={input}
+              active={inputActive(world, camera.id, input.token) === true}
+              terrain={world.terrain}
+              vehicles={world.vehicles}
+              clippingPlanes={clippingPlanes}
+            />
+          )),
+        ];
+      })}
       {world.lamps.map((lamp) => (
         <WorldLamp
           key={lamp.id}
@@ -80,17 +93,21 @@ export function DeviceIoView({ world }: { world: World }) {
   );
 }
 
-// A lamp post at a place: the relay's own indicator, or a lamp standing in the world.
-function LampPost({ lit, clippingPlanes }: { lit: boolean; clippingPlanes: Plane[] }) {
-  const color = lit ? lampLit : lampDark;
+// A classic lamp post: a pole, a collar, and a round bulb that glows in its colour while lit.
+function LampPost({ lit, glow, clippingPlanes }: { lit: boolean; glow: string; clippingPlanes: Plane[] }) {
+  const color = lit ? glow : lampDark;
   return (
     <>
-      <mesh position={[0, (lampHeight - 0.3) / 2, 0]}>
-        <cylinderGeometry args={[0.05, 0.08, lampHeight - 0.3, 6]} />
+      <mesh position={[0, 1.05, 0]}>
+        <cylinderGeometry args={[0.045, 0.07, 2.1, 8]} />
         <meshLambertMaterial color="#424448" clippingPlanes={clippingPlanes} />
       </mesh>
-      <mesh position={[0, lampHeight - 0.25, 0]} rotation={[Math.PI, 0, 0]}>
-        <coneGeometry args={[0.38, 0.45, 8]} />
+      <mesh position={[0, 2.16, 0]}>
+        <cylinderGeometry args={[0.1, 0.1, 0.12, 8]} />
+        <meshLambertMaterial color="#424448" clippingPlanes={clippingPlanes} />
+      </mesh>
+      <mesh position={[0, bulbHeight, 0]}>
+        <sphereGeometry args={[bulbRadius, 16, 12]} />
         <meshLambertMaterial
           color={color}
           emissive={lit ? color : '#000000'}
@@ -102,9 +119,12 @@ function LampPost({ lit, clippingPlanes }: { lit: boolean; clippingPlanes: Plane
   );
 }
 
-// A relay's indicator lamp: it stands at an offset from its camera, or rides the car with it.
+// A relay's indicator lamp: it stands at an offset from its camera, or rides the car with it. Its name
+// and state show while its camera is selected, where otherwise it would be a dot in the world.
 function Lamp({
   camera,
+  name,
+  labelled,
   position,
   lit,
   terrain,
@@ -112,6 +132,8 @@ function Lamp({
   clippingPlanes,
 }: {
   camera: CameraModel;
+  name: string;
+  labelled: boolean;
   position: Vec3;
   lit: boolean;
   terrain: Terrain;
@@ -119,14 +141,18 @@ function Lamp({
   clippingPlanes: Plane[];
 }) {
   const { group, initial } = useDeviceGroup(camera, position, terrain, vehicles);
+  const pickCamera = (e: ThreeEvent<MouseEvent>) => pick(e, { kind: 'camera', id: camera.id });
   return (
-    <group ref={group} position={[initial.x, initial.y, initial.z]} onClick={(e) => pick(e, { kind: 'camera', id: camera.id })}>
-      <LampPost lit={lit} clippingPlanes={clippingPlanes} />
+    <group ref={group} position={[initial.x, initial.y, initial.z]} onClick={pickCamera}>
+      <LampPost lit={lit} glow={defaultLampColor} clippingPlanes={clippingPlanes} />
+      {labelled && <Label text={`${name} · ${lit ? 'closed' : 'open'}`} position={[0, lampHeight + 0.3, 0]} onClick={pickCamera} />}
     </group>
   );
 }
 
-// A lamp of the world: it stands where it was put and never moves with a camera.
+// A lamp of the world: it stands where it was put and never moves with a camera. It has a name tag of
+// its own — a lamp is a metre of post at the world's scale, and one inside a building is under its
+// roof — and a ring under it while it is the selection.
 function WorldLamp({
   lamp,
   lit,
@@ -138,14 +164,25 @@ function WorldLamp({
   terrain: Terrain;
   clippingPlanes: Plane[];
 }) {
+  const selected = useEditor((s) => s.selection?.kind === 'lamp' && s.selection.id === lamp.id);
   const position: [number, number, number] = [
     lamp.position.x,
     heightAt(terrain, lamp.position.x, lamp.position.z) + lamp.position.y,
     lamp.position.z,
   ];
+  const pickLamp = (e: ThreeEvent<MouseEvent>) => pick(e, { kind: 'lamp', id: lamp.id });
   return (
-    <group position={position} onClick={(e) => pick(e, { kind: 'lamp', id: lamp.id })}>
-      <LampPost lit={lit} clippingPlanes={clippingPlanes} />
+    <group position={position} onClick={pickLamp}>
+      <LampPost lit={lit} glow={lamp.color ?? defaultLampColor} clippingPlanes={clippingPlanes} />
+      <Label text={`${lamp.name || lamp.id} · ${lit ? 'lit' : 'off'}`} position={[0, lampHeight + 0.3, 0]} renderOrder={20} onClick={pickLamp} />
+      {selected && (
+        // A ring several metres wide, drawn over everything, roof included: a lamp is a metre of post
+        // at the world's scale, and one inside a building is under its roof.
+        <mesh rotation-x={-Math.PI / 2} position={[0, 0.06, 0]} renderOrder={9}>
+          <ringGeometry args={[3, 3.6, 48]} />
+          <meshBasicMaterial color="#2f6fde" side={DoubleSide} transparent opacity={0.8} depthTest={false} />
+        </mesh>
+      )}
     </group>
   );
 }
@@ -160,6 +197,8 @@ function pick(e: ThreeEvent<MouseEvent>, selection: Selection) {
 
 function Sensor({
   camera,
+  name,
+  labelled,
   input,
   active,
   terrain,
@@ -167,6 +206,8 @@ function Sensor({
   clippingPlanes,
 }: {
   camera: CameraModel;
+  name: string;
+  labelled: boolean;
   input: DigitalInput;
   active: boolean;
   terrain: Terrain;
@@ -175,8 +216,9 @@ function Sensor({
 }) {
   const { group, initial } = useDeviceGroup(camera, input.position, terrain, vehicles);
   const color = active ? sensorLit : sensorDark;
+  const pickCamera = (e: ThreeEvent<MouseEvent>) => pick(e, { kind: 'camera', id: camera.id });
   return (
-    <group ref={group} position={[initial.x, initial.y, initial.z]} onClick={(e) => pick(e, { kind: 'camera', id: camera.id })}>
+    <group ref={group} position={[initial.x, initial.y, initial.z]} onClick={pickCamera}>
       <mesh position={[0, (sensorHeight - 0.12) / 2, 0]}>
         <boxGeometry args={[0.26, sensorHeight - 0.12, 0.26]} />
         <meshLambertMaterial color="#34363a" clippingPlanes={clippingPlanes} />
@@ -190,6 +232,7 @@ function Sensor({
           clippingPlanes={clippingPlanes}
         />
       </mesh>
+      {labelled && <Label text={`${name} · ${active ? '1' : '0'}`} position={[0, sensorHeight + 0.3, 0]} onClick={pickCamera} />}
     </group>
   );
 }

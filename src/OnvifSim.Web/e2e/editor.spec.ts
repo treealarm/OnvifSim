@@ -419,9 +419,10 @@ test('a lamp is placed from the palette and a relay lights it', async ({ page, r
   await page.getByLabel('Wired to', { exact: true }).selectOption({ label: 'E2E lamp (lamp)' });
   await expect.poll(async () => (await world(request)).wires?.some(
     (w) => w.relayCameraId === cameraId && w.lampId === 'lamp1')).toBe(true);
-  await page.locator('.tree').getByRole('button', { name: 'World environment' }).click();
-  const lamp = page.locator('.inspector .io-card').filter({ hasText: 'E2E lamp' });
-  await expect(lamp).toContainText('lit');
+  // A lamp is edited like a camera: its own card, found in Contents.
+  await page.locator('.tree').getByRole('button', { name: /E2E lamp/ }).click();
+  await expect(page.getByRole('heading', { level: 2 })).toContainText('E2E lamp');
+  await expect(page.locator('.inspector .io-card').filter({ hasText: 'E2E lamp' })).toContainText('lit');
 });
 
 // The wiring window is an action of the whole editor beside the connection state, not a tool of the

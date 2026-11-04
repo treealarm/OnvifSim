@@ -19,12 +19,16 @@ public static class DeviceMesh
     private static readonly Vector3 SensorDark = ColorUtil.Rgb(84, 94, 104);
     private static readonly Vector3 SensorBody = ColorUtil.Rgb(52, 54, 58);
 
-    public static Mesh Lamp(bool active)
+    // A classic lamp post: a pole, a collar, and a round bulb that glows in its colour while lit.
+    // glow: the bulb's colour, "#rrggbb"; null keeps the simulator's warm lamp yellow — a relay's own
+    // indicator has no colour of its own.
+    public static Mesh Lamp(bool active, string? glow = null)
     {
+        var lit = ColorUtil.Parse(glow, LampLit);
         var mesh = new Mesh();
-        Primitives.Frustum(mesh, 0.08f, 0.05f, LampHeight - 0.3f, 6, Post);
-        // Opening downwards, so the lit side is seen from below.
-        Primitives.Frustum(mesh, 0.38f, 0.1f, 0.45f, 8, active ? LampLit : LampDark, LampHeight - 0.45f);
+        Primitives.Frustum(mesh, 0.07f, 0.045f, 2.1f, 8, Post);
+        Primitives.Frustum(mesh, 0.1f, 0.1f, 0.12f, 8, Post, 2.1f);
+        Primitives.Blob(mesh, new Vector3(0.28f), new Vector3(0, 2.32f, 0), 0, 0, active ? lit : LampDark, Vector3.Zero);
         return mesh;
     }
 

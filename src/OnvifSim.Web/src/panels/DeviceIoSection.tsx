@@ -102,6 +102,15 @@ export function DeviceIoSection({ camera }: { camera: CameraModel }) {
 
   return (
     <>
+      <Section title="Devices">
+        <p className="muted">
+          A closed relay reads 0 on an input and lights a lamp; every camera's relays and every lamp of the
+          world are wired in one place.{' '}
+          <button type="button" className="link" onClick={() => useEditor.setState({ linksOpen: true })}>
+            Wiring…
+          </button>
+        </p>
+      </Section>
       <Section title="Relay outputs">
         {io.relayOutputs.length === 0 && <p className="muted">No relay outputs.</p>}
         {io.relayOutputs.map((relay, index) => {

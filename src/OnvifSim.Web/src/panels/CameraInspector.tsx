@@ -13,6 +13,7 @@ import {
 import { changeCameraKind, removeSelected, updateCamera, useEditor } from '../store';
 import { CameraPicture } from './CameraPicture';
 import { DeviceIoSection } from './DeviceIoSection';
+import { InspectorTitle } from './FindButton';
 import { BlurTextField, CheckboxField, ColorField, NumberField, Section, SelectField, TextField } from './fields';
 import { PtzControl } from './PtzControl';
 
@@ -46,9 +47,11 @@ export function CameraInspector({ camera }: { camera: CameraModel }) {
       {/* Pinned: while a property is being changed the picture stays in sight, showing the change
           at once instead of scrolling away with the form. */}
       <div className="inspector-head">
-        <h2>
-          {camera.name || camera.id} <span className="muted">{camera.id}</span>
-        </h2>
+        <InspectorTitle>
+          <h2>
+            {camera.name || camera.id} <span className="muted">{camera.id}</span>
+          </h2>
+        </InspectorTitle>
         <CameraPicture camera={camera} showBoxes={showBoxes} />
       </div>
       {camera.kind === 'ptz' && camera.ptz && <PtzControl camera={camera} ptz={camera.ptz} head={head} />}

@@ -204,9 +204,14 @@ export interface Lamp {
   id: string;
   name: string;
   normallyClosed: boolean;
+  // The colour the shade glows in when lit; null or absent takes the simulator's warm lamp yellow.
+  color?: string | null;
   // A place in the world: x east, z south, y above the ground there.
   position: Vec3;
 }
+
+// The shade a lamp glows in unless it is given a colour of its own (DeviceMesh.Lamp's LampLit).
+export const defaultLampColor = '#ffd866';
 
 // A wire runs from a relay output of one camera to one sink — a digital input of any camera or a lamp
 // of the world. Exactly one of the two sinks is set.

@@ -140,10 +140,29 @@ button.danger {
   margin-top: 8px;
 }
 
-/* An action of the whole editor, kept in the header apart from the palette: wiring devices is not a
-   tool, and a button among the tools read as one more mode beside Cutaway and the placeables. */
-.header-action {
+/* An action of the whole editor at the right end of the tools row, on the far side of a divider:
+   wiring devices is not a tool, so it stands apart from Terrain's brushes and the placeables. */
+.palette-action {
+  display: flex;
+  margin-left: auto;
+  padding-left: 10px;
+  border-left: 1px solid var(--border);
+}
+
+.palette-action button {
   white-space: nowrap;
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* A button that reads as a link, for a jump to another place in the editor. */
+button.link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  text-decoration: underline;
 }
 
 .connection {
@@ -213,6 +232,14 @@ main {
   padding: 12px;
   background: var(--panel);
   border-bottom: 1px solid var(--border);
+}
+
+/* An inspector's title and the Find button that flies the view to what it edits. */
+.inspector-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .tree {

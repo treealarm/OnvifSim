@@ -41,6 +41,12 @@ export interface DrawTool {
   extending?: string;
 }
 export type Tool = { kind: 'select' } | { kind: 'place'; what: Placeable } | { kind: 'brush'; brush: BrushKind } | DrawTool;
+// A flight of the viewport to a point: at makes every press a new request, even for the same point.
+export interface FocusRequest {
+  point: [number, number, number];
+  distance: number;
+  at: number;
+}
 
 interface EditorState {
   connected: boolean;
@@ -64,6 +70,8 @@ interface EditorState {
   linksOpen: boolean;
   brushRadius: number;
   brushStrength: number;
+  // Where the viewport is asked to fly to, and how far back to stand from it.
+  focus: FocusRequest | null;
   // The point of the selected road or route being dragged over the ground.
   draggedPoint: number | null;
   error: string | null;
@@ -88,6 +96,7 @@ export const useEditor = create<EditorState>()(() => ({
   linksOpen: false,
   brushRadius: 12,
   brushStrength: 0.5,
+  focus: null,
   draggedPoint: null,
   error: null,
   undoSteps: 0,
@@ -122,6 +131,11 @@ export function setTool(tool: Tool) {
 // The palette tab only chooses which tools are shown; the active tool stays whatever it was.
 export function setToolGroup(toolGroup: ToolGroup) {
   set({ toolGroup });
+}
+
+// Flies the viewport to a point from the direction it is looked at now.
+export function focusOn(point: [number, number, number], distance: number) {
+  set({ focus: { point, distance, at: Date.now() } });
 }
 
 export function showError(error: unknown) {
@@ -201,6 +215,7 @@ function resetForWorldSwitch() {
     tool: { kind: 'select' },
     toolGroup: 'select',
     linksOpen: false,
+    focus: null,
     draggedPoint: null,
     undoSteps: 0,
     redoSteps: 0,

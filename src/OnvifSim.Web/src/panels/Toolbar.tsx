@@ -1,3 +1,4 @@
+import { LinksDialog } from './LinksDialog';
 import {
   cancelDrawing,
   finishDrawing,
@@ -77,6 +78,7 @@ export function Toolbar() {
   const undoSteps = useEditor((s) => s.undoSteps);
   const redoSteps = useEditor((s) => s.redoSteps);
   const cutaway = useEditor((s) => s.cutaway);
+  const linksOpen = useEditor((s) => s.linksOpen);
 
   return (
     <div className="toolbar">
@@ -171,7 +173,19 @@ export function Toolbar() {
             )}
           </div>
         )}
+        {/* Not a tool: wiring joins devices across cameras, so it stands on the far side of a
+            divider at the row's right end rather than among the tools. */}
+        <div className="palette-action" role="group" aria-label="Wiring">
+          <button
+            type="button"
+            onClick={() => useEditor.setState({ linksOpen: true })}
+            title="Connect relay outputs to digital inputs and lamps"
+          >
+            Wiring…
+          </button>
+        </div>
       </div>
+      <LinksDialog open={linksOpen} onClose={() => useEditor.setState({ linksOpen: false })} />
     </div>
   );
 }

@@ -267,6 +267,10 @@ public sealed class LampModel
     public string Id { get; set; } = "";
     public string Name { get; set; } = "";
     public bool NormallyClosed { get; set; }
+    // The colour the shade glows in while the lamp is lit, "#rrggbb"; null takes the simulator's warm
+    // lamp yellow. An unlit lamp is dark whatever the colour.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Color { get; set; }
     // A place in the world, as WorldObject.Position: X east, Z south, and Y above the ground there —
     // the height of the lamp's post.
     public Vec3 Position { get; set; }

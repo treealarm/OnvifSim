@@ -1,6 +1,7 @@
 import { objectTypeNames, objectTypes, plateText, type ObjectType, type Vec3, type WorldObject } from '../model';
 import { defaultScale, driveCar, removeSelected, updateObject } from '../store';
 import { ColorField, NumberField, Section, SelectField, TextField } from './fields';
+import { InspectorTitle } from './FindButton';
 
 // What Color and Color2 paint for each type, and the colours the server uses when they are not set
 // (SceneBuilder.ObjectMesh).
@@ -39,9 +40,11 @@ export function ObjectInspector({ obj }: { obj: WorldObject }) {
 
   return (
     <>
-      <h2>
-        {objectTypeNames[obj.type]} <span className="muted">{obj.id}</span>
-      </h2>
+      <InspectorTitle>
+        <h2>
+          {objectTypeNames[obj.type]} <span className="muted">{obj.id}</span>
+        </h2>
+      </InspectorTitle>
       <Section title="Placement">
         <SelectField
           label="Type"

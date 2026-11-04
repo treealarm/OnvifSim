@@ -6,13 +6,24 @@ import { CanvasTexture, SRGBColorSpace } from 'three';
 const labelHeight = 0.022;
 const fontPx = 28;
 
-// A name tag drawn over the scene at a point, the same size however far away it is.
-export function Label({ text, position, onClick }: { text: string; position: [number, number, number]; onClick?: (e: ThreeEvent<MouseEvent>) => void }) {
+// A name tag drawn over the scene at a point, the same size however far away it is. A higher
+// renderOrder puts it above other tags where two stand close together.
+export function Label({
+  text,
+  position,
+  renderOrder = 10,
+  onClick,
+}: {
+  text: string;
+  position: [number, number, number];
+  renderOrder?: number;
+  onClick?: (e: ThreeEvent<MouseEvent>) => void;
+}) {
   const texture = useMemo(() => labelTexture(text), [text]);
   useEffect(() => () => texture.dispose(), [texture]);
   const aspect = texture.image.width / texture.image.height;
   return (
-    <sprite position={position} center={[0.5, 0]} scale={[labelHeight * aspect, labelHeight, 1]} renderOrder={10} onClick={onClick}>
+    <sprite position={position} center={[0.5, 0]} scale={[labelHeight * aspect, labelHeight, 1]} renderOrder={renderOrder} onClick={onClick}>
       <spriteMaterial map={texture} sizeAttenuation={false} depthTest={false} transparent />
     </sprite>
   );
