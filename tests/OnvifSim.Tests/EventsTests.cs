@@ -47,7 +47,8 @@ public class EventsTests
         store.Update(w => (w.Objects, w.Walkers, w.Vehicles) = ([], [new WalkerModel { Id = "p", Route = [new GroundPoint(3, 40)] }], []));
         var scene = new SceneState(store);
         using var ptz = new PtzSimulator(store, time, NullLogger<PtzSimulator>.Instance);
-        using var pullPoints = new PullPoints(new AnalyticsManager(scene, ptz, time, NullLoggerFactory.Instance), time, NullLogger<PullPoints>.Instance);
+        using var pullPoints = new PullPoints(
+            new AnalyticsManager(scene, ptz, time, NullLoggerFactory.Instance), store, time, NullLogger<PullPoints>.Instance);
 
         var subscription = pullPoints.Create("cam1", null, TimeSpan.FromMinutes(1));
         Assert.Equal([("Initialized", "false"), ("Initialized", "false")], Read(await PullAsync(subscription, 2)));
@@ -64,7 +65,7 @@ public class EventsTests
         pullPoints.Remove(subscription);
     }
 
-    private static FilterType Filter(string expression, (string Prefix, string Namespace) declared)
+    internal static FilterType Filter(string expression, (string Prefix, string Namespace) declared)
     {
         var document = new XmlDocument();
         var element = document.CreateElement("wsnt", "TopicExpression", "http://docs.oasis-open.org/wsn/b-2");

@@ -34,7 +34,7 @@ public sealed class EventHandlers(OnvifRequestContext context)
     {
         TopicNamespaceLocation = ["http://www.onvif.org/onvif/ver10/topics/topicns.xml"],
         FixedTopicSet = true,
-        TopicSet = MotionEvents.TopicSet(),
+        TopicSet = new TopicSetType { Any = [.. MotionEvents.TopicSet().Any, .. DeviceEvents.TopicSet().Any] },
         TopicExpressionDialect = TopicExpressionDialects,
         MessageContentFilterDialect = ["http://www.onvif.org/ver10/tev/messageContentFilter/ItemFilter"],
         MessageContentSchemaLocation = ["http://www.onvif.org/onvif/ver10/schema/onvif.xsd"],

@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using OnvifSim.Analytics;
 using OnvifSim.Onvif.Soap;
 using OnvifSim.Onvif.Wsdl;
+using OnvifSim.World;
 
 namespace OnvifSim.Onvif.Events;
 
@@ -18,13 +19,15 @@ public sealed class PullPoints : IDisposable
 
     private readonly ConcurrentDictionary<string, PullPoint> _subscriptions = new();
     private readonly AnalyticsManager _analytics;
+    private readonly WorldStore _store;
     private readonly TimeProvider _time;
     private readonly ILogger _logger;
     private readonly ITimer _sweep;
 
-    public PullPoints(AnalyticsManager analytics, TimeProvider time, ILogger<PullPoints> logger)
+    public PullPoints(AnalyticsManager analytics, WorldStore store, TimeProvider time, ILogger<PullPoints> logger)
     {
         _analytics = analytics;
+        _store = store;
         _time = time;
         _logger = logger;
         _sweep = time.CreateTimer(_ => Sweep(), null, SweepInterval, SweepInterval);
@@ -37,7 +40,7 @@ public sealed class PullPoints : IDisposable
         if (_subscriptions.Values.Count(s => s.CameraId == cameraId) >= MaxPerCamera)
             throw new OnvifFault(false, ["Action", "SubscribeCreationFailed"], $"The camera keeps at most {MaxPerCamera} pull points.");
         var analytics = _analytics.Get(cameraId) ?? throw OnvifFault.InvalidArgValue($"No camera '{cameraId}'.");
-        var subscription = new PullPoint(cameraId, TopicFilter.Of(filter), lifetime, analytics, _time);
+        var subscription = new PullPoint(cameraId, TopicFilter.Of(filter), lifetime, analytics, _time, _store);
         _subscriptions[subscription.Id] = subscription;
         _logger.LogInformation("Camera {Camera}: pull point {Subscription} until {Termination:u}", cameraId, subscription.Id, subscription.TerminationTime);
         return subscription;
