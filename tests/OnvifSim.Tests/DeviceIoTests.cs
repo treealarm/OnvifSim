@@ -191,7 +191,7 @@ public class DeviceIoTests(SimFactory factory) : IClassFixture<SimFactory>
     public async Task SavingIo_PersistsTheDevicesAndTheWire()
     {
         var client = factory.CreateClient();
-        await PutCamera(client, "io-save");
+        await PutCamera(client, "io-save", 0);
         var put = await client.PutAsync("/api/cameras/io-save/io", Json(new
         {
             relayOutputs = new[] { Relay("lamp", "Lamp", -4) },
@@ -210,7 +210,7 @@ public class DeviceIoTests(SimFactory factory) : IClassFixture<SimFactory>
     public async Task SwitchingARelay_ChangesThePicture()
     {
         var client = factory.CreateClient();
-        await PutCamera(client, "io-frame");
+        await PutCamera(client, "io-frame", 140);
         await PutIo(client, "io-frame", Relay("lamp", "Lamp", -4));
         var before = await client.GetByteArrayAsync("/api/cameras/io-frame/snapshot.jpg");
 
@@ -226,7 +226,7 @@ public class DeviceIoTests(SimFactory factory) : IClassFixture<SimFactory>
     public async Task SavingThePanel_KeepsTheLiveRelayState()
     {
         var client = factory.CreateClient();
-        await PutCamera(client, "io-stale");
+        await PutCamera(client, "io-stale", 100);
         await PutIo(client, "io-stale", Relay("lamp", "Lamp", -4));
         await client.PutAsync("/api/cameras/io-stale/relays/lamp", Json(new { active = true }));
 
@@ -248,9 +248,9 @@ public class DeviceIoTests(SimFactory factory) : IClassFixture<SimFactory>
     public async Task AnInputWithTwoWires_IsRefused()
     {
         var client = factory.CreateClient();
-        await PutCamera(client, "io-a");
-        await PutCamera(client, "io-b");
-        await PutCamera(client, "io-c");
+        await PutCamera(client, "io-a", -140);
+        await PutCamera(client, "io-b", -100);
+        await PutCamera(client, "io-c", -60);
         await PutIo(client, "io-c", null, Input("sensor", "Sensor", 0));
         Assert.Equal(HttpStatusCode.NoContent,
             (await client.PutAsync("/api/cameras/io-a/io", Json(new { relayOutputs = new[] { Relay("lamp", "Lamp", 0) }, wires = new[] { Wire("lamp", "io-c", "sensor") } }))).StatusCode);
@@ -265,7 +265,7 @@ public class DeviceIoTests(SimFactory factory) : IClassFixture<SimFactory>
     public async Task AWireToAnUnknownInput_IsRefused()
     {
         var client = factory.CreateClient();
-        await PutCamera(client, "io-d");
+        await PutCamera(client, "io-d", -20);
         var put = await client.PutAsync("/api/cameras/io-d/io",
             Json(new { relayOutputs = new[] { Relay("lamp", "Lamp", 0) }, wires = new[] { Wire("lamp", "io-d", "nobody") } }));
         Assert.Equal(HttpStatusCode.BadRequest, put.StatusCode);
@@ -276,8 +276,8 @@ public class DeviceIoTests(SimFactory factory) : IClassFixture<SimFactory>
     public async Task DeletingACamera_TakesTheWiresIntoItsInputs()
     {
         var client = factory.CreateClient();
-        await PutCamera(client, "io-e");
-        await PutCamera(client, "io-f");
+        await PutCamera(client, "io-e", 20);
+        await PutCamera(client, "io-f", 60);
         await PutIo(client, "io-f", null, Input("sensor", "Sensor", 0));
         await client.PutAsync("/api/cameras/io-e/io",
             Json(new { relayOutputs = new[] { Relay("lamp", "Lamp", 0) }, wires = new[] { Wire("lamp", "io-f", "sensor") } }));
@@ -291,7 +291,7 @@ public class DeviceIoTests(SimFactory factory) : IClassFixture<SimFactory>
     public async Task SwitchingAnUnknownRelay_Is404()
     {
         var client = factory.CreateClient();
-        await PutCamera(client, "io-g");
+        await PutCamera(client, "io-g", 120);
         Assert.Equal(HttpStatusCode.NotFound,
             (await client.PutAsync("/api/cameras/io-g/relays/nobody", Json(new { active = true }))).StatusCode);
     }
@@ -359,12 +359,13 @@ public class DeviceIoTests(SimFactory factory) : IClassFixture<SimFactory>
         relayToken, inputCameraId, inputToken,
     };
 
-    // A fixed camera looking north at the place the devices are put, so its picture shows them.
-    private static async Task PutCamera(HttpClient client, string id)
+    // A fixed camera looking north at the place the devices are put, so its picture shows them. Each
+    // test's camera stands apart along X, so another test's camera never blocks its view.
+    private static async Task PutCamera(HttpClient client, string id, float x)
     {
         var response = await client.PutAsync($"/api/cameras/{id}", Json(new
         {
-            id, name = id, kind = "fixed", position = new { x = 0, y = 3, z = 20 }, heading = 0, pitch = -10, hFov = 75,
+            id, name = id, kind = "fixed", position = new { x, y = 3, z = 20 }, heading = 0, pitch = -10, hFov = 75,
             users = Array.Empty<object>(),
         }));
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
