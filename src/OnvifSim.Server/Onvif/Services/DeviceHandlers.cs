@@ -31,7 +31,7 @@ public sealed class DeviceHandlers(OnvifRequestContext context)
     public GetGeoLocationResponse GetGeoLocation(GetGeoLocationRequest request)
     {
         var world = context.Store.Current;
-        var pose = CameraPose.From(Camera, new Terrain(world.Terrain));
+        var pose = CameraPose.From(Camera, world, DateTimeOffset.UtcNow, Camera.Ptz?.Position ?? default);
         var geo = WorldGeo.ToGeo(world, new Vec3(pose.Position.X, pose.Position.Y, pose.Position.Z));
         return new GetGeoLocationResponse
         {
@@ -41,7 +41,7 @@ public sealed class DeviceHandlers(OnvifRequestContext context)
                 {
                     Entity = "Device",
                     Token = Camera.Id,
-                    Fixed = true,
+                    Fixed = string.IsNullOrEmpty(Camera.MountedOnVehicleId),
                     FixedSpecified = true,
                     GeoLocation = new GeoLocation
                     {
@@ -74,9 +74,11 @@ public sealed class DeviceHandlers(OnvifRequestContext context)
             throw OnvifFault.InvalidArgValue("SetGeoLocation needs both a latitude and a longitude.");
         if (geo.lat is < -90 or > 90 || geo.lon is < -180 or > 180)
             throw OnvifFault.InvalidArgValue($"Latitude {geo.lat} / longitude {geo.lon} is outside the Earth.");
+        if (!string.IsNullOrEmpty(Camera.MountedOnVehicleId))
+            throw OnvifFault.ActionNotSupported("SetGeoLocation on a camera mounted on a vehicle");
 
         var world = context.Store.Current;
-        var currentEye = CameraPose.From(Camera, new Terrain(world.Terrain)).Position.Y;
+        var currentEye = CameraPose.From(Camera, world, DateTimeOffset.UtcNow, Camera.Ptz?.Position ?? default).Position.Y;
         var target = WorldGeo.ToWorld(world, geo.lat, geo.lon, geo.elevationSpecified ? geo.elevation : currentEye);
         var half = world.Terrain.Size / 2;
         if (Math.Abs(target.X) > half || Math.Abs(target.Z) > half)

@@ -22,7 +22,7 @@ public class WorldLibraryTests(SimFactory factory) : IClassFixture<SimFactory>, 
         Assert.Equal("default", info.Active);
         Assert.Contains("default", info.Worlds);
         Assert.True(info.Recordings.HasRecordings);
-        Assert.Equal(2, info.Recordings.CameraCount);
+        Assert.Equal(3, info.Recordings.CameraCount);
     }
 
     [Fact]

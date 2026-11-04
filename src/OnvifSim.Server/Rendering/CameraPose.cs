@@ -19,6 +19,35 @@ public readonly record struct CameraPose(Vector3 Position, Vector3 Forward, Vect
     // Pose of a camera from its configuration; a PTZ camera adds its stored pan/tilt/zoom to the mount.
     public static CameraPose From(CameraModel cam, Terrain terrain) => From(cam, terrain, cam.Ptz?.Position ?? default);
 
+    // Pose of a camera at a moment, following the car it is mounted on. A camera with no mount is the
+    // same as the world-standing overload; a camera whose car is missing falls back to its own
+    // Position rather than losing its picture.
+    public static CameraPose From(CameraModel cam, WorldModel world, DateTimeOffset at, PtzPosition ptz)
+    {
+        var terrain = new Terrain(world.Terrain);
+        if (string.IsNullOrEmpty(cam.MountedOnVehicleId))
+            return From(cam, terrain, ptz);
+        var vehicle = world.Vehicles.FirstOrDefault(v => string.Equals(v.Id, cam.MountedOnVehicleId, StringComparison.OrdinalIgnoreCase));
+        if (vehicle == null)
+            return From(cam, terrain, ptz);
+
+        var drive = VehicleMotion.PoseAt(vehicle, at);
+        // The car's local frame: +X right, +Y up, +Z backwards; its mesh is turned by -heading.
+        var h = -drive.Heading * MathF.PI / 180;
+        var c = MathF.Cos(h);
+        var s = MathF.Sin(h);
+        var position = new Vector3(
+            drive.X + cam.Position.X * c + cam.Position.Z * s,
+            terrain.HeightAt(drive.X, drive.Z) + cam.Position.Y,
+            drive.Z - cam.Position.X * s + cam.Position.Z * c);
+        var mount = Mount(cam, drive.Heading);
+        var orientation = cam.Kind == CameraKind.Ptz && cam.Ptz != null
+            ? mount.Compose(Orientation.FromAngles(ptz.Pan, ptz.Tilt, 0))
+            : mount;
+        float hfov = cam.Kind == CameraKind.Ptz && cam.Ptz is { } limits ? ZoomToHFov(ptz.Zoom, limits.FovWide, limits.FovTele) : cam.HFov;
+        return new CameraPose(position, orientation.Rolled(-cam.Video.Rotate), hfov);
+    }
+
     // Pose of a camera whose PTZ head is at ptz (a fixed camera ignores it). The mount is a rigid body:
     // the head pans about the mount's own up axis and tilts about its own right axis after the pan, so
     // a mount hung upside down, on its side or leaning turns the head with it. The picture is then
@@ -32,10 +61,13 @@ public readonly record struct CameraPose(Vector3 Position, Vector3 Forward, Vect
     }
 
     // The orientation of the camera's mount: for a PTZ camera, where the head points at pan = tilt = 0.
-    public static Orientation Mount(CameraModel cam) => Orientation.FromAngles(cam.Heading, cam.Pitch, cam.Roll);
+    // baseHeading is the heading of the car the camera is mounted on, if any.
+    public static Orientation Mount(CameraModel cam, float baseHeading = 0) =>
+        Orientation.FromAngles(cam.Heading + baseHeading, cam.Pitch, cam.Roll);
 
     // Where a PTZ head at pan/tilt (degrees, relative to the mount) points, before the picture's Rotate.
-    public static Orientation HeadOrientation(CameraModel cam, float pan, float tilt) => Mount(cam).Compose(Orientation.FromAngles(pan, tilt, 0));
+    public static Orientation HeadOrientation(CameraModel cam, float pan, float tilt, float baseHeading = 0) =>
+        Mount(cam, baseHeading).Compose(Orientation.FromAngles(pan, tilt, 0));
 
     // The pan and tilt (degrees, relative to the mount) at which a PTZ head looks along a world direction:
     // the inverse of HeadOrientation. Pan is -180..180; looking straight along the mount's up axis, any

@@ -159,6 +159,10 @@ public sealed class CameraModel
     public string Id { get; set; } = "";
     public string Name { get; set; } = "";
     public CameraKind Kind { get; set; }
+    // A camera bolted to a car: Position, Heading, Pitch and Roll are then the mount's offset and
+    // orientation in the vehicle's own frame (X right, Y up, Z backwards), not world coordinates.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? MountedOnVehicleId { get; set; }
     public Vec3 Position { get; set; }
     // Mount orientation: compass heading (deg clockwise from north), pitch (deg, up positive), roll
     // (deg, clockwise as seen from behind). For a PTZ camera these are the orientation at

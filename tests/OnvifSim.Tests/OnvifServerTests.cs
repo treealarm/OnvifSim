@@ -378,6 +378,24 @@ public class OnvifServerTests(SimFactory factory) : IClassFixture<SimFactory>
         store.Update(w => w.Cameras.Single(c => c.Id == "cam1").Position = new Vec3(0, 6, 60));
     }
 
+    [Fact]
+    public async Task AMountedCamera_ReportsItsCarAndRefusesSetGeoLocation()
+    {
+        var security = UsernameToken("admin", "admin", DateTime.UtcNow);
+        XNamespace tds = "http://www.onvif.org/ver10/device/wsdl";
+
+        var get = await PostAsync("cam5", Envelope($"<GetGeoLocation xmlns=\"{tds}\"/>", security));
+        Assert.Equal(HttpStatusCode.OK, get.StatusCode);
+        var location = XDocument.Parse(await get.Content.ReadAsStringAsync()).Descendants(tds + "Location").Single();
+        Assert.Equal("false", location.Attribute("Fixed")?.Value);
+
+        var set = await PostAsync("cam5", Envelope(
+            $"<SetGeoLocation xmlns=\"{tds}\"><Location Entity=\"Device\">" +
+            "<tt:GeoLocation xmlns:tt=\"http://www.onvif.org/ver10/schema\" lat=\"39.2\" lon=\"-77.35\"/>" +
+            "</Location></SetGeoLocation>", security));
+        Assert.Contains("ter:ActionNotSupported", await SubcodesAsync(set));
+    }
+
     private async Task<HttpResponseMessage> PostAsync(
         string cameraId, string envelope, string contentType = "application/soap+xml; charset=utf-8", string path = "device_service")
     {
@@ -434,7 +452,7 @@ public class WsDiscoveryTests(DiscoverySimFactory factory) : IClassFixture<Disco
         var matches = await ProbeAsync("<d:Types xmlns:dn=\"http://www.onvif.org/ver10/network/wsdl\">dn:NetworkVideoTransmitter</d:Types>");
         var xaddrs = matches.Select(m => m.Element(Disc + "XAddrs")!.Value).Order().ToList();
         Assert.Equal(
-            new[] { "cam1", "cam2" }.Select(id => $"http://127.0.0.1:{host.PortOf(id)}/onvif/device_service").Order(),
+            new[] { "cam1", "cam2", "cam5" }.Select(id => $"http://127.0.0.1:{host.PortOf(id)}/onvif/device_service").Order(),
             xaddrs);
         Assert.All(matches, m => Assert.Contains("onvif://www.onvif.org/type/video_encoder", m.Element(Disc + "Scopes")!.Value));
     }

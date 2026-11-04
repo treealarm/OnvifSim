@@ -29,15 +29,16 @@ public static class Bench
         }).ToList();
         world.Environment = env;
         var renderer = new SoftwareRasterizer();
+        var now = DateTimeOffset.UtcNow;
         foreach (var cam in world.Cameras)
             foreach (var (w, h) in new[] { (640, 360), (1280, 720), (1920, 1080) })
             {
                 var frame = new Frame(w, h);
-                var pose = CameraPose.From(cam, scene.Terrain);
+                var pose = CameraPose.From(cam, world, now, cam.Ptz?.Position ?? default);
                 const int n = 30;
                 var times = scenes.Select(s =>
                 {
-                    List<RenderScene.Chunk> Moving() => CameraMarkers.Build(s, world, cam.Id, c => c.Ptz!.Position);
+                    List<RenderScene.Chunk> Moving() => CameraMarkers.Build(s, world, cam.Id, c => c.Ptz!.Position, now);
                     for (int i = 0; i < 5; i++) renderer.Render(s, Moving(), pose, frame);
                     sw.Restart();
                     for (int i = 0; i < n; i++) renderer.Render(s, Moving(), pose, frame);

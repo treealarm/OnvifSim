@@ -229,7 +229,7 @@ public static class EditorApi
             var camera = scene.FindCamera(id);
             if (camera == null) return Results.NotFound();
             var head = camera.Kind == CameraKind.Ptz && camera.Ptz != null ? ptz.StateOf(camera) : (PtzState?)null;
-            var pose = CameraPose.From(camera, scene.Current.Scene.Terrain, head?.Position ?? default);
+            var pose = CameraPose.From(camera, scene.Current.World, time.GetUtcNow(), head?.Position ?? default);
             return Results.Json(new
             {
                 utcTime = time.GetUtcNow(),
@@ -245,13 +245,13 @@ public static class EditorApi
         // pose reports them): an operator with a joystick putting a landmark in the crosshair. Answers
         // the pan and tilt it goes to, in degrees relative to the mount; a point the head cannot reach
         // within its limits is refused with 409.
-        app.MapPost("/api/cameras/{id}/ptz/aim", (string id, Vec3 target, SceneState scene, PtzSimulator ptz) =>
+        app.MapPost("/api/cameras/{id}/ptz/aim", (string id, Vec3 target, SceneState scene, PtzSimulator ptz, TimeProvider time) =>
         {
             var camera = scene.FindCamera(id);
             if (camera == null) return Results.NotFound();
             if (camera.Kind != CameraKind.Ptz || camera.Ptz is not { } limits)
                 return Results.Problem($"Camera {camera.Id} has no PTZ head.", statusCode: StatusCodes.Status409Conflict);
-            var eye = CameraPose.From(camera, scene.Current.Scene.Terrain, default).Position;
+            var eye = CameraPose.From(camera, scene.Current.World, time.GetUtcNow(), default).Position;
             var direction = new Vector3(target.X, target.Y, target.Z) - eye;
             if (direction.LengthSquared() < 1e-6f)
                 return Results.Problem("The point is where the camera is.", statusCode: StatusCodes.Status409Conflict);

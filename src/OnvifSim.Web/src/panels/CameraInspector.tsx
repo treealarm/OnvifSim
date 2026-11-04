@@ -33,6 +33,8 @@ const rotateOptions = [
 export function CameraInspector({ camera }: { camera: CameraModel }) {
   const head = useEditor((s) => s.heads[camera.id]);
   const status = useEditor((s) => s.status);
+  const vehicles = useEditor((s) => s.world?.vehicles ?? []);
+  const mounted = !!camera.mountedOnVehicleId;
   const change = (patch: Partial<CameraModel>) => updateCamera({ ...camera, ...patch });
   const changePosition = (patch: Partial<Vec3>) => change({ position: { ...camera.position, ...patch } });
   const changeMetadata = (patch: Partial<CameraModel['metadata']>) => change({ metadata: { ...camera.metadata, ...patch } });
@@ -58,10 +60,16 @@ export function CameraInspector({ camera }: { camera: CameraModel }) {
         />
       </Section>
 
-      <Section title={camera.kind === 'ptz' ? 'Mount' : 'Placement'}>
-        <NumberField label="X (east)" value={camera.position.x} step={0.5} onChange={(x) => changePosition({ x })} />
-        <NumberField label="Z (south)" value={camera.position.z} step={0.5} onChange={(z) => changePosition({ z })} />
-        <NumberField label="Above ground" value={camera.position.y} min={0} step={0.5} onChange={(y) => changePosition({ y })} />
+      <Section title={mounted ? 'Mount on the vehicle' : camera.kind === 'ptz' ? 'Mount' : 'Placement'}>
+        <SelectField
+          label="Mounted on"
+          value={camera.mountedOnVehicleId ?? ''}
+          options={[{ value: '', label: 'Standing on the ground' }, ...vehicles.map((v) => ({ value: v.id, label: v.id }))]}
+          onChange={(id) => change({ mountedOnVehicleId: id === '' ? null : id })}
+        />
+        <NumberField label={mounted ? 'X (right)' : 'X (east)'} value={camera.position.x} step={0.5} onChange={(x) => changePosition({ x })} />
+        <NumberField label={mounted ? 'Z (back)' : 'Z (south)'} value={camera.position.z} step={0.5} onChange={(z) => changePosition({ z })} />
+        <NumberField label={mounted ? 'Above the car' : 'Above ground'} value={camera.position.y} min={0} step={0.5} onChange={(y) => changePosition({ y })} />
         <NumberField label="Heading" value={camera.heading} min={0} max={360} slider onChange={(heading) => change({ heading })} />
         <NumberField label="Pitch" value={camera.pitch} min={-90} max={90} slider onChange={(pitch) => change({ pitch })} />
         <NumberField label="Roll" value={camera.roll} min={-180} max={180} slider onChange={(roll) => change({ roll })} />

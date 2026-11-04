@@ -74,10 +74,11 @@ public sealed class CachingFrameRenderer(TimeProvider time, Func<CameraModel, Pt
     {
         var imaging = camera.Imaging;
         var scene = snapshot.Scene;
-        var pose = CameraPose.From(camera, scene.Terrain, ptz);
+        var pose = CameraPose.From(camera, snapshot.World, now, ptz);
         var frustum = new ViewFrustum(pose, (float)width / height, scene.FogEnd);
         var walkers = WalkersInView(snapshot.World.Walkers, scene, frustum, now);
-        var vehicles = VehiclesInView(snapshot.World.Vehicles, scene, frustum, now);
+        // Its own car is where the camera is: drawing it would fill the picture with a wall of paint.
+        var vehicles = VehiclesInView(snapshot.World.Vehicles, scene, frustum, now, camera.MountedOnVehicleId);
         bool headsMoving = CameraMarkers.Any(scene) && snapshot.World.Cameras.Any(c =>
             c.Kind == CameraKind.Ptz && c.Ptz != null && !string.Equals(c.Id, camera.Id, StringComparison.OrdinalIgnoreCase) && IsMoving(HeadOf(c)));
         var key = new FrameKey(scene, pose, imaging.Brightness, imaging.Contrast, imaging.ColorSaturation, camera.AngleGrid, width, height,
@@ -87,7 +88,7 @@ public sealed class CachingFrameRenderer(TimeProvider time, Func<CameraModel, Pt
             _frame = new Frame(width, height);
         var moving = walkers.Select(w => scene.Light(SceneBuilder.WalkerChunk(w.Walker, w.Pose, scene.Terrain))).ToList();
         moving.AddRange(vehicles.Select(v => scene.Light(SceneBuilder.VehicleChunk(v.Vehicle, v.Pose, scene.Terrain))));
-        moving.AddRange(CameraMarkers.Build(scene, snapshot.World, camera.Id, c => HeadOf(c).Position));
+        moving.AddRange(CameraMarkers.Build(scene, snapshot.World, camera.Id, c => HeadOf(c).Position, now));
         _rasterizer.Render(scene, moving, key.Pose, _frame);
         ImageAdjustments.Apply(_frame, imaging);
         if (camera.AngleGrid) AngleGrid.Draw(_frame, camera, key.Pose, ptz);
@@ -118,11 +119,13 @@ public sealed class CachingFrameRenderer(TimeProvider time, Func<CameraModel, Pt
     // The moving cars the camera can see now. A car's body is wide and long, so its reach is the ball
     // around the whole body, not its height.
     private static List<(VehicleModel Vehicle, RoutePose Pose)> VehiclesInView(
-        List<VehicleModel> vehicles, RenderScene scene, ViewFrustum frustum, DateTimeOffset now)
+        List<VehicleModel> vehicles, RenderScene scene, ViewFrustum frustum, DateTimeOffset now, string? hostVehicleId)
     {
         var inView = new List<(VehicleModel, RoutePose)>();
         foreach (var vehicle in vehicles)
         {
+            if (!string.IsNullOrEmpty(hostVehicleId) && string.Equals(vehicle.Id, hostVehicleId, StringComparison.OrdinalIgnoreCase))
+                continue;
             var pose = VehicleMotion.PoseAt(vehicle, now);
             var centre = new Vector3(pose.X, scene.Terrain.HeightAt(pose.X, pose.Z) + vehicle.Height / 2, pose.Z);
             float reach = MathF.Sqrt(vehicle.Width * vehicle.Width + vehicle.Length * vehicle.Length) / 2;

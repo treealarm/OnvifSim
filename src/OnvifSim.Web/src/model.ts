@@ -172,6 +172,9 @@ export interface CameraModel {
   id: string;
   name: string;
   kind: CameraKind;
+  // A camera bolted to a car: position, heading, pitch and roll are then the mount's offset and
+  // orientation in the car's own frame (X right, Y up, Z backwards), not a place on the ground.
+  mountedOnVehicleId?: string | null;
   position: Vec3;
   heading: number;
   pitch: number;

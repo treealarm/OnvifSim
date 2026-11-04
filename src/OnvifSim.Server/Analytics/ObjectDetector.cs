@@ -41,7 +41,7 @@ public static class ObjectDetector
     public static List<Sighting> Detect(SceneState.Snapshot snapshot, CameraModel camera, PtzPosition ptz, DateTimeOffset time)
     {
         var scene = snapshot.Scene;
-        var pose = CameraPose.From(camera, scene.Terrain, ptz);
+        var pose = CameraPose.From(camera, snapshot.World, time, ptz);
         float aspect = (float)camera.Video.Width / camera.Video.Height;
         var frustum = new ViewFrustum(pose, aspect, scene.FogEnd);
         var viewProjection = pose.ViewProjection(aspect, scene.FogEnd);
@@ -56,7 +56,8 @@ public static class ObjectDetector
             if (!InPlainView(pose, scene, walk.X, walk.Z, walker.Height)) continue;
             sightings.Add(new Sighting(walker.Id, DetectionKind.Person, box, new GroundPose(walk.X, walk.Z, walk.Heading)));
         }
-        foreach (var vehicle in snapshot.World.Vehicles.Where(v => v.Detectable))
+        foreach (var vehicle in snapshot.World.Vehicles.Where(v => v.Detectable &&
+            !string.Equals(v.Id, camera.MountedOnVehicleId, StringComparison.OrdinalIgnoreCase)))
         {
             var drive = VehicleMotion.PoseAt(vehicle, time);
             var figure = SceneBuilder.VehicleChunk(vehicle, drive, scene.Terrain);

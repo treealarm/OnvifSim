@@ -44,7 +44,13 @@ public static partial class WorldValidation
         RequireUnique(world.Walkers.Select(w => w.Id), "Walker id");
         foreach (var vehicle in world.Vehicles) CheckVehicle(vehicle);
         RequireUnique(world.Vehicles.Select(v => v.Id), "Vehicle id");
-        foreach (var camera in world.Cameras) CheckCamera(camera);
+        foreach (var camera in world.Cameras)
+        {
+            CheckCamera(camera);
+            if (!string.IsNullOrEmpty(camera.MountedOnVehicleId))
+                Require(world.Vehicles.Any(v => string.Equals(v.Id, camera.MountedOnVehicleId, StringComparison.OrdinalIgnoreCase)),
+                    $"Camera {camera.Id}: no vehicle with id '{camera.MountedOnVehicleId}'.");
+        }
         RequireUnique(world.Cameras.Select(c => c.Id), "Camera id");
         CheckStreams(world);
         CheckEndpoints(world, onvifBasePort, defaultRtspPort);

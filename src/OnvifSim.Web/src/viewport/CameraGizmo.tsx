@@ -1,8 +1,18 @@
 import { Line, TransformControls } from '@react-three/drei';
-import type { ThreeEvent } from '@react-three/fiber';
+import { useFrame, type ThreeEvent } from '@react-three/fiber';
 import { useState } from 'react';
 import { Matrix4, Quaternion, Vector3, type Object3D } from 'three';
-import { heightAt, kindColor, zoomToHFov, type CameraModel, type Environment, type Head, type Terrain } from '../model';
+import {
+  heightAt,
+  kindColor,
+  vehiclePoseAt,
+  zoomToHFov,
+  type CameraModel,
+  type Environment,
+  type Head,
+  type Terrain,
+  type Vehicle,
+} from '../model';
 import { select, updateCamera, useEditor } from '../store';
 import { castFootprint, footprintSegments } from './footprint';
 import { Label } from './Label';
@@ -16,24 +26,49 @@ interface CameraGizmoProps {
   head: Head | undefined;
   terrain: Terrain;
   environment: Environment;
+  vehicles: Vehicle[];
   selected: boolean;
 }
 
 // A camera in the viewport: a body on a mast and the wire frame of what it sees, down to the ground it
 // covers, which follows a PTZ head as it moves. The group turns with the mount heading, so the rotate
 // gizmo sets the heading; the wire frame is drawn in world space, where the ground is.
-export function CameraGizmo({ camera, head, terrain, environment, selected }: CameraGizmoProps) {
+export function CameraGizmo({ camera, head, terrain, environment, vehicles, selected }: CameraGizmoProps) {
   const [group, setGroup] = useState<Object3D | null>(null);
   const gizmo = useEditor((s) => s.gizmo);
-  const ground = heightAt(terrain, camera.position.x, camera.position.z);
+  const mountedVehicle = vehicles.find((v) => v.id === camera.mountedOnVehicleId);
+  const drive = mountedVehicle ? vehiclePoseAt(mountedVehicle, Date.now()) : null;
+  const turn = drive ? (-drive.heading * Math.PI) / 180 : 0;
+  const cos = Math.cos(turn);
+  const sin = Math.sin(turn);
+  const x = drive ? drive.x + camera.position.x * cos + camera.position.z * sin : camera.position.x;
+  const z = drive ? drive.z - camera.position.x * sin + camera.position.z * cos : camera.position.z;
+  const ground = drive ? heightAt(terrain, drive.x, drive.z) : heightAt(terrain, x, z);
+  const worldHeading = camera.heading + (drive?.heading ?? 0);
   const { pan, tilt, hFov } = viewOf(camera, head);
   // The body inside the group, which carries the heading already.
   const body = lookOf(camera, pan, tilt, 0).head;
   const lens = new Quaternion().setFromRotationMatrix(new Matrix4().makeBasis(body.right, body.up, body.forward.clone().negate()));
-  const eye = new Vector3(camera.position.x, ground + camera.position.y, camera.position.z);
+  const eye = new Vector3(x, ground + camera.position.y, z);
   const footprint = castFootprint(eye, lookOf(camera, pan, tilt).picture, hFov, camera.video.width / camera.video.height, terrain,
     environment.fogEnd, environment.frustumLength);
   const color = camera.color ?? kindColor(camera.kind);
+
+  // A camera on a car drives with it; the group is moved directly rather than through React state, so
+  // the editor follows the car at frame rate. Its field of view is not redrawn every frame: the
+  // picture in the camera panel is the ground truth for where it looks.
+  useFrame(() => {
+    if (!mountedVehicle || !group) return;
+    const pose = vehiclePoseAt(mountedVehicle, Date.now());
+    const heading = (-pose.heading * Math.PI) / 180;
+    const c = Math.cos(heading);
+    const s = Math.sin(heading);
+    group.position.set(
+      pose.x + camera.position.x * c + camera.position.z * s,
+      heightAt(terrain, pose.x, pose.z) + camera.position.y,
+      pose.z - camera.position.x * s + camera.position.z * c);
+    group.rotation.y = -((camera.heading + pose.heading) * Math.PI) / 180;
+  });
 
   function onClick(e: ThreeEvent<MouseEvent>) {
     if (e.delta > 4 || useEditor.getState().tool.kind !== 'select') return;
@@ -42,11 +77,11 @@ export function CameraGizmo({ camera, head, terrain, environment, selected }: Ca
   }
 
   function followGround() {
-    if (group) group.position.y = heightAt(terrain, group.position.x, group.position.z) + camera.position.y;
+    if (!mountedVehicle && group) group.position.y = heightAt(terrain, group.position.x, group.position.z) + camera.position.y;
   }
 
   function commit() {
-    if (!group) return;
+    if (!group || mountedVehicle) return;
     updateCamera({
       ...camera,
       position: { x: group.position.x, y: camera.position.y, z: group.position.z },
@@ -58,18 +93,20 @@ export function CameraGizmo({ camera, head, terrain, environment, selected }: Ca
     <>
       <group
         ref={setGroup}
-        position={[camera.position.x, ground + camera.position.y, camera.position.z]}
-        rotation-y={(-camera.heading * Math.PI) / 180}
+        position={[x, ground + camera.position.y, z]}
+        rotation-y={(-worldHeading * Math.PI) / 180}
       >
-        <Line points={[[0, -camera.position.y, 0], [0, 0, 0]]} color="#555555" lineWidth={1} />
+        {!mountedVehicle && <Line points={[[0, -camera.position.y, 0], [0, 0, 0]]} color="#555555" lineWidth={1} />}
         <mesh quaternion={lens} onClick={onClick}>
           <boxGeometry args={[1, 0.8, 1.6]} />
           <meshLambertMaterial color={color} emissive={selected ? '#444444' : '#000000'} />
         </mesh>
         <Label text={camera.name || camera.id} position={[0, 1.2, 0]} onClick={onClick} />
       </group>
-      <Line points={footprintSegments(eye, footprint, wireLift)} segments color={color} lineWidth={selected ? 2.5 : 1.5} />
-      {selected && group && (
+      {!mountedVehicle && (
+        <Line points={footprintSegments(eye, footprint, wireLift)} segments color={color} lineWidth={selected ? 2.5 : 1.5} />
+      )}
+      {!mountedVehicle && selected && group && (
         <TransformControls
           object={group}
           mode={gizmo === 'move' ? 'translate' : 'rotate'}

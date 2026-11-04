@@ -85,6 +85,14 @@ public class WorldGeoTests
         Assert.Equal(0, world.Geo.North);
     }
 
+    [Fact]
+    public void AMountedCamera_NeedsItsVehicle()
+    {
+        var world = DefaultWorld.Create();
+        world.Cameras.Single(c => c.Id == "cam5").MountedOnVehicleId = "missing";
+        Assert.Throws<InvalidWorldException>(() => WorldValidation.Check(world, onvifBasePort: 8001));
+    }
+
     [Theory]
     [InlineData(91, 0, 0, 0)]
     [InlineData(0, 181, 0, 0)]

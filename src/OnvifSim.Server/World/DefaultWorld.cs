@@ -1,7 +1,8 @@
 namespace OnvifSim.World;
 
-// The world a fresh install starts with: rolling hills, a small village, a pine wood and two cameras,
-// so every endpoint has something to show before anyone opens the editor.
+// The world a fresh install starts with: rolling hills, a small village, a pine wood and three cameras
+// (one of them on the driving car), so every endpoint has something to show before anyone opens the
+// editor.
 public static class DefaultWorld
 {
     // A world with nothing in it: flat ground, no cameras, no objects. What "New world" opens.
@@ -117,6 +118,15 @@ public static class DefaultWorld
             Position = new(40, 15, 40), Heading = 315, Pitch = 0,
             Ptz = new PtzModel { Tilt = -10, Home = new PtzPosition(0, -10, 0) },
             AngleGrid = true,
+            Users = [new UserModel { Username = "admin", Password = "admin" }],
+        });
+        // A camera bolted to the car: its position is the mount's offset on the car, not a place on
+        // the ground, so its picture moves with the car.
+        world.Cameras.Add(new CameraModel
+        {
+            Id = "cam5", Name = "Chase camera", Kind = CameraKind.Fixed,
+            MountedOnVehicleId = "v1",
+            Position = new(0, 2.2f, 0.5f), Heading = 0, Pitch = -5, HFov = 70,
             Users = [new UserModel { Username = "admin", Password = "admin" }],
         });
         return world;

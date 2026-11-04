@@ -62,7 +62,7 @@ public class CameraMarkersTests
         var world = FlatWorld();
         world.Cameras.Add(new CameraModel { Id = "other", Position = new(0, 2, -12), Heading = 180 });
         var scene = RenderScene.Build(world);
-        var chunks = CameraMarkers.Build(scene, world, "viewer", _ => default);
+        var chunks = CameraMarkers.Build(scene, world, "viewer", _ => default, DateTimeOffset.UnixEpoch);
         var body = Assert.Single(chunks);
         Assert.True(Vector3.Distance(body.Center, new Vector3(0, 2, -12)) < 3, "the other camera's body");
 
@@ -72,7 +72,7 @@ public class CameraMarkersTests
             "the fixed camera's blue body is in the picture");
 
         world.Environment.ShowCameras = false;
-        Assert.Empty(CameraMarkers.Build(RenderScene.Build(world), world, "viewer", _ => default));
+        Assert.Empty(CameraMarkers.Build(RenderScene.Build(world), world, "viewer", _ => default, DateTimeOffset.UnixEpoch));
     }
 
     [Fact]
@@ -105,12 +105,12 @@ public class CameraMarkersTests
         world.Cameras.Add(new CameraModel { Id = "other", Position = new(0, 6, -15), Pitch = -30 });
         var scene = RenderScene.Build(world);
         // The body's colour is its box's, among the metal and the glass; the wire frame has one.
-        IEnumerable<Vector3> Colours() => CameraMarkers.Build(scene, world, "viewer", _ => default).SelectMany(c => c.Colors).Distinct();
+        IEnumerable<Vector3> Colours() => CameraMarkers.Build(scene, world, "viewer", _ => default, DateTimeOffset.UnixEpoch).SelectMany(c => c.Colors).Distinct();
 
         Assert.Contains(CameraMesh.FixedColor, Colours());
         world.Cameras[1].Color = "#ff00ff";
         var magenta = new Vector3(1, 0, 1);
-        var chunks = CameraMarkers.Build(scene, world, "viewer", _ => default);
+        var chunks = CameraMarkers.Build(scene, world, "viewer", _ => default, DateTimeOffset.UnixEpoch);
         Assert.Equal(2, chunks.Count);
         Assert.All(chunks, c => Assert.Contains(c.Colors, v => Vector3.Distance(v, magenta) < 0.3f));
         Assert.DoesNotContain(CameraMesh.FixedColor, Colours());

@@ -15,8 +15,9 @@ public static class CameraMarkers
 
     public static bool Any(RenderScene scene) => scene.ShowCameras || scene.ShowFrustums;
 
-    // headOf gives where a PTZ camera's head is now.
-    public static List<RenderScene.Chunk> Build(RenderScene scene, WorldModel world, string viewerId, Func<CameraModel, PtzPosition> headOf)
+    // headOf gives where a PTZ camera's head is now; at is the moment the picture is drawn at, so a
+    // camera on a car stands where the car is.
+    public static List<RenderScene.Chunk> Build(RenderScene scene, WorldModel world, string viewerId, Func<CameraModel, PtzPosition> headOf, DateTimeOffset at)
     {
         var chunks = new List<RenderScene.Chunk>();
         if (!Any(scene)) return chunks;
@@ -25,12 +26,15 @@ public static class CameraMarkers
             if (string.Equals(camera.Id, viewerId, StringComparison.OrdinalIgnoreCase)) continue;
             bool ptz = camera.Kind == CameraKind.Ptz && camera.Ptz != null;
             var head = ptz ? headOf(camera) : default;
-            var pose = CameraPose.From(camera, scene.Terrain, head);
+            var pose = CameraPose.From(camera, world, at, head);
             var color = CameraMesh.ColorOf(camera);
+            var baseHeading = BaseHeading(camera, world, at);
             if (scene.ShowCameras)
             {
-                var look = ptz ? CameraPose.HeadOrientation(camera, head.Pan, head.Tilt) : CameraPose.Mount(camera);
-                var mesh = CameraMesh.Build(color, pose.Position, scene.Terrain.HeightAt(pose.Position.X, pose.Position.Z), look);
+                var look = ptz ? CameraPose.HeadOrientation(camera, head.Pan, head.Tilt, baseHeading) : CameraPose.Mount(camera, baseHeading);
+                // A camera on a car hangs on the car, not on a mast from the ground.
+                var ground = string.IsNullOrEmpty(camera.MountedOnVehicleId) ? scene.Terrain.HeightAt(pose.Position.X, pose.Position.Z) : pose.Position.Y;
+                var mesh = CameraMesh.Build(color, pose.Position, ground, look);
                 var (center, radius) = mesh.BoundingSphere();
                 chunks.Add(scene.Light(new SceneChunk { Name = camera.Id, Mesh = mesh, Center = center, Radius = radius }));
             }
@@ -41,6 +45,13 @@ public static class CameraMarkers
             }
         }
         return chunks;
+    }
+
+    private static float BaseHeading(CameraModel camera, WorldModel world, DateTimeOffset at)
+    {
+        if (string.IsNullOrEmpty(camera.MountedOnVehicleId)) return 0;
+        var vehicle = world.Vehicles.FirstOrDefault(v => string.Equals(v.Id, camera.MountedOnVehicleId, StringComparison.OrdinalIgnoreCase));
+        return vehicle == null ? 0 : VehicleMotion.PoseAt(vehicle, at).Heading;
     }
 
     // A wire frame, cheap to draw: the four edges from the eye, the rim of the picture where it ends,
