@@ -1,4 +1,3 @@
-import { LinksDialog } from './LinksDialog';
 import {
   cancelDrawing,
   finishDrawing,
@@ -32,6 +31,8 @@ const placeables: { what: Placeable; label: string }[] = [
   { what: 'car', label: 'Car' },
   { what: 'camera.fixed', label: 'Fixed camera' },
   { what: 'camera.ptz', label: 'PTZ camera' },
+  // A lamp is put down like any other object, but it is a device: a relay drives it.
+  { what: 'lamp', label: 'Lamp' },
 ];
 
 const brushes: { brush: BrushKind; label: string }[] = [
@@ -76,7 +77,6 @@ export function Toolbar() {
   const undoSteps = useEditor((s) => s.undoSteps);
   const redoSteps = useEditor((s) => s.redoSteps);
   const cutaway = useEditor((s) => s.cutaway);
-  const linksOpen = useEditor((s) => s.linksOpen);
 
   return (
     <div className="toolbar">
@@ -105,15 +105,6 @@ export function Toolbar() {
             title="Hide everything above 2.5 m, to see and edit inside a building"
           >
             Cutaway
-          </button>
-        </div>
-        <div className="group" role="group" aria-label="Wiring">
-          <button
-            type="button"
-            onClick={() => useEditor.setState({ linksOpen: true })}
-            title="Connect relay outputs to digital inputs and lamps"
-          >
-            Links…
           </button>
         </div>
         {palette === 'select' && (
@@ -181,7 +172,6 @@ export function Toolbar() {
           </div>
         )}
       </div>
-      <LinksDialog open={linksOpen} onClose={() => useEditor.setState({ linksOpen: false })} />
     </div>
   );
 }

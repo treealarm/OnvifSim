@@ -1,5 +1,5 @@
 import { Line } from '@react-three/drei';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, type ThreeEvent } from '@react-three/fiber';
 import { useRef, type ComponentRef, type RefObject } from 'react';
 import type { Group, Plane } from 'three';
 import {
@@ -16,6 +16,7 @@ import {
   type Wire,
   type World,
 } from '../model';
+import { select, useEditor, type Selection } from '../store';
 import { useCutawayPlanes } from './cutaway';
 import { devicePoint, isMounted } from './devicePoint';
 
@@ -119,7 +120,7 @@ function Lamp({
 }) {
   const { group, initial } = useDeviceGroup(camera, position, terrain, vehicles);
   return (
-    <group ref={group} position={[initial.x, initial.y, initial.z]}>
+    <group ref={group} position={[initial.x, initial.y, initial.z]} onClick={(e) => pick(e, { kind: 'camera', id: camera.id })}>
       <LampPost lit={lit} clippingPlanes={clippingPlanes} />
     </group>
   );
@@ -143,10 +144,18 @@ function WorldLamp({
     lamp.position.z,
   ];
   return (
-    <group position={position}>
+    <group position={position} onClick={(e) => pick(e, { kind: 'lamp', id: lamp.id })}>
       <LampPost lit={lit} clippingPlanes={clippingPlanes} />
     </group>
   );
+}
+
+// A click picks what it hits, as in the objects view: not while a tool is active, and not when the
+// pointer was dragged over the viewport.
+function pick(e: ThreeEvent<MouseEvent>, selection: Selection) {
+  if (e.delta > 4 || useEditor.getState().tool.kind !== 'select') return;
+  e.stopPropagation();
+  select(selection);
 }
 
 function Sensor({
@@ -167,7 +176,7 @@ function Sensor({
   const { group, initial } = useDeviceGroup(camera, input.position, terrain, vehicles);
   const color = active ? sensorLit : sensorDark;
   return (
-    <group ref={group} position={[initial.x, initial.y, initial.z]}>
+    <group ref={group} position={[initial.x, initial.y, initial.z]} onClick={(e) => pick(e, { kind: 'camera', id: camera.id })}>
       <mesh position={[0, (sensorHeight - 0.12) / 2, 0]}>
         <boxGeometry args={[0.26, sensorHeight - 0.12, 0.26]} />
         <meshLambertMaterial color="#34363a" clippingPlanes={clippingPlanes} />

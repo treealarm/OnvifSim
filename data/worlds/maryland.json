@@ -583,7 +583,7 @@
       "relayOutputs": [
         {
           "token": "lamp",
-          "name": "Room lamp",
+          "name": "Hall lamp relay",
           "mode": "bistable",
           "delaySeconds": 5,
           "idleState": "open",
@@ -593,9 +593,46 @@
             "y": 0,
             "z": -1
           }
+        },
+        {
+          "token": "peer",
+          "name": "Slave sensor relay",
+          "mode": "bistable",
+          "delaySeconds": 5,
+          "idleState": "open",
+          "active": false,
+          "position": {
+            "x": 2.5,
+            "y": 0,
+            "z": -1
+          }
+        },
+        {
+          "token": "loop",
+          "name": "Own sensor relay",
+          "mode": "bistable",
+          "delaySeconds": 5,
+          "idleState": "open",
+          "active": false,
+          "position": {
+            "x": 3.5,
+            "y": 0,
+            "z": -1
+          }
         }
       ],
-      "digitalInputs": [],
+      "digitalInputs": [
+        {
+          "token": "input",
+          "name": "Master sensor",
+          "idleState": "open",
+          "position": {
+            "x": -1.5,
+            "y": 0.2,
+            "z": 1
+          }
+        }
+      ],
       "onvifPort": 0,
       "rtspPort": 0,
       "users": [
@@ -670,7 +707,7 @@
       "digitalInputs": [
         {
           "token": "input",
-          "name": "Room sensor",
+          "name": "Slave sensor",
           "idleState": "open",
           "position": {
             "x": -1.5,
@@ -881,13 +918,19 @@
     {
       "relayCameraId": "master",
       "relayToken": "lamp",
+      "lampId": "alert"
+    },
+    {
+      "relayCameraId": "master",
+      "relayToken": "peer",
       "inputCameraId": "ptz",
       "inputToken": "input"
     },
     {
       "relayCameraId": "master",
-      "relayToken": "lamp",
-      "lampId": "alert"
+      "relayToken": "loop",
+      "inputCameraId": "master",
+      "inputToken": "input"
     }
   ]
 }

@@ -147,7 +147,7 @@ export function DeviceIoSection({ camera }: { camera: CameraModel }) {
               />
               {links.length > 1 ? (
                 <p className="muted">
-                  Wired to {links.length} devices — edit the links in Links…
+                  Wired to {links.length} devices — open Wiring… to change them.
                 </p>
               ) : (
                 <SelectField

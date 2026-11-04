@@ -1,5 +1,5 @@
 import { lampLit, nextId, wiresToLamp, type Environment, type Geo, type Lamp, type World } from '../model';
-import { removeLamp, updateEnvironment, updateGeo, updateLamp, updateTerrain } from '../store';
+import { removeLamp, updateEnvironment, updateGeo, updateLamp, updateTerrain, useEditor } from '../store';
 import { BlurTextField, CheckboxField, ColorField, NumberField, Section } from './fields';
 
 // What shows when nothing is selected: settings of the world as a whole.
@@ -69,6 +69,20 @@ export function WorldInspector({ world }: { world: World }) {
   );
 }
 
+// The lamp picked in the viewport or in Contents: the same card the world panel shows, with the
+// devices it is wired to.
+export function LampInspector({ lamp }: { lamp: Lamp }) {
+  const world = useEditor((s) => s.world);
+  return (
+    <>
+      <h2>
+        {lamp.name || lamp.id} <span className="muted">{lamp.id}</span>
+      </h2>
+      {world && <LampCard lamp={lamp} world={world} />}
+    </>
+  );
+}
+
 // A lamp of the world: an actuator with a place of its own, lit by the relays wired to it. Its id is
 // what a wire names, so it is not renamed here; the name and the place are.
 function LampCard({ lamp, world }: { lamp: Lamp; world: World }) {
@@ -95,7 +109,7 @@ function LampCard({ lamp, world }: { lamp: Lamp; world: World }) {
       <NumberField label="Above ground" value={lamp.position.y} min={0} step={0.5} onChange={(y) => move({ y })} />
       <p className={lit ? 'io-state on' : 'io-state'}>
         {wires.length === 0
-          ? 'Not wired: connect it to a relay in Links…'
+          ? 'Not wired: open Wiring… on the toolbar to connect it to a relay.'
           : `${wires.map((wire) => `${wire.relayCameraId}/${wire.relayToken}`).join(', ')} — ${lit ? 'lit' : 'off'}`}
       </p>
     </div>

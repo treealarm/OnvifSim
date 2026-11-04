@@ -166,35 +166,51 @@ public static class MarylandWorld
         });
     }
 
-    // The demo's relay and sensor: a lamp in Room 101 on the master's relay, a sensor in Room 102 on
-    // the PTZ camera's input, and the wire between them — one camera's relay driving another's input.
-    // Both cameras stand still: a wire to the car would trail across the world and make every camera
-    // that sees it redraw at every frame of the drive, for no demonstration the static pair does not
-    // already give.
+    // The master's three relays show every kind of link a relay can have: one lights a lamp standing
+    // in the hall, one drives the slave camera's sensor, and one drives a sensor of the master itself.
+    // Closed, the sensors read 0 and the lamp is on; open, the sensors read 1 and the lamp is off.
+    // All of them stand on cameras that do not move: a wire to the car would trail across the world
+    // and make every camera that sees it redraw at every frame of the drive, for no demonstration
+    // the static pair does not already give.
     private static void AddDevices(WorldModel world)
     {
         var master = world.Cameras.Single(c => c.Id == "master");
         master.RelayOutputs.Add(new RelayOutputModel
         {
-            Token = "lamp", Name = "Room lamp", Position = new Vec3(1.5f, 0, -1f),
+            Token = "lamp", Name = "Hall lamp relay", Position = new Vec3(1.5f, 0, -1f),
+        });
+        master.RelayOutputs.Add(new RelayOutputModel
+        {
+            Token = "peer", Name = "Slave sensor relay", Position = new Vec3(2.5f, 0, -1f),
+        });
+        master.RelayOutputs.Add(new RelayOutputModel
+        {
+            Token = "loop", Name = "Own sensor relay", Position = new Vec3(3.5f, 0, -1f),
+        });
+        master.DigitalInputs.Add(new DigitalInputModel
+        {
+            Token = "input", Name = "Master sensor", Position = new Vec3(-1.5f, 0.2f, 1f),
         });
         var ptz = world.Cameras.Single(c => c.Id == "ptz");
         ptz.DigitalInputs.Add(new DigitalInputModel
         {
-            Token = "input", Name = "Room sensor", Position = new Vec3(-1.5f, 0.2f, 1f),
+            Token = "input", Name = "Slave sensor", Position = new Vec3(-1.5f, 0.2f, 1f),
         });
-        // A lamp the same relay lights, standing in the hall on its own: closed, the sensor reads 0
-        // and the lamp is on.
         world.Lamps.Add(new LampModel
         {
             Id = "alert", Name = "Hall alert lamp", Position = new Vec3(-56, 0, -16),
         });
+        world.Wires.Add(new WireModel { RelayCameraId = master.Id, RelayToken = "lamp", LampId = "alert" });
         world.Wires.Add(new WireModel
         {
-            RelayCameraId = master.Id, RelayToken = "lamp",
+            RelayCameraId = master.Id, RelayToken = "peer",
             InputCameraId = ptz.Id, InputToken = "input",
         });
-        world.Wires.Add(new WireModel { RelayCameraId = master.Id, RelayToken = "lamp", LampId = "alert" });
+        world.Wires.Add(new WireModel
+        {
+            RelayCameraId = master.Id, RelayToken = "loop",
+            InputCameraId = master.Id, InputToken = "input",
+        });
     }
 
     private static void Scenery(WorldModel world)

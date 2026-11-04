@@ -140,6 +140,12 @@ button.danger {
   margin-top: 8px;
 }
 
+/* An action of the whole editor, kept in the header apart from the palette: wiring devices is not a
+   tool, and a button among the tools read as one more mode beside Cutaway and the placeables. */
+.header-action {
+  white-space: nowrap;
+}
+
 .connection {
   font-size: 12px;
 }

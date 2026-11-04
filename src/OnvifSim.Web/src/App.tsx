@@ -1,10 +1,11 @@
 import { useEffect } from 'react';
 import { CameraInspector } from './panels/CameraInspector';
+import { LinksDialog } from './panels/LinksDialog';
 import { ObjectInspector } from './panels/ObjectInspector';
 import { ObjectTree } from './panels/ObjectTree';
 import { RoadInspector, VehicleInspector, WalkerInspector } from './panels/RouteInspectors';
 import { Toolbar } from './panels/Toolbar';
-import { WorldInspector } from './panels/WorldInspector';
+import { LampInspector, WorldInspector } from './panels/WorldInspector';
 import { WorldMenu } from './panels/WorldMenu';
 import { cancelDrawing, connect, finishDrawing, redo, removeSelected, select, undo, useEditor } from './store';
 import { Viewport } from './viewport/Viewport';
@@ -13,6 +14,7 @@ export function App() {
   const world = useEditor((s) => s.world);
   const connected = useEditor((s) => s.connected);
   const error = useEditor((s) => s.error);
+  const linksOpen = useEditor((s) => s.linksOpen);
 
   useEffect(connect, []);
   useEffect(() => {
@@ -26,10 +28,21 @@ export function App() {
         <h1>OnvifSim</h1>
         <WorldMenu />
         <Toolbar />
+        {/* An action of the whole editor, not a tool: it sits beside the connection state, away
+            from the palette, where a button among the tools reads as one more mode. */}
+        <button
+          type="button"
+          className="header-action"
+          onClick={() => useEditor.setState({ linksOpen: true })}
+          title="Connect relay outputs to digital inputs and lamps"
+        >
+          Wiring…
+        </button>
         <span className={connected ? 'connection online' : 'connection offline'} role="status">
           {connected ? 'connected' : 'reconnecting…'}
         </span>
       </header>
+      <LinksDialog open={linksOpen} onClose={() => useEditor.setState({ linksOpen: false })} />
       {error && (
         <div className="error" role="alert">
           {error}
@@ -76,6 +89,10 @@ function Inspector() {
   if (selection?.kind === 'camera') {
     const camera = world.cameras.find((c) => c.id === selection.id);
     if (camera) return <CameraInspector key={camera.id} camera={camera} />;
+  }
+  if (selection?.kind === 'lamp') {
+    const lamp = world.lamps.find((l) => l.id === selection.id);
+    if (lamp) return <LampInspector key={lamp.id} lamp={lamp} />;
   }
   return <WorldInspector world={world} />;
 }

@@ -27,6 +27,18 @@ export function ObjectTree({ world }: { world: World }) {
           />
         ))}
       </Group>
+      {/* Devices a relay can drive stand in the world like objects, so they are found the same way. */}
+      <Group title="Lamps" count={world.lamps.length}>
+        {world.lamps.map((lamp) => (
+          <Row
+            key={lamp.id}
+            label={lamp.name || lamp.id}
+            detail={lamp.id}
+            active={isSelected('lamp', lamp.id)}
+            onClick={() => select({ kind: 'lamp', id: lamp.id })}
+          />
+        ))}
+      </Group>
       <Group title="Objects" count={world.objects.length}>
         <ObjectTypes
           objects={world.objects}

@@ -104,21 +104,27 @@ public class MarylandWorldTests
     }
 
     [Fact]
-    public void TheMastersLamp_DrivesThePtzsSensor()
+    public void TheMastersRelays_DriveEveryKindOfSink()
     {
         var world = World();
-        var relay = Assert.Single(world.Cameras.Single(c => c.Id == "master").RelayOutputs);
-        Assert.Equal("lamp", relay.Token);
-        var ptz = world.Cameras.Single(c => c.Id == "ptz");
-        var input = Assert.Single(ptz.DigitalInputs);
-        Assert.Equal("input", input.Token);
+        var master = world.Cameras.Single(c => c.Id == "master");
+        Assert.Equal(["lamp", "peer", "loop"], master.RelayOutputs.Select(r => r.Token));
+        Assert.Equal("input", Assert.Single(master.DigitalInputs).Token);
+        Assert.Equal("input", Assert.Single(world.Cameras.Single(c => c.Id == "ptz").DigitalInputs).Token);
+
+        // One relay lights the lamp in the hall, one drives another camera's sensor, one a sensor of
+        // the master itself: every kind of sink the editor can wire.
         var lamp = Assert.Single(world.Lamps);
         Assert.Equal("alert", lamp.Id);
         Assert.False(lamp.NormallyClosed);
-        Assert.Contains(world.Wires, wire => wire.InputToken == "input");
-        Assert.Contains(world.Wires, wire => wire.LampId == "alert");
+        Assert.Contains(world.Wires, wire => wire.RelayToken == "lamp" && wire.LampId == "alert");
+        Assert.Contains(world.Wires, wire =>
+            wire.RelayToken == "peer" && wire.InputCameraId == "ptz" && wire.InputToken == "input");
+        Assert.Contains(world.Wires, wire =>
+            wire.RelayToken == "loop" && wire.InputCameraId == "master" && wire.InputToken == "input");
         Assert.All(world.Wires, wire =>
-            Assert.Equal(("master", "lamp"), (wire.RelayCameraId, wire.RelayToken)));
+            Assert.Equal("master", wire.RelayCameraId));
+
         // A device on the car would move the wire, and every camera that sees it, every frame.
         Assert.Empty(world.Cameras.Single(c => c.Id == MarylandWorld.VehicleCameraId).DigitalInputs);
         Assert.Empty(world.Cameras.Single(c => c.Id == MarylandWorld.VehicleCameraId).RelayOutputs);

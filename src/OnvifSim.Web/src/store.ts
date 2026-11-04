@@ -26,8 +26,8 @@ import {
   type WorldSwitchSignal,
 } from './model';
 
-export type Selection = { kind: 'object' | 'camera' | 'road' | 'walker' | 'vehicle'; id: string };
-export type Placeable = ObjectType | 'camera.fixed' | 'camera.ptz';
+export type Selection = { kind: 'object' | 'camera' | 'road' | 'walker' | 'vehicle' | 'lamp'; id: string };
+export type Placeable = ObjectType | 'camera.fixed' | 'camera.ptz' | 'lamp';
 export type BrushKind = 'raise' | 'lower' | 'smooth' | 'flatten';
 export type Drawable = 'road' | 'walker' | 'vehicle';
 // Which tool palette the toolbar shows. Choosing a palette does not change the active tool.
@@ -645,13 +645,18 @@ export const defaultScale: Record<ObjectType, Vec3> = {
   car: { x: 1.8, y: 1.45, z: 4.4 },
 };
 
-// Adds an object or a camera on the ground at (x, z) and selects it. Only what differs from the
-// server's defaults is sent; the full model arrives with the next world, as it does for any edit.
+// Adds an object, a camera or a lamp on the ground at (x, z) and selects it. Only what differs from
+// the server's defaults is sent; the full model arrives with the next world, as it does for any edit.
 export async function place(what: Placeable, x: number, z: number) {
   const world = useEditor.getState().world;
   if (!world) return;
   try {
-    if (what === 'camera.fixed' || what === 'camera.ptz') {
+    if (what === 'lamp') {
+      const id = nextId('lamp', world.lamps.map((l) => l.id));
+      await api.putLamp({ id, name: `Lamp ${id}`, normallyClosed: false, position: { x, y: 0, z } });
+      remember({ kind: 'lamp', id, value: null }, false);
+      select({ kind: 'lamp', id });
+    } else if (what === 'camera.fixed' || what === 'camera.ptz') {
       const id = nextId('cam', world.cameras.map((c) => c.id));
       const ptz = what === 'camera.ptz';
       await api.putCamera({

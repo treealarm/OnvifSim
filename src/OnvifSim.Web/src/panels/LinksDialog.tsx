@@ -38,7 +38,7 @@ export function LinksDialog({ open, onClose }: { open: boolean; onClose: () => v
   return (
     <Dialog
       open={open}
-      title="Links"
+      title="Wiring"
       className="wide"
       onClose={onClose}
       actions={

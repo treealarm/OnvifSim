@@ -26,7 +26,7 @@ test('a camera and a tree placed in the editor are live at once', async ({ page,
   // A fixed camera, then aimed by hand: 3 m up at (0, 150), looking south with a narrow view, away
   // from the village and the person walking through it.
   await placeOnGround(page, 'Fixed camera');
-  await expect(page.getByRole('heading', { level: 2 })).toContainText('cam3');
+  const placed = (await page.getByRole('heading', { level: 2 }).locator('span').textContent()) ?? '';
   await page.getByLabel('Name', { exact: true }).fill('E2E camera');
   await setNumber(page, 'X (east)', 0);
   await setNumber(page, 'Z (south)', 150);
@@ -34,9 +34,9 @@ test('a camera and a tree placed in the editor are live at once', async ({ page,
   await setNumber(page, 'Heading', 180);
   await setNumber(page, 'Pitch', 0);
   await setNumber(page, 'Field of view', 30);
-  await expect.poll(async () => (await cameraOf(request, 'cam3'))?.name).toBe('E2E camera');
-  await expect.poll(async () => (await cameraOf(request, 'cam3'))?.hFov).toBe(30);
-  const before = await snapshot(request, 'cam3');
+  await expect.poll(async () => (await cameraOf(request, placed))?.name).toBe('E2E camera');
+  await expect.poll(async () => (await cameraOf(request, placed))?.hFov).toBe(30);
+  const before = await snapshot(request, placed);
 
   // A pine 20 m in front of it.
   await placeOnGround(page, 'Pine');
@@ -46,7 +46,7 @@ test('a camera and a tree placed in the editor are live at once', async ({ page,
   await expect.poll(async () => (await objectAt(request, 0, 170))?.type).toBe('tree.pine');
 
   // The picture is deterministic, so the tree is the only thing that can have changed it.
-  expect(Buffer.compare(await snapshot(request, 'cam3'), before)).not.toBe(0);
+  expect(Buffer.compare(await snapshot(request, placed), before)).not.toBe(0);
 
   const matches = await probe();
   expect(matches.some((m) => m.includes('onvif://www.onvif.org/name/E2E%20camera'))).toBe(true);
@@ -329,7 +329,7 @@ test('creating and switching a world clears the edit history', async ({ page, re
 
   const name = `e2e-world-${Date.now()}`;
   await createWorld(page, name, true);
-  await expect(page.getByText('0 objects, 0 roads, 0 people, 0 cameras.')).toBeVisible();
+  await expect(page.getByText('0 objects, 0 roads, 0 people, 0 cameras, 0 lamps.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Redo' })).toBeDisabled();
   expect((await worlds(request)).active).toBe(name);
@@ -384,9 +384,67 @@ test('trashing the active world opens another one', async ({ page, request }) =>
   expect((await worlds(request)).trash).toContain(name);
 });
 
+// A lamp is a device of the world, not a part of a camera, and it is put down from the palette like
+// any object. A relay of a camera drives it, and the same relay may drive a sensor of its own camera:
+// closed, the input reads 0 and the lamp is lit.
+test('a lamp is placed from the palette and a relay lights it', async ({ page, request }) => {
+  await openEditor(page);
+
+  await placeOnGround(page, 'Lamp');
+  await expect(page.getByRole('heading', { level: 2 })).toContainText('lamp1');
+  await page.getByLabel('Name', { exact: true }).fill('E2E lamp');
+  await page.getByLabel('Name', { exact: true }).blur();
+  await expect.poll(async () => (await world(request)).lamps?.find((l) => l.id === 'lamp1')?.name).toBe('E2E lamp');
+  // Contents lists it beside the other things of the world.
+  await expect(page.locator('.tree').getByRole('button', { name: /E2E lamp/ })).toBeVisible();
+
+  await placeOnGround(page, 'Fixed camera');
+  await expect(page.getByRole('heading', { level: 2 })).toContainText(/cam\d+/);
+  const cameraId = (await page.getByRole('heading', { level: 2 }).locator('span').textContent()) ?? '';
+  await page.getByRole('button', { name: 'Add relay output', exact: true }).click();
+  await page.getByRole('button', { name: 'Add digital input', exact: true }).click();
+  await expect.poll(async () => (await cameraById(request, cameraId))?.relayOutputs?.length).toBe(1);
+  await expect.poll(async () => (await cameraById(request, cameraId))?.digitalInputs?.length).toBe(1);
+
+  // The relay drives a sensor of the camera it belongs to.
+  await page.getByLabel('Wired to', { exact: true }).selectOption({ label: `Fixed ${cameraId} / Input input1 (input)` });
+  const sensor = page.locator('.io-card').filter({ has: page.locator('strong', { hasText: 'Input input1' }) });
+  await expect(sensor).toContainText('1');
+  await page.getByLabel('Active (the lamp is lit)', { exact: true }).check();
+  await expect(sensor).toContainText('0');
+  await expect.poll(async () => (await world(request)).wires?.some(
+    (w) => w.relayCameraId === cameraId && w.inputCameraId === cameraId && w.inputToken === 'input1')).toBe(true);
+
+  // The same relay lights the lamp instead, and the lamp is lit while it stays closed.
+  await page.getByLabel('Wired to', { exact: true }).selectOption({ label: 'E2E lamp (lamp)' });
+  await expect.poll(async () => (await world(request)).wires?.some(
+    (w) => w.relayCameraId === cameraId && w.lampId === 'lamp1')).toBe(true);
+  await page.locator('.tree').getByRole('button', { name: 'World environment' }).click();
+  const lamp = page.locator('.inspector .io-card').filter({ hasText: 'E2E lamp' });
+  await expect(lamp).toContainText('lit');
+});
+
+// The wiring window is an action of the whole editor beside the connection state, not a tool of the
+// palette: it connects a sink of any camera or lamp to relays of any camera.
+test('the wiring window connects lamps and sensors to relays', async ({ page, request }) => {
+  await openEditor(page);
+  await page.getByRole('button', { name: 'Wiring…', exact: true }).click();
+  const wiring = page.getByRole('dialog', { name: 'Wiring' });
+  await expect(wiring).toBeVisible();
+
+  // The default world's relay lights the gate lamp and holds the tower's sensor open.
+  await wiring.getByRole('button', { name: /Gate lamp/ }).click();
+  const relay = wiring.getByRole('checkbox', { name: /Village fixed \/ Village lamp/ });
+  await expect(relay).toBeChecked();
+  await relay.uncheck();
+  await expect.poll(async () => (await world(request)).wires?.some((w) => w.lampId === 'gate')).toBe(false);
+  await relay.check();
+  await expect.poll(async () => (await world(request)).wires?.some((w) => w.lampId === 'gate')).toBe(true);
+});
+
 async function openEditor(page: Page) {
   await page.goto('/');
-  await expect(page.getByText(/\d+ objects, .* cameras\./)).toBeVisible();
+  await expect(page.getByText(/\d+ objects, .* cameras, \d+ lamps\./)).toBeVisible();
   // A canvas is 300x150 until it takes the viewport's size a frame later; coordinates measured
   // before that fall in the wrong part of the picture, so wait until it fills its container.
   const canvas = page.locator('.viewport canvas');
@@ -464,11 +522,17 @@ async function worlds(request: APIRequestContext): Promise<WorldsResponse> {
 
 async function world(request: APIRequestContext) {
   return (await (await request.get('/api/world')).json()) as {
-    cameras: { id: string; name: string; hFov: number; bindAddress?: string | null; rtspPort?: number; streams?: { token: string; path: string }[] }[];
+    cameras: {
+      id: string; name: string; hFov: number; bindAddress?: string | null; rtspPort?: number;
+      streams?: { token: string; path: string }[];
+      relayOutputs?: { token: string }[]; digitalInputs?: { token: string }[];
+    }[];
     objects: { id: string; type: string; plate?: string | null; position: { x: number; z: number } }[];
     roads: { id: string; closed: boolean }[];
     walkers: { id: string; route: unknown[]; return: string }[];
     vehicles: { id: string; route: unknown[]; plate?: string | null }[];
+    lamps?: { id: string; name: string; normallyClosed: boolean }[];
+    wires?: { relayCameraId: string; relayToken: string; inputCameraId?: string | null; inputToken?: string | null; lampId?: string | null }[];
     terrain: { heights: string };
   };
 }
