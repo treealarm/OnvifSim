@@ -140,11 +140,11 @@ button.danger {
   margin-top: 8px;
 }
 
-/* An action of the whole editor at the right end of the tools row, on the far side of a divider:
-   wiring devices is not a tool, so it stands apart from Terrain's brushes and the placeables. */
+/* An action of the whole editor just past the palette tabs, on the far side of a divider: wiring
+   devices is not a palette, but it belongs beside Terrain rather than at the far end of the row. */
 .palette-action {
   display: flex;
-  margin-left: auto;
+  margin-left: 6px;
   padding-left: 10px;
   border-left: 1px solid var(--border);
 }

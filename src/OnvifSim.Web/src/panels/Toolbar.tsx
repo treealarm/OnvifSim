@@ -89,6 +89,17 @@ export function Toolbar() {
             {activeGroup === group && <span className="active-group-dot" aria-hidden="true" />}
           </button>
         ))}
+        {/* Not a tool and not a palette: wiring joins devices across cameras, so it stands just past
+            the palettes, on the far side of a divider. */}
+        <div className="palette-action" role="group" aria-label="Wiring">
+          <button
+            type="button"
+            onClick={() => useEditor.setState({ linksOpen: true })}
+            title="Connect relay outputs to digital inputs and lamps"
+          >
+            Wiring…
+          </button>
+        </div>
       </div>
       <div className="palette" role="group" aria-label="Tools">
         <div className="group" role="group" aria-label="History">
@@ -173,17 +184,6 @@ export function Toolbar() {
             )}
           </div>
         )}
-        {/* Not a tool: wiring joins devices across cameras, so it stands on the far side of a
-            divider at the row's right end rather than among the tools. */}
-        <div className="palette-action" role="group" aria-label="Wiring">
-          <button
-            type="button"
-            onClick={() => useEditor.setState({ linksOpen: true })}
-            title="Connect relay outputs to digital inputs and lamps"
-          >
-            Wiring…
-          </button>
-        </div>
       </div>
       <LinksDialog open={linksOpen} onClose={() => useEditor.setState({ linksOpen: false })} />
     </div>
