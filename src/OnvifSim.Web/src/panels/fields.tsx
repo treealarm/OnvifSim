@@ -9,16 +9,18 @@ interface NumberFieldProps {
   step?: number;
   // Adds a slider next to the box, for values worth sweeping through (angles, image settings).
   slider?: boolean;
+  // Decimals the box shows; coordinates need more than the two that suit sizes and angles.
+  decimals?: number;
 }
 
 // A number box that lets the user type freely: a value goes out only once it is a number within the
 // limits, and leaving the box shows the value in effect again.
-export function NumberField({ label, value, onChange, min = -Infinity, max = Infinity, step = 1, slider = false }: NumberFieldProps) {
+export function NumberField({ label, value, onChange, min = -Infinity, max = Infinity, step = 1, slider = false, decimals = 2 }: NumberFieldProps) {
   const id = useId();
   const [draft, setDraft] = useState<string | null>(null);
   // Where the slider is held: the value it sets may take a while to come back (a PTZ head turning).
   const [sliding, setSliding] = useState<number | null>(null);
-  const shown = Number(value.toFixed(2));
+  const shown = Number(value.toFixed(decimals));
 
   function slide(number: number) {
     setSliding(number);

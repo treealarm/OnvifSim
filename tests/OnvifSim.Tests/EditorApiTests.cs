@@ -318,6 +318,25 @@ public class EditorApiTests(SimFactory factory) : IClassFixture<SimFactory>
         Assert.True(events["ptz"].TryGetProperty("cam2", out var head));
         Assert.False(head.GetProperty("moving").GetBoolean());
     }
+
+    [Fact]
+    public async Task TheGeoOrigin_IsEditedAsAWhole()
+    {
+        var client = factory.CreateClient();
+        var before = Store.Current.Geo;
+        var changed = new GeoModel { Latitude = 12.5, Longitude = -45, Elevation = 120, North = 90 };
+
+        Assert.Equal(HttpStatusCode.NoContent, (await client.PutAsync("/api/geo", Json(changed))).StatusCode);
+        Assert.Equal(12.5, Store.Current.Geo.Latitude);
+        Assert.Equal(-45, Store.Current.Geo.Longitude);
+        Assert.Equal(120, Store.Current.Geo.Elevation);
+        Assert.Equal(90, Store.Current.Geo.North);
+
+        var invalid = await client.PutAsync("/api/geo", Json(new GeoModel { Latitude = 91 }));
+        Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
+
+        await client.PutAsync("/api/geo", Json(before));
+    }
 }
 
 public class WorldValidationTests

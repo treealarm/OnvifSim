@@ -8,6 +8,9 @@ namespace OnvifSim.World;
 public sealed class WorldModel
 {
     public int Version { get; set; } = 1;
+    // Where the world sits on the Earth and which way is true north. Old world files without it load
+    // as the equator with world -Z as north, which is a valid place to simulate.
+    public GeoModel Geo { get; set; } = new();
     public TerrainModel Terrain { get; set; } = new();
     public EnvironmentModel Environment { get; set; } = new();
     public List<WorldObject> Objects { get; set; } = [];
@@ -27,6 +30,17 @@ public sealed class TerrainModel
     public float[] Heights { get; set; } = [];
     // Grass colour; steep slopes still turn to rock and a little variation keeps the ground readable.
     public string Color { get; set; } = "#5c803c";
+}
+
+// The geographic anchor of the world's metres: X east, Y up, Z south, and North is the true bearing
+// of the world's -Z direction (degrees clockwise from true north). A point's latitude and longitude
+// are its east/north offset from the anchor; elevation is Elevation plus its absolute Y.
+public sealed class GeoModel
+{
+    public double Latitude { get; set; }
+    public double Longitude { get; set; }
+    public float Elevation { get; set; }
+    public float North { get; set; }
 }
 
 public sealed class EnvironmentModel

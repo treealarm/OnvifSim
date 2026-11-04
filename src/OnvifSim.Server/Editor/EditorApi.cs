@@ -73,6 +73,9 @@ public static class EditorApi
         app.MapPut("/api/environment", (EnvironmentModel environment, WorldStore store, SimOptions options) =>
             Change(store, options, world => world.Environment = environment));
 
+        app.MapPut("/api/geo", (GeoModel geo, WorldStore store, SimOptions options) =>
+            Change(store, options, world => world.Geo = geo));
+
         // PUT adds the object (road, walker, camera) or replaces the one with that id.
         app.MapPut("/api/objects/{id}", (string id, WorldObject obj, WorldStore store, SimOptions options) =>
         {

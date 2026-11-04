@@ -3,6 +3,7 @@ import {
   encodeTerrain,
   type CameraModel,
   type Environment,
+  type Geo,
   type PtzPosition,
   type PtzSettings,
   type Road,
@@ -72,6 +73,7 @@ export const api = {
   deleteVehicle: (id: string) => send('DELETE', `/api/vehicles/${encodeURIComponent(id)}`),
   putTerrain: (terrain: Terrain) => send('PUT', '/api/terrain', encodeTerrain(terrain)),
   putEnvironment: (environment: Environment) => send('PUT', '/api/environment', environment),
+  putGeo: (geo: Geo) => send('PUT', '/api/geo', geo),
 
   // Velocities are fractions of the top speed, -1..1; a move lasts a second unless renewed.
   ptzMove: (id: string, velocity: Partial<PtzPosition>) => send('POST', `/api/cameras/${encodeURIComponent(id)}/ptz/move`, velocity),

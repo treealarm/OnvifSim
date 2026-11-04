@@ -16,6 +16,15 @@ export interface Terrain {
   color: string;
 }
 
+// Where the world sits on the Earth. North is the true bearing of the world's -Z direction, degrees
+// clockwise from true north; 0 means -Z is north.
+export interface Geo {
+  latitude: number;
+  longitude: number;
+  elevation: number;
+  north: number;
+}
+
 export interface Environment {
   sunAzimuth: number;
   sunElevation: number;
@@ -216,6 +225,7 @@ export const kindColor = (kind: CameraKind) => (kind === 'ptz' ? '#ff9f1c' : '#3
 
 export interface World {
   version: number;
+  geo: Geo;
   terrain: Terrain;
   environment: Environment;
   objects: WorldObject[];

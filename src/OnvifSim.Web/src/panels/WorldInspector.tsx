@@ -1,11 +1,13 @@
-import type { Environment, World } from '../model';
-import { updateEnvironment, updateTerrain } from '../store';
+import type { Environment, Geo, World } from '../model';
+import { updateEnvironment, updateGeo, updateTerrain } from '../store';
 import { CheckboxField, ColorField, NumberField, Section } from './fields';
 
 // What shows when nothing is selected: settings of the world as a whole.
 export function WorldInspector({ world }: { world: World }) {
   const environment = world.environment;
   const change = (patch: Partial<Environment>) => updateEnvironment({ ...environment, ...patch });
+  const geo = world.geo;
+  const changeGeo = (patch: Partial<Geo>) => updateGeo({ ...geo, ...patch });
   return (
     <>
       <h2>World</h2>
@@ -13,6 +15,13 @@ export function WorldInspector({ world }: { world: World }) {
         Pick something from the toolbar and click the ground to place it; click an object or a camera, or a row in
         Contents, to edit it.
       </p>
+      <Section title="Geo origin">
+        <NumberField label="Latitude" value={geo.latitude} min={-90} max={90} step={0.000001} decimals={6} onChange={(latitude) => changeGeo({ latitude })} />
+        <NumberField label="Longitude" value={geo.longitude} min={-180} max={180} step={0.000001} decimals={6} onChange={(longitude) => changeGeo({ longitude })} />
+        <NumberField label="Elevation, m" value={geo.elevation} step={1} onChange={(elevation) => changeGeo({ elevation })} />
+        <NumberField label="North (° from true north)" value={geo.north} min={0} max={360} slider onChange={(north) => changeGeo({ north })} />
+        <p className="muted">World −Z points this way; 0 means world −Z is true north.</p>
+      </Section>
       <Section title="Sun and sky">
         <NumberField label="Sun from (° from north)" value={environment.sunAzimuth} min={0} max={360} slider onChange={(sunAzimuth) => change({ sunAzimuth })} />
         <NumberField label="Sun height" value={environment.sunElevation} min={0} max={90} slider onChange={(sunElevation) => change({ sunElevation })} />

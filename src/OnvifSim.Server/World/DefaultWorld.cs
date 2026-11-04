@@ -9,7 +9,12 @@ public static class DefaultWorld
 
     public static WorldModel Create()
     {
-        var world = new WorldModel();
+        var world = new WorldModel
+        {
+            // The harness's old anchor, in Maryland farmland: a latitude far enough from the equator
+            // that a forgotten cos(latitude) shows up as an east-west error.
+            Geo = new GeoModel { Latitude = 39.2, Longitude = -77.35, Elevation = 0, North = 0 },
+        };
         var t = world.Terrain;
         int n = t.Resolution + 1;
         t.Heights = new float[n * n];

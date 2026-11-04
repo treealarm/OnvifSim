@@ -6,6 +6,7 @@ import {
   type CameraKind,
   type CameraModel,
   type Environment,
+  type Geo,
   type Head,
   type GroundPoint,
   type ObjectType,
@@ -268,7 +269,8 @@ type Part =
   // a whole: a car conversion is one action, not a creation and a deletion.
   | { kind: 'driving-car'; object: WorldObject; vehicle: Vehicle; moving: boolean }
   | { kind: 'terrain'; value: Terrain }
-  | { kind: 'environment'; value: Environment };
+  | { kind: 'environment'; value: Environment }
+  | { kind: 'geo'; value: Geo };
 
 interface HistoryEntry {
   // The part as it was before the edit, to be put back.
@@ -284,7 +286,7 @@ const undoStack: HistoryEntry[] = [];
 const redoStack: HistoryEntry[] = [];
 
 function keyOf(part: Part): string {
-  if (part.kind === 'terrain' || part.kind === 'environment') return part.kind;
+  if (part.kind === 'terrain' || part.kind === 'environment' || part.kind === 'geo') return part.kind;
   if (part.kind === 'driving-car') return `driving-car:${part.object.id}:${part.vehicle.id}`;
   return `${part.kind}:${part.id}`;
 }
@@ -312,6 +314,8 @@ function currentOf(world: World, part: Part): Part {
       return { kind: 'terrain', value: world.terrain };
     case 'environment':
       return { kind: 'environment', value: world.environment };
+    case 'geo':
+      return { kind: 'geo', value: world.geo };
   }
 }
 
@@ -343,6 +347,8 @@ function applyPart(world: World, part: Part): World {
       return { ...world, terrain: part.value };
     case 'environment':
       return { ...world, environment: part.value };
+    case 'geo':
+      return { ...world, geo: part.value };
   }
 }
 
@@ -369,6 +375,8 @@ async function sendPart(part: Part): Promise<unknown> {
       return api.putTerrain(part.value);
     case 'environment':
       return api.putEnvironment(part.value);
+    case 'geo':
+      return api.putGeo(part.value);
   }
 }
 
@@ -477,6 +485,10 @@ export function updateTerrain(terrain: Terrain) {
 
 export function updateEnvironment(environment: Environment) {
   change({ kind: 'environment', value: environment });
+}
+
+export function updateGeo(geo: Geo) {
+  change({ kind: 'geo', value: geo });
 }
 
 export function removeSelected() {

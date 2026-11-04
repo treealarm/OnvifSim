@@ -26,6 +26,8 @@ public class WorldStoreTests
         Assert.Equal(first.Objects.Count, second.Objects.Count);
         Assert.Equal(first.Cameras.Select(c => c.Id), second.Cameras.Select(c => c.Id));
         Assert.Equal(CameraKind.Ptz, second.Cameras.Single(c => c.Id == "cam2").Kind);
+        Assert.Equal(39.2, second.Geo.Latitude, 6);
+        Assert.Equal(-77.35, second.Geo.Longitude, 6);
     }
 
     [Fact]

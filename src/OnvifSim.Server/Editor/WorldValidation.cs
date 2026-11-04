@@ -33,6 +33,7 @@ public static partial class WorldValidation
 
     public static void Check(WorldModel world, int onvifBasePort, int defaultRtspPort = 8554)
     {
+        CheckGeo(world.Geo);
         CheckTerrain(world.Terrain);
         CheckEnvironment(world.Environment);
         foreach (var obj in world.Objects) CheckObject(obj);
@@ -58,6 +59,17 @@ public static partial class WorldValidation
         Require(terrain.Heights.Length is 0 || terrain.Heights.Length == samples,
             $"Terrain of resolution {terrain.Resolution} needs {samples} heights, got {terrain.Heights.Length}.");
         Require(terrain.Heights.All(float.IsFinite), "Terrain heights must be finite numbers.");
+    }
+
+    private static void CheckGeo(GeoModel geo)
+    {
+        Require(double.IsFinite(geo.Latitude) && geo.Latitude is >= -90 and <= 90,
+            $"Latitude {geo.Latitude} is outside -90..90.");
+        Require(double.IsFinite(geo.Longitude) && geo.Longitude is >= -180 and <= 180,
+            $"Longitude {geo.Longitude} is outside -180..180.");
+        Require(float.IsFinite(geo.Elevation), "The world's elevation must be a finite number.");
+        Require(float.IsFinite(geo.North) && geo.North is >= 0 and <= 360,
+            $"North {geo.North} is outside 0..360.");
     }
 
     private static void CheckEnvironment(EnvironmentModel env)
