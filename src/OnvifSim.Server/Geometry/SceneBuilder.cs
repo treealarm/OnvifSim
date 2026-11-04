@@ -202,7 +202,7 @@ public static class SceneBuilder
     }
 
     // The object types ObjectMesh knows.
-    public static readonly string[] ObjectTypes = ["tree.pine", "tree.oak", "house", "rock", "box", "car"];
+    public static readonly string[] ObjectTypes = ["tree.pine", "tree.oak", "house", "office", "rock", "box", "car"];
 
     public static Mesh ObjectMesh(WorldObject o)
     {
@@ -252,6 +252,35 @@ public static class SceneBuilder
                     m.Append(win, Matrix4x4.CreateTranslation(s.X / 2, s.Y * 0.45f, z));
                     m.Append(win, Matrix4x4.CreateTranslation(-s.X / 2, s.Y * 0.45f, z));
                 }
+                break;
+            }
+            case "office":
+            {
+                var wall = ColorUtil.Parse(o.Color, ColorUtil.Rgb(204, 208, 214));
+                var roof = ColorUtil.Parse(o.Color2, ColorUtil.Rgb(88, 92, 98));
+                var glass = ColorUtil.Rgb(54, 70, 92);
+                // Walls reach 2 m below the base so a building on a slope never floats.
+                Primitives.Box(m, s.X, s.Y + 2, s.Z, wall, -2);
+                // A window band standing a few centimetres proud of the walls, so it shows on every side.
+                Primitives.Box(m, s.X + 0.06f, MathF.Min(1.2f, s.Y * 0.4f), s.Z + 0.06f, glass, s.Y * 0.5f);
+                // A flat roof: a slab with a parapet round it.
+                Primitives.Box(m, s.X + 0.5f, 0.25f, s.Z + 0.5f, roof, s.Y);
+                float top = s.Y + 0.25f;
+                foreach (var (x, z) in new[]
+                         {
+                             (0f, s.Z / 2 + 0.15f), (0f, -s.Z / 2 - 0.15f),
+                             (s.X / 2 + 0.15f, 0f), (-s.X / 2 - 0.15f, 0f),
+                         })
+                {
+                    var rail = new Mesh();
+                    bool alongX = z != 0;
+                    Primitives.Box(rail, alongX ? s.X + 0.5f : 0.2f, 0.5f, alongX ? 0.2f : s.Z + 0.5f, roof);
+                    m.Append(rail, Matrix4x4.CreateTranslation(x, top, z));
+                }
+                // The way in, on the side a house's door faces too.
+                var door = new Mesh();
+                Primitives.Box(door, 1.8f, 2.4f, 0.16f, ColorUtil.Rgb(48, 50, 54));
+                m.Append(door, Matrix4x4.CreateTranslation(0, 0, s.Z / 2));
                 break;
             }
             case "rock":

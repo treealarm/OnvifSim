@@ -610,6 +610,7 @@ export const defaultScale: Record<ObjectType, Vec3> = {
   'tree.pine': { x: 4.5, y: 13, z: 4.5 },
   'tree.oak': { x: 6, y: 8.5, z: 6 },
   house: { x: 10, y: 5, z: 10 },
+  office: { x: 24, y: 9, z: 16 },
   rock: { x: 2.6, y: 2, z: 2 },
   box: { x: 3, y: 3, z: 3 },
   car: { x: 1.8, y: 1.45, z: 4.4 },

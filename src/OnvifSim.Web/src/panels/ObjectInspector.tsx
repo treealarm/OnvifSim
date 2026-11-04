@@ -17,6 +17,10 @@ const colorSlots: Record<ObjectType, { label: string; fallback: string }[]> = {
     { label: 'Walls', fallback: '#d8c9a8' },
     { label: 'Roof', fallback: '#8a3b2e' },
   ],
+  office: [
+    { label: 'Walls', fallback: '#ccd0d6' },
+    { label: 'Roof', fallback: '#585c62' },
+  ],
   rock: [{ label: 'Colour', fallback: '#807c76' }],
   box: [{ label: 'Colour', fallback: '#c8c8c8' }],
   car: [

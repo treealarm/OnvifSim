@@ -39,13 +39,14 @@ export interface Environment {
   frustumLength: number;
 }
 
-export const objectTypes = ['tree.pine', 'tree.oak', 'house', 'rock', 'box', 'car'] as const;
+export const objectTypes = ['tree.pine', 'tree.oak', 'house', 'office', 'rock', 'box', 'car'] as const;
 export type ObjectType = (typeof objectTypes)[number];
 
 export const objectTypeNames: Record<ObjectType, string> = {
   'tree.pine': 'Pine',
   'tree.oak': 'Oak',
   house: 'House',
+  office: 'Office',
   rock: 'Rock',
   box: 'Box',
   car: 'Car',

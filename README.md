@@ -64,7 +64,8 @@ editor, and put away the ones you no longer use without losing them.
 - An optional pan/tilt degree grid over the picture shows where the camera is pointing.
 
 **A world you edit in the browser**
-- Place trees, houses, rocks, boxes, cars with editable licence plates and fixed or PTZ cameras;
+- Place trees, houses and flat-roofed offices, rocks, boxes, cars with editable licence plates and
+  fixed or PTZ cameras;
   sculpt the terrain; draw roads and routes for people who walk them and cars that drive them over
   and over.
 - Prepare any number of named worlds in the data directory and switch between them in the header,
@@ -207,7 +208,8 @@ is marked with a dot, so the viewport keeps doing exactly what it did until anot
 - **Select, Move, Rotate**: click anything in the viewport or in the contents tree to select it; drag
   the gizmo to move it (G) or turn it (R), or type exact values in the panel. Delete removes the
   selection, Escape drops it.
-- **Add** trees, houses, rocks, boxes, cars and fixed or PTZ cameras: pick one and click the ground.
+- **Add** trees, houses and offices, rocks, boxes, cars and fixed or PTZ cameras: pick one and click
+  the ground.
 - **Draw** roads, people and car routes: click the ground point by point and finish with a
   double-click or Enter. A person walks their route, a car drives theirs over and over; a car turns
   to follow the route. **Closed loop** makes the last point join the first, so they go round; left
