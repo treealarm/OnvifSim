@@ -1,7 +1,48 @@
 # Changelog
 
-## Unreleased
+## 0.4.0 (2026-11-05)
 
+- **A world with a place on Earth.** The world file now carries a geographic anchor (`geo`: its
+  latitude, longitude, elevation and which way is true north), so a camera's ONVIF
+  `GetGeoLocation` answers with where it really stands and which way it faces. `SetGeoLocation`
+  moves a fixed camera in the world, and a camera mounted on a moving car reports the car's position
+  and heading at that moment — the way a client placing cameras on a map checks them.
+- **Relay outputs and digital inputs.** A camera carries ONVIF relay outputs and digital inputs
+  (`relayOutputs` and `digitalInputs` in its world-file entry), and a wire joins a relay of one
+  camera to an input or a lamp of any other. A wire carries the contact: a closed contact pulls its
+  input to 0, and a closed relay lights the lamps it drives. The editor edits them in the camera's
+  **Devices** section and in the **Wiring** window; the server switches a relay through the same
+  controller ONVIF does (`PUT /api/cameras/{id}/io`, `PUT /api/cameras/{id}/relays/{token}`).
+- **ONVIF DeviceIO.** The Device service answers `GetRelayOutputs`, `SetRelayOutputState` and
+  `SetRelayOutputSettings` and advertises their counts in its capabilities; the DeviceIO service
+  answers `GetDigitalInputs`, `GetDigitalInputConfigurationOptions`, `SetDigitalInputConfigurations`
+  and `GetRelayOutputOptions`. Relays and inputs report on `tns1:Device/Trigger/Relay` and
+  `tns1:Device/Trigger/DigitalInput`: `Initialized` when a pull point opens, `Changed` when a
+  contact, an input or a relay's idle state moves — on the relay's camera and on the camera whose
+  input a wire drives. `GetEventProperties` describes both topics.
+- **A relay's coil and its contact are told apart.** `Active` is the logical state that
+  `SetRelayOutputState` and the editor's switch set; the contact follows from it and the relay's
+  `IdleState` polarity, and a monostable relay de-energises after its `DelayTime`, its contact
+  returning to the idle state on its own. As ONVIF's `RelayOutput` carries settings only,
+  `GetRelayOutputs` reports both states as `ons:LogicalState` and `ons:PhysicalState` extensions,
+  and the relay event carries the physical state beside the standard logical one.
+- **Lamps and a wiring window.** A lamp is an object of the world — a post with a shade that glows
+  in a colour of its own — put down from the palette and driven by relays, either normally open or
+  normally closed. The **Wiring** window lists the world's relays on the left and the inputs and
+  lamps on the right: pick the relay and tick what it drives. A camera's picture can caption the
+  state of its relays and inputs (**States on the picture**), and its devices now come before its
+  streams in the inspector.
+- **Cameras in the editor.** Each camera's view is drawn as the prism its eye and the four corners
+  of its picture make, ending on the first thing in its way — the ground, a floor, a wall — so the
+  base shows what the camera actually sees. Every camera's view takes a palette colour of its own
+  (its own colour still wins), so overlapping views stay apart, and unselected ones are drawn
+  fainter. **Find** in an inspector flies the editor to what is being edited.
+- **A demo world, Maryland.** `data/worlds/maryland.json` builds the A.V. Williams building as one
+  hall, with a fixed master and a PTZ camera facing each other across it, a person walking between
+  them, a ring road with a car and a camera mounted on it, and relays wired to a lamp and a sensor.
+  **Cutaway** clips the objects and devices above 2.5 m so a room can be seen and edited from above,
+  and a click above the cut plane passes through to what stands behind it. Offices join the object
+  palette.
 - The default village's road now carries a moving car as well as its walkers, so a fresh install
   shows both kinds of traffic sharing one road.
 

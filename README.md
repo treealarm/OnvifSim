@@ -38,6 +38,8 @@ editor, and put away the ones you no longer use without losing them.
 - Authentication as on real cameras: WS-Security UsernameToken, HTTP Digest and Basic, per-camera users.
 - Settings changed over ONVIF (resolution, frame rate, bitrate, image settings, presets, home position)
   are kept in the world file and survive a restart.
+- ONVIF DeviceIO (relay outputs and digital inputs) and geolocation (`GetGeoLocation`,
+  `SetGeoLocation`), on a world anchored to a real place on the Earth.
 
 **Video**
 - RTSP for every camera: Motion JPEG always, H.264 through the bundled ffmpeg; RTP over UDP or
@@ -57,6 +59,16 @@ editor, and put away the ones you no longer use without losing them.
 - Motion events through ONVIF pull points (`tns1:VideoSource/MotionAlarm`,
   `tns1:RuleEngine/CellMotionDetector/Motion`) while someone or a car is in view.
 
+**Devices you can wire**
+- A camera carries ONVIF relay outputs and digital inputs, and a wire joins a relay of one camera to
+  an input or a lamp of any other: a closed contact pulls its input to 0, and a closed relay lights
+  the lamps it drives.
+- A relay reports its coil (what `SetRelayOutputState` sets) and its contact apart, and a monostable
+  relay de-energises after its delay. A contact, an input or a relay's idle state that changes raises
+  the ONVIF `Device/Trigger/Relay` and `Device/Trigger/DigitalInput` property events.
+- Lamps are objects of the world, glowing in a colour of their own; the editor's **Wiring** window
+  pairs relays with the inputs and lamps they drive, and a camera's picture can caption their states.
+
 **PTZ you can see**
 - AbsoluteMove, RelativeMove, ContinuousMove, Stop, GetStatus, presets and home.
 - The head turns at the camera's set speeds and the stream shows it turning; AbsoluteMove ends exactly
@@ -69,9 +81,13 @@ editor, and put away the ones you no longer use without losing them.
   sculpt the terrain; draw roads and routes for people who walk them and cars that drive them over
   and over.
 - Prepare any number of named worlds in the data directory and switch between them in the header,
-  without restarting; move a world to the trash and restore it, or empty the trash for good.
+  without restarting; move a world to the trash and restore it, or empty the trash for good. A
+  Maryland hall with a fixed master and a PTZ camera facing each other, a car under a camera and
+  relays wired to a lamp and a sensor ships as an example.
 - See each camera's picture beside the 3D view, with the people and cars its analytics reports
   boxed, and drive PTZ cameras with a joystick.
+- See where every camera looks at a glance: each view is a prism in a colour of its own, its base on
+  the ground or the wall the camera actually meets. **Cutaway** opens a building from above.
 - Find every object, camera, road, person and moving car in the contents tree and select it there —
   the reliable way to reach a person only a few pixels tall in the 3D view.
 - Every edit is live, on all streams within a moment; undo and redo; no Save button.
@@ -204,12 +220,15 @@ an edit. Switching worlds clears the history, and undo starts again in the new w
 The toolbar has two rows: **Select**, **Add**, **Draw** and **Terrain** choose which tools the second
 row offers; Undo and Redo stay at its left. Choosing a tab only changes the palette — the active tool
 is marked with a dot, so the viewport keeps doing exactly what it did until another tool is picked.
+**Wiring…**, past Terrain, opens the window that pairs relays with the inputs and lamps they drive.
 
 - **Select, Move, Rotate**: click anything in the viewport or in the contents tree to select it; drag
   the gizmo to move it (G) or turn it (R), or type exact values in the panel. Delete removes the
   selection, Escape drops it.
-- **Add** trees, houses and offices, rocks, boxes, cars and fixed or PTZ cameras: pick one and click
-  the ground.
+- **Add** trees, houses and offices, rocks, boxes, cars, lamps and fixed or PTZ cameras: pick one and
+  click the ground. **Cutaway**, at the left of the tools row, clips the objects and devices above
+  2.5 m so a room can be seen and edited from above; a click above the cut plane goes through to what
+  stands behind it.
 - **Draw** roads, people and car routes: click the ground point by point and finish with a
   double-click or Enter. A person walks their route, a car drives theirs over and over; a car turns
   to follow the route. **Closed loop** makes the last point join the first, so they go round; left
@@ -229,12 +248,25 @@ is marked with a dot, so the viewport keeps doing exactly what it did until anot
 - **Cameras** show what they see (the server's own picture, the same as RTSP), their ONVIF and RTSP
   addresses and every setting: mount, field of view, PTZ limits and speeds, their streams, image
   adjustments, users, the address and ports they listen on, and a colour of their own, which their
-  body and the wire frame of where they look take in the editor and in the other cameras' pictures. A
+  body and the prism of where they look take in the editor and in the other cameras' pictures. A
   PTZ camera gets a joystick (drag it, or focus it and hold the arrow keys), zoom buttons and
   pan/tilt/zoom boxes that drive the same PTZ head as ONVIF clients.
   Every stream has a name, a path and its own encoder settings; **Add** makes a new profile, **Remove**
   takes it and its RTSP path away, and at least one stream stays. **Bind address** makes the camera's
   ONVIF listener and RTSP port listen on one interface; **RTSP port** 0 keeps the global one.
+  A camera's view is drawn as the prism its eye and the four corners of its picture make, ending on
+  the first thing in its way, in a palette colour of its own unless the camera has one of its own,
+  so overlapping views stay apart.
+- **Devices**, before a camera's streams, are its relay outputs and digital inputs: a relay's mode,
+  delay and idle state, and the switch that energises it with the contact it makes shown below; an
+  input's polarity and what it reads. **States on the picture** captions them over the camera's own
+  picture, and **Wiring…** opens the window that connects every relay to the inputs and lamps it
+  drives — relays on the left, inputs and lamps on the right.
+- **Find**, in any inspector, flies the editor camera to what is being edited, keeping the direction
+  it is looked at now.
+- **Lamps** carry a name tag with their state over the scene, and the selected one a ring drawn over
+  everything, roof included — a metre of post at the world's scale is otherwise invisible inside a
+  building.
 
 <p align="center">
   <img src="docs/images/camera-streams.png" alt="A camera panel: its ONVIF and RTSP addresses, and the list of its streams with each path and encoder settings" width="90%">
@@ -276,7 +308,10 @@ port 18180; `npm run e2e` runs the browser test.
 | `GET /api/world`, `PUT /api/world` | the active world as JSON |
 | `GET /api/worlds`, `POST /api/worlds`, `POST /api/worlds/{name}/activate`, `POST /api/worlds/{name}/trash`, `POST /api/trash/{name}/restore`, `DELETE /api/trash` | the world library; see [Worlds](#worlds) |
 | `PUT`, `DELETE /api/objects/{id}`, `/api/roads/{id}`, `/api/walkers/{id}`, `/api/vehicles/{id}`, `/api/cameras/{id}` | add, replace or remove one object, road, walker, moving car or camera |
-| `PUT /api/terrain`, `PUT /api/environment` | the terrain or the sun, sky and fog |
+| `PUT /api/terrain`, `PUT /api/environment`, `PUT /api/geo` | the terrain, the sun, sky and fog, or the world's place on the Earth |
+| `PUT /api/cameras/{id}/io` | a camera's relay outputs, digital inputs and the wires leaving its relays |
+| `PUT /api/cameras/{id}/relays/{token}` `{ "active": true }` | energise or release a relay |
+| `PUT`, `DELETE /api/lamps/{id}` | add, replace or remove a lamp of the world |
 | `POST /api/cameras/{id}/ptz/move`, `goto`, `stop`, `home` | drive a PTZ head |
 | `GET /api/events` | server-sent events: `world` (the active world), `worlds` (the library), `world-switched`, `status` (ONVIF and RTSP ports, H.264) and `ptz` (head positions) |
 | `GET /api/cameras` | camera list |
@@ -382,12 +417,26 @@ WS-Discovery, so ONVIF Device Manager, an NVR or `OnvifLib.Probe --discovery` li
   speeds (`ptz` in the active world file), the stream shows it turning, and where it stops, its presets and
   its home are saved to the active world file.
 - **Imaging** (ver20): brightness, contrast and colour saturation, applied to the picture and saved.
+- **DeviceIO**: `GetRelayOutputs`, `SetRelayOutputState` and `SetRelayOutputSettings` on the Device
+  service, with their counts in `DeviceCapabilities.IO`, and `GetDigitalInputs`,
+  `GetDigitalInputConfigurationOptions`, `SetDigitalInputConfigurations` and `GetRelayOutputOptions`
+  on the DeviceIO service. ONVIF's `RelayOutput` carries settings only, so `GetRelayOutputs` adds the
+  live states in the type's extension point: `ons:LogicalState` (the coil, `active`/`inactive`) and
+  `ons:PhysicalState` (the contact, `closed`/`open`), in the namespace `urn:onvifsim`.
+- **Geolocation**: `GetGeoLocation` answers a camera's position and orientation from the world's
+  geographic anchor; `SetGeoLocation` moves a fixed camera in the world (the orientation in the
+  request is ignored — the mount sets where it looks), and a camera mounted on a moving car answers
+  with the car's position and heading at that moment, but cannot be moved.
 - **Events** (ver10): pull point subscriptions (`CreatePullPointSubscription`, `PullMessages`,
   `SetSynchronizationPoint`, `Renew`, `Unsubscribe`, topic filters in the ConcreteSet dialect). A
   camera raises motion on `tns1:VideoSource/MotionAlarm` and `tns1:RuleEngine/CellMotionDetector/Motion`
   as soon as its analytics sees someone or a car, and clears it a second after the last object is
-  gone; a new subscription first gets the current state. A subscription lives for the time it asked for (a minute
-  by default), renewed by `Renew` and by every pull; a camera keeps at most 10.
+  gone; a new subscription first gets the current state. Its relays and wired inputs arrive as
+  `Initialized` on `tns1:Device/Trigger/Relay` and `tns1:Device/Trigger/DigitalInput`, and a contact,
+  an input or a relay's idle state that moves arrives as `Changed`, with `LogicalState` and
+  `PhysicalState` on the relay topic. `GetEventProperties` describes all of them. A subscription
+  lives for the time it asked for (a minute by default), renewed by `Renew` and by every pull; a
+  camera keeps at most 10.
 
 - **Recording, Search, Replay** (Profile G): the camera's own recording, as on a camera with an SD
   card. Every camera records from the moment it is in the world, with one recording (`Recording_1`,
