@@ -109,6 +109,8 @@ internal static class OnvifNamespaces
     public const string Notification = "http://docs.oasis-open.org/wsn/b-2";
     public const string Addressing = "http://www.w3.org/2005/08/addressing";
     public const string Topics = "http://www.onvif.org/ver10/topics";
+    // The simulator's own extensions beside the schema types, e.g. a relay's live states.
+    public const string Extension = "urn:onvifsim";
 
     public static readonly XmlSerializerNamespaces Prefixes = new(
     [
@@ -126,5 +128,6 @@ internal static class OnvifNamespaces
         new XmlQualifiedName("wsa", Addressing),
         // Topic expressions are text: the tns1 they use must be declared around them.
         new XmlQualifiedName("tns1", Topics),
+        new XmlQualifiedName("ons", Extension),
     ]);
 }

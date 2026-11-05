@@ -278,15 +278,18 @@ public sealed class DeviceHandlers(OnvifRequestContext context)
         new() { StorageConfigurations = [] };
 
     // The camera's relay outputs as configuration: ONVIF has no getter for a relay's live state, which
-    // travels as a Device/Trigger/Relay property event instead. The DeviceIO service answers this too
-    // with the same message (the ONVIF WSDL defines it in the Device namespace), so it lives here once.
+    // travels as a Device/Trigger/Relay property event instead. IdleState here is the contact's rest
+    // state — the polarity — not a live one, and the simulator adds both live states as extensions.
+    // The DeviceIO service answers this too with the same message (the ONVIF WSDL defines it in the
+    // Device namespace), so it lives here once.
     public GetRelayOutputsResponse GetRelayOutputs(GetRelayOutputsRequest request) => new()
     {
         RelayOutputs = context.CurrentCamera.RelayOutputs.Select(DeviceIoContract.RelayOutputOf).ToArray(),
     };
 
-    // Switching goes through the same controller as the editor's switch, so a monostable relay falls
-    // back to its idle state on its delay however it was switched.
+    // Sets the logical state — energised or not — never the contact: the contact follows from it and
+    // the relay's idle state. Switching goes through the same controller as the editor's switch, so a
+    // monostable relay de-energises on its delay however it was switched.
     public SetRelayOutputStateResponse SetRelayOutputState(SetRelayOutputStateRequest request)
     {
         if (!context.DeviceIo.SetRelay(Camera.Id, request.RelayOutputToken, request.LogicalState == RelayLogicalState.active))

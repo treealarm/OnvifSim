@@ -9,6 +9,11 @@ namespace OnvifSim.Onvif.Services;
 // Device service and the DeviceIO service both answer about them, so the mapping lives here once.
 public static class DeviceIoContract
 {
+    // ONVIF's RelayOutput describes a relay's settings only and leaves an xs:any for extensions, so the
+    // live states travel in the simulator's own namespace beside them: the logical one (the coil
+    // energised, which SetRelayOutputState sets) and the physical one (the contact, which follows from
+    // it and IdleState). They are read here as well as from the Device/Trigger/Relay event.
+
     // What GetRelayOutputOptions offers for every relay: both modes, and delays a monostable one might
     // be set to.
     private static readonly TimeSpan[] Delays =
@@ -24,7 +29,20 @@ public static class DeviceIoContract
             DelayTime = XmlConvert.ToString(TimeSpan.FromSeconds(relay.DelaySeconds)),
             IdleState = relay.IdleState == IdleStateModel.Closed ? RelayIdleState.closed : RelayIdleState.open,
         },
+        Any =
+        [
+            Extension("LogicalState", relay.Active ? "active" : "inactive"),
+            Extension("PhysicalState", DeviceIo.ContactClosed(relay) ? "closed" : "open"),
+        ],
     };
+
+    // One element of the RelayOutput extension point, e.g. ons:PhysicalState with "closed".
+    private static XmlElement Extension(string name, string value)
+    {
+        var element = new XmlDocument().CreateElement("ons", name, OnvifNamespaces.Extension);
+        element.InnerText = value;
+        return element;
+    }
 
     public static DigitalInput DigitalInputOf(DigitalInputModel input) => new()
     {

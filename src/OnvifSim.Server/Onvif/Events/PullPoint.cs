@@ -29,7 +29,7 @@ public sealed class PullPoint : IDisposable
     private bool _motion;
     private DateTimeOffset _lastSeen = DateTimeOffset.MinValue;
     // The state each device of the camera was last seen in, to tell what changed.
-    private readonly Dictionary<(string Topic, string Token), bool> _devices = [];
+    private readonly Dictionary<(string Topic, string Token), DeviceReading> _devices = [];
 
     public PullPoint(string cameraId, Func<string, bool> wants, TimeSpan lifetime, CameraAnalytics analytics, TimeProvider time, WorldStore store)
     {
@@ -121,10 +121,11 @@ public sealed class PullPoint : IDisposable
         lock (_gate)
         {
             var now = _time.GetUtcNow();
-            foreach (var (topic, token, state) in States(world))
+            foreach (var (topic, token, reading) in States(world))
             {
-                _devices[(topic, token)] = state;
-                if (_wants(topic)) notices.Add(DeviceEvents.Notification(topic, token, state, propertyOperation, now));
+                _devices[(topic, token)] = reading;
+                if (_wants(topic))
+                    notices.Add(DeviceEvents.Notification(topic, token, reading.State, reading.ContactClosed, propertyOperation, now));
             }
         }
         return [.. notices];
@@ -139,32 +140,38 @@ public sealed class PullPoint : IDisposable
         {
             var seen = new HashSet<(string Topic, string Token)>();
             var now = _time.GetUtcNow();
-            foreach (var (topic, token, state) in States(world))
+            foreach (var (topic, token, reading) in States(world))
             {
                 var key = (topic, token);
                 seen.Add(key);
                 bool known = _devices.TryGetValue(key, out var previous);
-                if (known && previous == state) continue;
-                _devices[key] = state;
+                // A relay's contact may change while its logical state does not: IdleState is a setting.
+                if (known && previous == reading) continue;
+                _devices[key] = reading;
                 if (_wants(topic))
-                    notices.Add(DeviceEvents.Notification(topic, token, state, known ? "Changed" : "Initialized", now));
+                    notices.Add(DeviceEvents.Notification(topic, token, reading.State, reading.ContactClosed,
+                        known ? "Changed" : "Initialized", now));
             }
             foreach (var key in _devices.Keys.Where(key => !seen.Contains(key)).ToList()) _devices.Remove(key);
         }
         Enqueue([.. notices]);
     }
 
-    // A relay's own state, and an input's state as its wire gives it; an input no wire drives has none.
-    private IEnumerable<(string Topic, string Token, bool State)> States(WorldModel world)
+    // A relay's logical state and contact, and an input's state as its wire gives it; an input no wire
+    // drives has none.
+    private IEnumerable<(string Topic, string Token, DeviceReading Reading)> States(WorldModel world)
     {
         var camera = DeviceIo.FindCamera(world, CameraId);
         if (camera is null) yield break;
         foreach (var relay in camera.RelayOutputs)
-            yield return (DeviceEvents.RelayTopic, relay.Token, relay.Active);
+            yield return (DeviceEvents.RelayTopic, relay.Token, new DeviceReading(relay.Active, DeviceIo.ContactClosed(relay)));
         foreach (var input in camera.DigitalInputs)
             if (DeviceIo.InputActive(world, CameraId, input.Token) is { } state)
-                yield return (DeviceEvents.DigitalInputTopic, input.Token, state);
+                yield return (DeviceEvents.DigitalInputTopic, input.Token, new DeviceReading(state, null));
     }
+
+    // What a device reads now: its logical state, and for a relay the physical one as well.
+    private readonly record struct DeviceReading(bool State, bool? ContactClosed);
 
     private async Task WatchAsync()
     {

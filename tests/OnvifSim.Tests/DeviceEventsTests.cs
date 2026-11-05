@@ -28,9 +28,11 @@ public class DeviceEventsTests
         var relayPoint = rig.Points.Create("cam1", DevicesOnly, TimeSpan.FromMinutes(1));
         var inputPoint = rig.Points.Create("cam2", DevicesOnly, TimeSpan.FromMinutes(1));
 
-        Assert.Equal([("Device/Trigger/Relay", "lamp", "inactive", "Initialized")], Read(await PullAsync(relayPoint, 1)));
-        // An open relay leaves the input pulled up, so it reads true.
-        Assert.Equal([("Device/Trigger/DigitalInput", "sensor", "true", "Initialized")], Read(await PullAsync(inputPoint, 1)));
+        // A relay reports both states: the logical one (inactive, not energised) and the physical one
+        // (its normally-open contact is open).
+        Assert.Equal([("Device/Trigger/Relay", "lamp", "inactive", "open", "Initialized")], Read(await PullAsync(relayPoint, 1)));
+        // An open relay leaves the input pulled up, so it reads true. An input has no contact.
+        Assert.Equal([("Device/Trigger/DigitalInput", "sensor", "true", null, "Initialized")], Read(await PullAsync(inputPoint, 1)));
     }
 
     [Fact]
@@ -55,9 +57,9 @@ public class DeviceEventsTests
 
         Assert.True(rig.Switches.SetRelay("cam1", "lamp", true));
 
-        Assert.Equal([("Device/Trigger/Relay", "lamp", "active", "Changed")], Read(await PullAsync(relayPoint, 1)));
+        Assert.Equal([("Device/Trigger/Relay", "lamp", "active", "closed", "Changed")], Read(await PullAsync(relayPoint, 1)));
         // A closed contact shunts the input to zero.
-        Assert.Equal([("Device/Trigger/DigitalInput", "sensor", "false", "Changed")], Read(await PullAsync(inputPoint, 1)));
+        Assert.Equal([("Device/Trigger/DigitalInput", "sensor", "false", null, "Changed")], Read(await PullAsync(inputPoint, 1)));
     }
 
     [Fact]
@@ -71,7 +73,20 @@ public class DeviceEventsTests
 
         point.Synchronize();
 
-        Assert.Equal([("Device/Trigger/Relay", "lamp", "active", "Initialized")], Read(await PullAsync(point, 1)));
+        Assert.Equal([("Device/Trigger/Relay", "lamp", "active", "closed", "Initialized")], Read(await PullAsync(point, 1)));
+    }
+
+    [Fact]
+    public async Task ChangingTheIdleState_FlipsTheContactAndIsReported()
+    {
+        using var rig = new Rig(WithDevices);
+        var point = rig.Points.Create("cam1", DevicesOnly, TimeSpan.FromMinutes(1));
+        await PullAsync(point, 1);
+
+        // The relay is inactive; making it normally closed closes its contact without energising it.
+        rig.Store.Update(world => Camera(world, "cam1").RelayOutputs[0].IdleState = IdleStateModel.Closed);
+
+        Assert.Equal([("Device/Trigger/Relay", "lamp", "inactive", "closed", "Changed")], Read(await PullAsync(point, 1)));
     }
 
     [Fact]
@@ -86,7 +101,7 @@ public class DeviceEventsTests
         });
         var relayOnly = rig.Points.Create("cam1", EventsTests.Filter("tns1:Device/Trigger/Relay", ("tns1", MotionEvents.TopicsNamespace)), TimeSpan.FromMinutes(1));
 
-        Assert.Equal([("Device/Trigger/Relay", "lamp", "inactive", "Initialized")], Read(await PullAsync(relayOnly, 1)));
+        Assert.Equal([("Device/Trigger/Relay", "lamp", "inactive", "open", "Initialized")], Read(await PullAsync(relayOnly, 1)));
         Assert.Empty(await relayOnly.PullAsync(TimeSpan.Zero, 10, CancellationToken.None));
     }
 
@@ -113,16 +128,20 @@ public class DeviceEventsTests
         return [.. pulled];
     }
 
-    // Topic, the device's token, its logical state and how the notification relates to the property.
-    private static (string, string, string, string)[] Read(NotificationMessageHolderType[] notifications) =>
+    // Topic, the device's token, its logical state, its physical state (null for an input, which has
+    // none) and how the notification relates to the property.
+    private static (string, string, string, string?, string)[] Read(NotificationMessageHolderType[] notifications) =>
         notifications.Select(notification =>
         {
             var items = notification.Message.GetElementsByTagName("SimpleItem", Schema).Cast<XmlElement>().ToList();
             string Token() => items.First(item => item.GetAttribute("Name") is "RelayToken" or "InputToken").GetAttribute("Value");
+            string? ValueOf(string name) =>
+                items.FirstOrDefault(item => item.GetAttribute("Name") == name)?.GetAttribute("Value");
             return (
                 ((XmlText)notification.Topic!.Any![0]!).Value.Replace("tns1:", ""),
                 Token(),
-                items.Single(item => item.GetAttribute("Name") == "LogicalState").GetAttribute("Value"),
+                ValueOf("LogicalState")!,
+                ValueOf("PhysicalState"),
                 notification.Message.GetAttribute("PropertyOperation"));
         }).ToArray();
 
@@ -199,7 +218,8 @@ public class DeviceEventServiceTests(SimFactory factory) : IClassFixture<SimFact
         Assert.Equal(["tns1:Device/Trigger/DigitalInput", "tns1:Device/Trigger/Relay"], topics);
         var messages = pulled.Descendants(Tt + "Message").ToList();
         Assert.All(messages, message => Assert.Equal("Initialized", message.Attribute("PropertyOperation")?.Value));
-        Assert.Contains(messages, message => Item(message, "RelayToken") == "lamp" && Item(message, "LogicalState") == "active");
+        Assert.Contains(messages, message => Item(message, "RelayToken") == "lamp"
+            && Item(message, "LogicalState") == "active" && Item(message, "PhysicalState") == "closed");
         // The relay is closed, so the input it drives reads zero.
         Assert.Contains(messages, message => Item(message, "InputToken") == "sensor" && Item(message, "LogicalState") == "false");
     }

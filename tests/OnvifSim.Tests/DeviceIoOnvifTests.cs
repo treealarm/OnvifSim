@@ -1,3 +1,5 @@
+using System.Net.Http.Headers;
+using System.Text;
 using System.Xml.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using OnvifLib;
@@ -41,6 +43,31 @@ public class DeviceIoOnvifTests(SimFactory factory) : IClassFixture<SimFactory>
         PutDevices("cam1", RelayModeModel.Monostable, IdleStateModel.Closed);
         var relay = Assert.Single(await Connect("cam1").GetRelayOutputsAsync());
         Assert.Equal(("lamp", "monostable", "closed", 5000), (relay.Token, relay.Mode, relay.IdleState, relay.DelayMs));
+    }
+
+    // ONVIF's RelayOutput carries settings only; the simulator adds the live logical and physical states
+    // as extensions in its own namespace, so a client reading the outputs sees both.
+    [Fact]
+    public async Task RelayOutputs_CarryBothLiveStatesAsExtensions()
+    {
+        PutDevices("cam1", RelayModeModel.Bistable, IdleStateModel.Closed);
+        factory.Services.GetRequiredService<WorldStore>().Update(world =>
+            world.Cameras.Single(c => c.Id == "cam1").RelayOutputs[0].Active = true);
+
+        using var http = new HttpClient();
+        http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic",
+            Convert.ToBase64String(Encoding.UTF8.GetBytes("admin:admin")));
+        var response = await http.PostAsync($"http://127.0.0.1:{PortOf("cam1")}/onvif/device_service", Soap(
+            "<GetRelayOutputs xmlns=\"http://www.onvif.org/ver10/device/wsdl\"/>"));
+        Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync());
+
+        // ONVIF names the elements of the response RelayOutputs, though their type is RelayOutput.
+        XNamespace ons = "urn:onvifsim";
+        var relay = XDocument.Parse(await response.Content.ReadAsStringAsync()).Root!
+            .Descendants().Single(element => element.Name.LocalName == "RelayOutputs");
+        // Energised and normally closed: active, and the contact is open.
+        Assert.Equal("active", relay.Element(ons + "LogicalState")!.Value);
+        Assert.Equal("open", relay.Element(ons + "PhysicalState")!.Value);
     }
 
     [Fact]
