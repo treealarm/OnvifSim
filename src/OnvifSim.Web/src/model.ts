@@ -173,7 +173,8 @@ export interface PtzSettings {
 // the camera that ONVIF reads and writes, not a thing standing in the world.
 export type RelayMode = 'bistable' | 'monostable';
 
-// The electrical state a relay sits in when nothing drives it; closed carries current (ONVIF: active).
+// The state a relay's contact rests in when the relay is not energised — its polarity: an 'open' relay
+// is normally open and closes when energised, a 'closed' one is normally closed and opens when energised.
 export type IdleState = 'closed' | 'open';
 
 export interface RelayOutput {
@@ -181,10 +182,11 @@ export interface RelayOutput {
   token: string;
   name: string;
   mode: RelayMode;
-  // Seconds a monostable relay stays switched on.
+  // Seconds a monostable relay stays energised.
   delaySeconds: number;
   idleState: IdleState;
-  // The live state, which travels as ONVIF Device/Trigger events.
+  // The logical state, which travels as ONVIF Device/Trigger events: whether the coil is energised. The
+  // contact is not stored — relayContactClosed derives it from this and idleState.
   active: boolean;
 }
 
@@ -459,12 +461,18 @@ export function wiresToLamp(world: World, lampId: string): Wire[] {
   return world.wires.filter((wire) => sameId(wire.lampId ?? '', lampId));
 }
 
-// Whether the relay a wire runs from is closed (carrying current, ONVIF active).
+// Whether a relay's contact is closed — the state a wire carries, not the logical one: an energised
+// relay closes a normally-open contact and opens a normally-closed one.
+export function relayContactClosed(relay: RelayOutput): boolean {
+  return relay.active !== (relay.idleState === 'closed');
+}
+
+// Whether the contact of the relay a wire runs from is closed.
 export function relayClosed(world: World, wire: Wire): boolean {
   const relay = world.cameras
     .find((camera) => sameId(camera.id, wire.relayCameraId))
     ?.relayOutputs.find((output) => sameId(output.token, wire.relayToken));
-  return relay?.active === true;
+  return relay !== undefined && relayContactClosed(relay);
 }
 
 // Whether an input is on. A closed relay contact shunts the input to zero and an open one leaves it

@@ -2,6 +2,7 @@ import {
   cameraIoOf,
   inputActive,
   nextId,
+  relayContactClosed,
   sameId,
   wireTo,
   wiresToInput,
@@ -113,8 +114,8 @@ export function DeviceIoSection({
     <>
       <Section title="Devices">
         <p className="muted">
-          A closed relay reads 0 on an input and lights a lamp; every camera's relays and every lamp of the
-          world are wired in one place.{' '}
+          A closed relay contact reads 0 on an input and lights a lamp; every camera's relays and every
+          lamp of the world are wired in one place.{' '}
           <button type="button" className="link" onClick={() => useEditor.setState({ linksOpen: true })}>
             Wiring…
           </button>
@@ -160,10 +161,13 @@ export function DeviceIoSection({
                 onChange={(idleState) => changeRelay(index, { idleState })}
               />
               <CheckboxField
-                label="Active (the lamp is lit)"
+                label="Energised (active)"
                 checked={relay.active}
                 onChange={(active) => updateRelay(camera.id, relay.token, active)}
               />
+              <p className={relayContactClosed(relay) ? 'io-state on' : 'io-state'}>
+                Contact: {relayContactClosed(relay) ? 'closed' : 'open'}
+              </p>
               {links.length > 1 ? (
                 <p className="muted">
                   Wired to {links.length} devices — open Wiring… to change them.

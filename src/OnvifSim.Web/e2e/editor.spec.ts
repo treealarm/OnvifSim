@@ -412,7 +412,11 @@ test('a lamp is placed from the palette and a relay lights it', async ({ page, r
   await expect(sensor).toContainText('1');
   // The states are a caption on the picture, where a device of a camera is shown.
   await expect(page.locator('.preview-devices')).toContainText('Input input1: 1');
-  await page.getByLabel('Active (the lamp is lit)', { exact: true }).check();
+  // A normally-open relay closes its contact when energised; the card says both things apart.
+  const relayCard = page.locator('.io-card').filter({ has: page.getByLabel('Energised (active)') });
+  await expect(relayCard).toContainText('Contact: open');
+  await page.getByLabel('Energised (active)', { exact: true }).check();
+  await expect(relayCard).toContainText('Contact: closed');
   await expect(sensor).toContainText('0');
   await expect(page.locator('.preview-devices')).toContainText('Input input1: 0');
   await expect.poll(async () => (await world(request)).wires?.some(

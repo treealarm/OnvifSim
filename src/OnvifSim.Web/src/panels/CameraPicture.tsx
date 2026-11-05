@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { inputActive, type CameraModel } from '../model';
+import { inputActive, relayContactClosed, type CameraModel } from '../model';
 import { useEditor } from '../store';
 
 // A person or car the camera's analytics sees, as its metadata stream reports them: the object id and
@@ -22,7 +22,7 @@ export function CameraPicture({ camera, showBoxes, showDevices }: { camera: Came
   const objects = useSeenObjects(camera.id, showBoxes && camera.metadata.analytics);
   const percent = (fraction: number) => `${fraction * 100}%`;
   const devices = world && showDevices ? [
-    ...camera.relayOutputs.map((relay) => `${relay.name || relay.token}: ${relay.active ? 'closed' : 'open'}`),
+    ...camera.relayOutputs.map((relay) => `${relay.name || relay.token}: ${relayContactClosed(relay) ? 'closed' : 'open'}`),
     ...camera.digitalInputs.map((input) => {
       const active = inputActive(world, camera.id, input.token);
       return `${input.name || input.token}: ${active === null ? 'not wired' : active ? '1' : '0'}`;

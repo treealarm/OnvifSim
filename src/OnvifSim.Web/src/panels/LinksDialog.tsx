@@ -3,6 +3,7 @@ import {
   cameraIoOf,
   inputActive,
   lampLit,
+  relayContactClosed,
   sameId,
   sameSink,
   wireTo,
@@ -94,8 +95,8 @@ export function LinksDialog({ open, onClose }: { open: boolean; onClose: () => v
                           <span>
                             {camera.name || camera.id} / {relay.name || relay.token}
                           </span>
-                          <span className={relay.active ? 'io-state on' : 'io-state'}>
-                            {relay.active ? 'closed' : 'open'}
+                          <span className={relayContactClosed(relay) ? 'io-state on' : 'io-state'}>
+                            {relayContactClosed(relay) ? 'closed' : 'open'}
                           </span>
                         </label>
                       </li>
