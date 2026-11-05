@@ -440,13 +440,14 @@ test('the wiring window connects lamps and sensors to relays', async ({ page, re
   const wiring = page.getByRole('dialog', { name: 'Wiring' });
   await expect(wiring).toBeVisible();
 
-  // The default world's relay lights the gate lamp and holds the tower's sensor open.
-  await wiring.getByRole('button', { name: /Gate lamp/ }).click();
-  const relay = wiring.getByRole('checkbox', { name: /Village fixed \/ Village lamp/ });
-  await expect(relay).toBeChecked();
-  await relay.uncheck();
+  // The default world's relay lights the gate lamp and holds the tower's sensor open: the relay is
+  // picked on the left, and the things it drives are ticked on the right.
+  await wiring.getByRole('button', { name: /Village fixed \/ Village lamp/ }).click();
+  const lamp = wiring.getByRole('checkbox', { name: /Gate lamp/ });
+  await expect(lamp).toBeChecked();
+  await lamp.uncheck();
   await expect.poll(async () => (await world(request)).wires?.some((w) => w.lampId === 'gate')).toBe(false);
-  await relay.check();
+  await lamp.check();
   await expect.poll(async () => (await world(request)).wires?.some((w) => w.lampId === 'gate')).toBe(true);
 });
 

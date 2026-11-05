@@ -14,25 +14,25 @@ import {
 import { updateCameraIo, useEditor } from '../store';
 import { Dialog } from './Dialog';
 
-// Every digital input and lamp of the world, on the left, and every relay on the right: an operator
-// picks a sink and ticks the relays wired to it. A relay may drive several sinks and a sink several
+// Every relay of the world, on the left, and every digital input and lamp on the right: an operator
+// picks a relay and ticks the sinks it drives. A relay may drive several sinks and a sink several
 // relays, so this is the one place that shows the whole wiring; the camera's own cards keep a quick
 // control for a single link.
 export function LinksDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const world = useEditor((s) => s.world);
   const [selected, setSelected] = useState<string | null>(null);
+  const relays = useMemo(() => (world ? Relays(world) : []), [world]);
   const sinks = useMemo(() => (world ? Sinks(world) : []), [world]);
-  const current = sinks.find((entry) => keyOf(entry.sink) === selected);
+  const current = relays.find((entry) => entry.key === selected);
 
-  function toggle(relayCamera: CameraModel, relayToken: string, linked: boolean) {
+  function toggle(sink: Sink, linked: boolean) {
     const live = useEditor.getState().world;
-    const sink = current?.sink;
-    if (!live || !sink) return;
-    const camera = live.cameras.find((c) => sameId(c.id, relayCamera.id));
+    if (!live || !current) return;
+    const camera = live.cameras.find((c) => sameId(c.id, current.camera.id));
     if (!camera) return;
     const io = cameraIoOf(live, camera);
-    const wires = io.wires.filter((wire) => !(sameId(wire.relayToken, relayToken) && sameSink(wire, sink)));
-    if (linked) wires.push(wireTo(camera.id, relayToken, sink));
+    const wires = io.wires.filter((wire) => !(sameId(wire.relayToken, current.token) && sameSink(wire, sink)));
+    if (linked) wires.push(wireTo(camera.id, current.token, sink));
     updateCameraIo(camera, { ...io, wires });
   }
 
@@ -51,65 +51,91 @@ export function LinksDialog({ open, onClose }: { open: boolean; onClose: () => v
       {!world ? null : (
         <div className="links">
           <div>
-            <h3>Inputs and lamps</h3>
-            <p className="muted">
-              A closed relay reads 0 on an input; a normally-open lamp is lit while one is closed.
-            </p>
+            <h3>Relays</h3>
+            <p className="muted">A relay drives the inputs and lamps ticked beside it.</p>
             <ul className="links-list">
-              {sinks.map((entry) => (
-                <li key={keyOf(entry.sink)}>
+              {relays.map((entry) => (
+                <li key={entry.key}>
                   <button
                     type="button"
-                    aria-pressed={selected === keyOf(entry.sink)}
-                    onClick={() => setSelected(keyOf(entry.sink))}
+                    aria-pressed={selected === entry.key}
+                    onClick={() => setSelected(entry.key)}
                   >
                     <span>{entry.label}</span>
-                    <span className={entry.on ? 'io-state on' : 'io-state'}>{entry.state}</span>
+                    <span className={entry.closed ? 'io-state on' : 'io-state'}>{entry.state}</span>
                   </button>
                 </li>
               ))}
             </ul>
           </div>
           <div>
-            <h3>Relays</h3>
+            <h3>Inputs and lamps</h3>
             {!current ? (
-              <p className="muted">Select an input or a lamp on the left.</p>
+              <p className="muted">Select a relay on the left.</p>
             ) : (
-              <ul className="links-list">
-                {world.cameras.flatMap((camera) =>
-                  camera.relayOutputs.map((relay) => {
+              <>
+                <p className="muted">
+                  A closed relay contact reads 0 on an input; a normally-open lamp is lit while one is
+                  closed.
+                </p>
+                <ul className="links-list">
+                  {sinks.map((entry) => {
                     const linked = world.wires.some(
                       (wire) =>
-                        sameId(wire.relayCameraId, camera.id) &&
-                        sameId(wire.relayToken, relay.token) &&
-                        sameSink(wire, current.sink),
+                        sameId(wire.relayCameraId, current.camera.id) &&
+                        sameId(wire.relayToken, current.token) &&
+                        sameSink(wire, entry.sink),
                     );
                     return (
-                      <li key={`${camera.id}/${relay.token}`}>
+                      <li key={keyOf(entry.sink)}>
                         <label>
                           <input
                             type="checkbox"
                             checked={linked}
-                            onChange={(e) => toggle(camera, relay.token, e.target.checked)}
+                            onChange={(e) => toggle(entry.sink, e.target.checked)}
                           />
-                          <span>
-                            {camera.name || camera.id} / {relay.name || relay.token}
-                          </span>
-                          <span className={relayContactClosed(relay) ? 'io-state on' : 'io-state'}>
-                            {relayContactClosed(relay) ? 'closed' : 'open'}
-                          </span>
+                          <span>{entry.label}</span>
+                          <span className={entry.on ? 'io-state on' : 'io-state'}>{entry.state}</span>
                         </label>
                       </li>
                     );
-                  }),
-                )}
-              </ul>
+                  })}
+                </ul>
+              </>
             )}
           </div>
         </div>
       )}
     </Dialog>
   );
+}
+
+interface RelayEntry {
+  key: string;
+  camera: CameraModel;
+  token: string;
+  label: string;
+  state: string;
+  closed: boolean;
+}
+
+// Every relay in the world, with how its contact stands now.
+function Relays(world: World): RelayEntry[] {
+  const entries: RelayEntry[] = [];
+  for (const camera of world.cameras) {
+    for (const relay of camera.relayOutputs) {
+      const closed = relayContactClosed(relay);
+      entries.push({
+        key: `${camera.id}/${relay.token}`,
+        camera,
+        token: relay.token,
+        label: `${camera.name || camera.id} / ${relay.name || relay.token}`,
+        state: closed ? 'closed' : 'open',
+        closed,
+      });
+    }
+  }
+  return entries;
 }
 
 interface SinkEntry {
