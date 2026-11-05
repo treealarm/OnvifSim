@@ -192,8 +192,9 @@ public sealed class CameraModel
     public ImagingModel Imaging { get; set; } = new();
     public MetadataModel Metadata { get; set; } = new();
     public PtzModel? Ptz { get; set; }
-    // Relay outputs and digital inputs of the camera, and the lamps and sensor blocks that stand for
-    // them in the world. Their live state travels as ONVIF Device/Trigger events.
+    // Relay outputs and digital inputs of the camera: settings a client reads and switches, with no
+    // place of their own. The wires leaving them are the world's (WorldModel.Wires), and their live
+    // state travels as Device/Trigger events.
     public List<RelayOutputModel> RelayOutputs { get; set; } = [];
     public List<DigitalInputModel> DigitalInputs { get; set; } = [];
     // Port of the camera's ONVIF service; 0 means automatic: 8001 for the first camera, 8002 for the
