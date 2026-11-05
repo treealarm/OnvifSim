@@ -24,9 +24,15 @@ public static class DeviceIo
     public static IEnumerable<WireModel> WiresToLamp(WorldModel world, string id) =>
         world.Wires.Where(w => Same(w.LampId, id));
 
-    // Whether the relay a wire runs from is closed (carrying current, ONVIF active).
+    // Whether a relay's contact is closed, which is what a wire carries. Not the same as its logical
+    // state: the relay is energised by Active, and the contact is the normally-open or normally-closed
+    // one IdleState says, so an energised relay closes an open contact and opens a closed one.
+    public static bool ContactClosed(RelayOutputModel relay) =>
+        relay.Active != (relay.IdleState == IdleStateModel.Closed);
+
+    // Whether the relay a wire runs from has its contact closed.
     public static bool RelayClosed(WorldModel world, WireModel wire) =>
-        FindRelay(world, wire.RelayCameraId, wire.RelayToken)?.Active == true;
+        FindRelay(world, wire.RelayCameraId, wire.RelayToken) is { } relay && ContactClosed(relay);
 
     // Whether the input is on. A closed relay contact shunts the input to zero and an open one leaves
     // it pulled up, so a wired input reads inverted: any closed relay gives false, all open gives

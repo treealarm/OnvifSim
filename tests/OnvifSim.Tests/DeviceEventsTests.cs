@@ -184,7 +184,7 @@ public class DeviceEventServiceTests(SimFactory factory) : IClassFixture<SimFact
         factory.Services.GetRequiredService<WorldStore>().Update(world =>
         {
             var camera = world.Cameras.Single(c => c.Id == "cam1");
-            camera.RelayOutputs = [new RelayOutputModel { Token = "lamp", IdleState = IdleStateModel.Closed, Active = true }];
+            camera.RelayOutputs = [new RelayOutputModel { Token = "lamp", IdleState = IdleStateModel.Open, Active = true }];
             camera.DigitalInputs = [new DigitalInputModel { Token = "sensor" }];
             world.Wires.RemoveAll(w => w.InputCameraId == "cam1");
             world.Wires.Add(new WireModel { RelayCameraId = "cam1", RelayToken = "lamp", InputCameraId = "cam1", InputToken = "sensor" });

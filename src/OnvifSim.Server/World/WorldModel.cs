@@ -224,8 +224,9 @@ public sealed class UserModel
 
 public enum RelayModeModel { Bistable, Monostable }
 
-// Electrical state a relay sits in when nothing drives it. Closed is the state that carries current,
-// which ONVIF reports as active.
+// The state the contact of a relay rests in when the relay is not energised — its polarity: a relay
+// with an 'open' idle state is normally open and closes when energised, a 'closed' one is normally
+// closed and opens when energised.
 public enum IdleStateModel { Closed, Open }
 
 // A relay output of a camera: a switch a client or the editor sets, and which a wire may pass on to a
@@ -236,10 +237,14 @@ public sealed class RelayOutputModel
     public string Token { get; set; } = "";
     public string Name { get; set; } = "";
     public RelayModeModel Mode { get; set; } = RelayModeModel.Bistable;
-    // How long a monostable relay stays switched on, seconds; a bistable one ignores it.
+    // How long a monostable relay stays energised, seconds; a bistable one ignores it.
     public float DelaySeconds { get; set; } = 5;
+    // The contact's rest state, i.e. the relay's polarity. The contact itself is not stored: it follows
+    // from this and Active.
     public IdleStateModel IdleState { get; set; } = IdleStateModel.Open;
-    // The logical state now: what the editor or ONVIF set it to, and what a wire passes on.
+    // The logical state: whether the coil is energised, which ONVIF's SetRelayOutputState sets. The
+    // contact follows from it and IdleState (DeviceIo.ContactClosed): an energised relay closes a
+    // normally-open contact and opens a normally-closed one.
     public bool Active { get; set; }
 }
 

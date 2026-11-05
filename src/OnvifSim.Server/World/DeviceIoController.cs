@@ -1,8 +1,10 @@
 namespace OnvifSim.World;
 
-// The one place a relay output's state changes, whoever asks: the editor's switch today and ONVIF's
-// SetRelayOutputState soon. A monostable relay falls back to its idle state DelaySeconds after being
-// switched, the way a door strike or a gate closes again on its own.
+// The one place a relay output's state changes, whoever asks: the editor's switch or ONVIF's
+// SetRelayOutputState. What is switched is the logical state — the coil energised or not — and the
+// contact follows it through the relay's idle state. A monostable relay de-energises DelaySeconds after
+// being switched, the way a door strike or a gate closes again on its own, so its contact returns to
+// the idle state on its own as well.
 public sealed class DeviceIoController : IDisposable
 {
     private readonly WorldStore _store;
@@ -21,7 +23,7 @@ public sealed class DeviceIoController : IDisposable
         _store.Switched += _ => CancelTimers();
     }
 
-    // Switches a relay. False when the camera has no relay with that token.
+    // Energises or de-energises a relay. False when the camera has no relay with that token.
     public bool SetRelay(string cameraId, string token, bool active)
     {
         RelayOutputModel? relay = null;
@@ -60,10 +62,11 @@ public sealed class DeviceIoController : IDisposable
             if (!_timers.TryGetValue(key, out var pending) || pending.Generation != generation) return;
             _timers.Remove(key);
         }
+        // De-energised, and the contact is back in the relay's idle state because it is derived from it.
         _store.Update(world =>
         {
             if (DeviceIo.FindRelay(world, cameraId, token) is { Mode: RelayModeModel.Monostable } relay)
-                relay.Active = relay.IdleState == IdleStateModel.Closed;
+                relay.Active = false;
         });
     }
 

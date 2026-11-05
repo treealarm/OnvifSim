@@ -125,6 +125,22 @@ public class DeviceIoTests(SimFactory factory) : IClassFixture<SimFactory>
     }
 
     [Fact]
+    public void AContact_FollowsTheLogicalStateAndTheIdleState()
+    {
+        // Normally open: energised closes the contact.
+        var relay = new RelayOutputModel { IdleState = IdleStateModel.Open };
+        Assert.False(DeviceIo.ContactClosed(relay));
+        relay.Active = true;
+        Assert.True(DeviceIo.ContactClosed(relay));
+
+        // Normally closed: energised opens it.
+        relay = new RelayOutputModel { IdleState = IdleStateModel.Closed };
+        Assert.True(DeviceIo.ContactClosed(relay));
+        relay.Active = true;
+        Assert.False(DeviceIo.ContactClosed(relay));
+    }
+
+    [Fact]
     public void ABistableRelay_StaysSwitched()
     {
         using var dir = new TempDir();
@@ -148,22 +164,27 @@ public class DeviceIoTests(SimFactory factory) : IClassFixture<SimFactory>
         Assert.True(switches.SetRelay("cam1", "lamp", true));
         time.Advance(TimeSpan.FromSeconds(2));
         Assert.True(Active(store));
+        Assert.True(ContactClosed(store));
 
         time.Advance(TimeSpan.FromSeconds(1.5));
         Assert.False(Active(store));
+        Assert.False(ContactClosed(store));
     }
 
     [Fact]
-    public void AMonostableRelay_FallsBackToAClosedIdleStateAsActive()
+    public void AMonostableRelay_DeEnergisesIntoAClosedContact()
     {
         using var dir = new TempDir();
         var time = new FakeTimeProvider(DateTimeOffset.UnixEpoch.AddDays(20000));
         var store = StoreWithRelay(dir, RelayModeModel.Monostable, IdleStateModel.Closed);
         using var switches = new DeviceIoController(store, time);
 
-        switches.SetRelay("cam1", "lamp", false);
+        Assert.True(switches.SetRelay("cam1", "lamp", true));
+        Assert.False(ContactClosed(store), "an energised normally-closed contact is open");
+
         time.Advance(TimeSpan.FromSeconds(5));
-        Assert.True(Active(store));
+        Assert.False(Active(store));
+        Assert.True(ContactClosed(store), "the contact is back in its normally-closed idle state");
     }
 
     [Fact]
@@ -204,16 +225,19 @@ public class DeviceIoTests(SimFactory factory) : IClassFixture<SimFactory>
     {
         var world = WorldWithDevices();
         var relay = world.Cameras.Single(c => c.Id == "cam1").RelayOutputs[0];
-        relay.Active = false;
-        Assert.True(DeviceIo.InputActive(world, "cam2", "sensor"));
+        // The relay is energised, so its normally-closed contact is open and the input stays pulled up.
         relay.Active = true;
+        Assert.True(DeviceIo.InputActive(world, "cam2", "sensor"));
+        // De-energised, the contact closes and shunts the input to zero.
+        relay.Active = false;
         Assert.False(DeviceIo.InputActive(world, "cam2", "sensor"));
 
-        // A second relay in parallel: one closed contact is enough to pull the input low.
+        // A second relay in parallel: one closed contact is enough to pull the input low, whatever the
+        // polarity of the other.
         var camera = world.Cameras.Single(c => c.Id == "cam1");
-        camera.RelayOutputs.Add(new RelayOutputModel { Token = "lamp2" });
+        camera.RelayOutputs.Add(new RelayOutputModel { Token = "lamp2", IdleState = IdleStateModel.Open });
         world.Wires.Add(new WireModel { RelayCameraId = "cam1", RelayToken = "lamp2", InputCameraId = "cam2", InputToken = "sensor" });
-        relay.Active = false;
+        relay.Active = true;
         Assert.True(DeviceIo.InputActive(world, "cam2", "sensor"));
         camera.RelayOutputs[1].Active = true;
         Assert.False(DeviceIo.InputActive(world, "cam2", "sensor"));
@@ -237,6 +261,8 @@ public class DeviceIoTests(SimFactory factory) : IClassFixture<SimFactory>
         foreach (var id in new[] { "open", "closed" })
             world.Wires.Add(new WireModel { RelayCameraId = "cam1", RelayToken = "lamp", LampId = id });
         var relay = world.Cameras.Single(c => c.Id == "cam1").RelayOutputs[0];
+        // This test is about the lamps, so the relay is the plain normally-open kind: energised closes it.
+        relay.IdleState = IdleStateModel.Open;
 
         relay.Active = true;
         Assert.True(DeviceIo.LampLit(world, "open"));
@@ -398,8 +424,12 @@ public class DeviceIoTests(SimFactory factory) : IClassFixture<SimFactory>
         return store;
     }
 
-    private static bool Active(WorldStore store) =>
-        store.Current.Cameras.Single(c => c.Id == "cam1").RelayOutputs[0].Active;
+    private static RelayOutputModel RelayOf(WorldStore store) =>
+        store.Current.Cameras.Single(c => c.Id == "cam1").RelayOutputs[0];
+
+    private static bool Active(WorldStore store) => RelayOf(store).Active;
+
+    private static bool ContactClosed(WorldStore store) => DeviceIo.ContactClosed(RelayOf(store));
 
     private string ReasonOf(Action check)
     {
