@@ -7,7 +7,8 @@ namespace OnvifSim.Geometry;
 // Where a camera's field of view meets the ground: a grid of rays through its picture, each followed
 // from the eye until it reaches the terrain. A ray that meets no ground within reach (above the
 // horizon, past the terrain's edge or beyond the fog) stops at a fixed length instead, so the field of
-// view still has a far end to draw. The editor computes the same grid (viewport/footprint.ts).
+// view still has a far end to draw. The editor's own prism (viewport/footprint.ts) is cast against the
+// scene instead, so there it also ends on objects, which a camera picture here does not.
 public static class ViewFootprint
 {
     // Rays across and down the picture, corners included: few, as the grid is a sketch.

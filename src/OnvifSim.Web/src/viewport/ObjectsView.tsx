@@ -109,7 +109,8 @@ function ObjectView({ obj, terrain, geometry, selected, clippingPlanes }: Object
         rotation-y={(-obj.rotationY * Math.PI) / 180}
       >
         {geometry && (
-          <mesh geometry={geometry} onClick={onClick}>
+          // Tagged so a camera's view prism can end on it: its base is where the view meets the world.
+          <mesh geometry={geometry} onClick={onClick} userData={{ occluder: true }}>
             <meshLambertMaterial vertexColors emissive={selected ? '#333322' : '#000000'} clippingPlanes={clippingPlanes} />
           </mesh>
         )}

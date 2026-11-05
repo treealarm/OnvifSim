@@ -245,7 +245,8 @@ export interface CameraModel {
   roll: number;
   hFov: number;
   angleGrid: boolean;
-  // The camera's colour, its body's and its field of view's; null or absent takes its kind's (kindColor).
+  // The camera's colour, its body's and its field of view's; null or absent takes its kind's for the
+  // body (kindColor) and its place in the palette for the view (viewColorOf).
   color?: string | null;
   // rotate: the picture turned clockwise, 0, 90, 180 or 270 degrees.
   video: VideoSettings;
@@ -292,6 +293,14 @@ export function encoderTokenOf(stream: StreamModel): string {
 
 // A camera's colour when it has none of its own (CameraMesh.ColorOf).
 export const kindColor = (kind: CameraKind) => (kind === 'ptz' ? '#ff9f1c' : '#3aa0ff');
+
+// The colours camera views are drawn in, dealt out by a camera's place in the world: views overlap,
+// and a colour of its own for each is what tells them apart.
+export const viewColors = ['#35b6ff', '#ff9f1c', '#e15cff', '#ffd23f', '#ff5d5d', '#29d3a2', '#9d7bff', '#ff7aa8'];
+
+// A camera's view colour: its own when the inspector gave it one, else its palette colour.
+export const viewColorOf = (camera: CameraModel, index: number) =>
+  camera.color ?? viewColors[index % viewColors.length];
 
 export interface World {
   version: number;

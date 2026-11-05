@@ -72,7 +72,16 @@ export function TerrainView({ terrain }: { terrain: Terrain }) {
 
   return (
     <>
-      <mesh name="terrain" geometry={geometry} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onClick={onClick} onDoubleClick={onDoubleClick}>
+      {/* Tagged as an occluder: a camera's view prism ends on the ground as it does on an object. */}
+      <mesh
+        name="terrain"
+        geometry={geometry}
+        userData={{ occluder: true }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onClick={onClick}
+        onDoubleClick={onDoubleClick}
+      >
         <meshLambertMaterial vertexColors />
       </mesh>
       {tool.kind === 'brush' && (

@@ -1,6 +1,6 @@
 import { Line, TransformControls } from '@react-three/drei';
-import { useFrame, type ThreeEvent } from '@react-three/fiber';
-import { useState } from 'react';
+import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
+import { useRef, useState } from 'react';
 import { Matrix4, Quaternion, Vector3, type Object3D } from 'three';
 import {
   heightAt,
@@ -14,11 +14,11 @@ import {
   type Vehicle,
 } from '../model';
 import { select, updateCamera, useEditor } from '../store';
-import { castFootprint, footprintSegments } from './footprint';
+import { castCorners } from './footprint';
 import { Label } from './Label';
 import { lookOf, yawDegrees } from './orientation';
 
-// Above the ground and the roads, as CameraMarkers lifts the grid in the camera pictures.
+// Above whatever the view lands on, as CameraMarkers lifts the grid in the camera pictures.
 const wireLift = 0.2;
 
 interface CameraGizmoProps {
@@ -27,14 +27,19 @@ interface CameraGizmoProps {
   terrain: Terrain;
   environment: Environment;
   vehicles: Vehicle[];
+  // What this camera's view is drawn in, one colour per camera so overlapping views stay apart.
+  viewColor: string;
   selected: boolean;
 }
 
-// A camera in the viewport: a body on a mast and the wire frame of what it sees, down to the ground it
-// covers, which follows a PTZ head as it moves. The group turns with the mount heading, so the rotate
-// gizmo sets the heading; the wire frame is drawn in world space, where the ground is.
-export function CameraGizmo({ camera, head, terrain, environment, vehicles, selected }: CameraGizmoProps) {
+// A camera in the viewport: a body on a mast and a prism of what it sees, standing on the first thing
+// in its way, which follows a PTZ head as it moves. The group turns with the mount heading, so the
+// rotate gizmo sets the heading; the prism is drawn in world space, where the things it meets are.
+export function CameraGizmo({ camera, head, terrain, environment, vehicles, viewColor, selected }: CameraGizmoProps) {
   const [group, setGroup] = useState<Object3D | null>(null);
+  const [corners, setCorners] = useState<Vector3[] | null>(null);
+  const drawn = useRef('');
+  const scene = useThree((s) => s.scene);
   const gizmo = useEditor((s) => s.gizmo);
   const mountedVehicle = vehicles.find((v) => v.id === camera.mountedOnVehicleId);
   const drive = mountedVehicle ? vehiclePoseAt(mountedVehicle, Date.now()) : null;
@@ -50,8 +55,6 @@ export function CameraGizmo({ camera, head, terrain, environment, vehicles, sele
   const body = lookOf(camera, pan, tilt, 0).head;
   const lens = new Quaternion().setFromRotationMatrix(new Matrix4().makeBasis(body.right, body.up, body.forward.clone().negate()));
   const eye = new Vector3(x, ground + camera.position.y, z);
-  const footprint = castFootprint(eye, lookOf(camera, pan, tilt).picture, hFov, camera.video.width / camera.video.height, terrain,
-    environment.fogEnd, environment.frustumLength);
   const color = camera.color ?? kindColor(camera.kind);
 
   // A camera on a car drives with it; the group is moved directly rather than through React state, so
@@ -68,6 +71,25 @@ export function CameraGizmo({ camera, head, terrain, environment, vehicles, sele
       heightAt(terrain, pose.x, pose.z) + camera.position.y,
       pose.z - camera.position.x * s + camera.position.z * c);
     group.rotation.y = -((camera.heading + pose.heading) * Math.PI) / 180;
+  });
+
+  // The prism's base is where the view meets the world, so it is cast against the scene's own meshes:
+  // the ground and the objects standing on it. They arrive from the server asynchronously, and the
+  // camera, a PTZ head or an object may have moved since, so this looks for a change every frame and
+  // casts only when there is one.
+  useFrame(() => {
+    if (mountedVehicle) return;
+    const occluders: Object3D[] = [];
+    scene.traverse((object) => {
+      if (object.userData.occluder) occluders.push(object);
+    });
+    const aspect = camera.video.width / camera.video.height;
+    let stamp = `${eye.x.toFixed(1)},${eye.y.toFixed(1)},${eye.z.toFixed(1)},${pan.toFixed(1)},${tilt.toFixed(1)},${hFov.toFixed(1)},${aspect}`;
+    for (const occluder of occluders) stamp += '|' + occluder.matrixWorld.elements.map((value) => value.toFixed(2)).join(',');
+    if (stamp === drawn.current) return;
+    drawn.current = stamp;
+    setCorners(castCorners(eye, lookOf(camera, pan, tilt).picture, hFov, aspect, occluders,
+      environment.fogEnd, environment.frustumLength));
   });
 
   function onClick(e: ThreeEvent<MouseEvent>) {
@@ -103,9 +125,7 @@ export function CameraGizmo({ camera, head, terrain, environment, vehicles, sele
         </mesh>
         <Label text={camera.name || camera.id} position={[0, 1.2, 0]} onClick={onClick} />
       </group>
-      {!mountedVehicle && (
-        <Line points={footprintSegments(eye, footprint, wireLift)} segments color={color} lineWidth={selected ? 2.5 : 1.5} />
-      )}
+      {!mountedVehicle && corners && <FootprintPrism eye={eye} corners={corners} color={viewColor} selected={selected} />}
       {!mountedVehicle && selected && group && (
         <TransformControls
           object={group}
@@ -117,6 +137,21 @@ export function CameraGizmo({ camera, head, terrain, environment, vehicles, sele
           onMouseUp={commit}
         />
       )}
+    </>
+  );
+}
+
+// Where a camera looks, as the prism its eye and the four corners of its picture make: four edges down
+// to their first meeting with the world and the rim along it, and nothing inside — a grid over every
+// view is only a thicket of lines once several cameras look across each other.
+function FootprintPrism({ eye, corners, color, selected }: { eye: Vector3; corners: Vector3[]; color: string; selected: boolean }) {
+  const at = (p: Vector3): [number, number, number] => [p.x, p.y + wireLift, p.z];
+  const rim = [...corners, corners[0]].map(at);
+  const rays = corners.flatMap((corner) => [[eye.x, eye.y, eye.z] as [number, number, number], at(corner)]);
+  return (
+    <>
+      <Line points={rim} color={color} lineWidth={selected ? 2.2 : 1} transparent opacity={selected ? 0.95 : 0.55} />
+      <Line points={rays} segments color={color} lineWidth={selected ? 2.2 : 1} transparent opacity={selected ? 0.95 : 0.55} />
     </>
   );
 }

@@ -2,7 +2,7 @@ import { OrbitControls } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useRef } from 'react';
 import { Color, Vector3 } from 'three';
-import type { Environment, World } from '../model';
+import { viewColorOf, type Environment, type World } from '../model';
 import { useEditor } from '../store';
 import { CameraGizmo } from './CameraGizmo';
 import { DeviceIoView } from './DeviceIoView';
@@ -33,7 +33,7 @@ export function Viewport({ world }: { world: World }) {
       <ObjectsView objects={world.objects} terrain={world.terrain} />
       <RoutesView roads={world.roads} walkers={world.walkers} vehicles={world.vehicles} terrain={world.terrain} />
       <DeviceIoView world={world} />
-      {world.cameras.map((camera) => (
+      {world.cameras.map((camera, index) => (
         <CameraGizmo
           key={camera.id}
           camera={camera}
@@ -41,6 +41,7 @@ export function Viewport({ world }: { world: World }) {
           terrain={world.terrain}
           environment={world.environment}
           vehicles={world.vehicles}
+          viewColor={viewColorOf(camera, index)}
           selected={selection?.kind === 'camera' && selection.id === camera.id}
         />
       ))}
