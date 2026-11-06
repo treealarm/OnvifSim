@@ -173,7 +173,8 @@ public static class MarylandWorld
 
     // The master's three relays show every kind of link a relay can have: one lights a lamp standing
     // in the hall, one drives the slave camera's sensor, and one drives a sensor of the master itself.
-    // Closed, the sensors read 0 and the lamp is on; open, the sensors read 1 and the lamp is off.
+    // Closed, the contact closes the sensors' circuits (their idle state is open, so they read
+    // active) and the lamp is on; open, the sensors read idle and the lamp is off.
     // Relays and sensors are settings of a camera, not things standing in the world, so the car carries
     // none: a device on it would be a link nobody can see, and the static pair already shows each kind.
     private static void AddDevices(WorldModel world)

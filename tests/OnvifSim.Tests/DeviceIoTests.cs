@@ -221,25 +221,42 @@ public class DeviceIoTests(SimFactory factory) : IClassFixture<SimFactory>
     }
 
     [Fact]
-    public void AnInput_ReadsInverted_AndAnyClosedRelayPullsItToZero()
+    public void AnInput_IsActiveWhenItsCircuitLeavesTheIdleState()
     {
         var world = WorldWithDevices();
         var relay = world.Cameras.Single(c => c.Id == "cam1").RelayOutputs[0];
-        // The relay is energised, so its normally-closed contact is open and the input stays pulled up.
-        relay.Active = true;
-        Assert.True(DeviceIo.InputActive(world, "cam2", "sensor"));
-        // De-energised, the contact closes and shunts the input to zero.
-        relay.Active = false;
+        // The relay rests closed and starts energised, so its contact is open; the input, whose idle
+        // state is open, sees an open circuit and reports its idle state.
         Assert.False(DeviceIo.InputActive(world, "cam2", "sensor"));
-
-        // A second relay in parallel: one closed contact is enough to pull the input low, whatever the
-        // polarity of the other.
-        var camera = world.Cameras.Single(c => c.Id == "cam1");
-        camera.RelayOutputs.Add(new RelayOutputModel { Token = "lamp2", IdleState = IdleStateModel.Open });
-        world.Wires.Add(new WireModel { RelayCameraId = "cam1", RelayToken = "lamp2", InputCameraId = "cam2", InputToken = "sensor" });
-        relay.Active = true;
+        // De-energised, the contact closes: the circuit leaves its idle state and the input is active.
+        relay.Active = false;
         Assert.True(DeviceIo.InputActive(world, "cam2", "sensor"));
-        camera.RelayOutputs[1].Active = true;
+
+        // A second relay in parallel: any closed contact closes the circuit, whatever the other does.
+        var camera = world.Cameras.Single(c => c.Id == "cam1");
+        var second = new RelayOutputModel { Token = "lamp2", IdleState = IdleStateModel.Open };
+        camera.RelayOutputs.Add(second);
+        world.Wires.Add(new WireModel { RelayCameraId = "cam1", RelayToken = "lamp2", InputCameraId = "cam2", InputToken = "sensor" });
+        // Both contacts open again.
+        relay.Active = true;
+        Assert.False(DeviceIo.InputActive(world, "cam2", "sensor"));
+        // One of them closing is enough.
+        second.Active = true;
+        Assert.True(DeviceIo.InputActive(world, "cam2", "sensor"));
+    }
+
+    [Fact]
+    public void AnInputWithIdleStateClosed_IsActiveWhenItsCircuitOpens()
+    {
+        var world = WorldWithDevices();
+        world.Cameras.Single(c => c.Id == "cam2").DigitalInputs[0].IdleState = IdleStateModel.Closed;
+        var relay = world.Cameras.Single(c => c.Id == "cam1").RelayOutputs[0];
+
+        // Energised, the relay's normally-closed contact opens: the input is away from its idle
+        // state, so it reports active.
+        Assert.True(DeviceIo.InputActive(world, "cam2", "sensor"));
+        // De-energised, the contact closes into the idle state, and the input reports idle.
+        relay.Active = false;
         Assert.False(DeviceIo.InputActive(world, "cam2", "sensor"));
     }
 

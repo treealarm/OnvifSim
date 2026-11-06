@@ -251,6 +251,8 @@ public sealed class RelayOutputModel
 
 // A digital input of a camera. It has no state of its own: a wire from a relay output drives it, and
 // without a wire it is simply not wired. Like a relay, it is a setting, not a thing in the world.
+// IdleState names the circuit condition it rests in; ONVIF's LogicalState is true when the circuit is
+// not in that condition (DeviceIo.InputActive).
 public sealed class DigitalInputModel
 {
     public string Token { get; set; } = "";

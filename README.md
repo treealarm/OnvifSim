@@ -61,8 +61,8 @@ editor, and put away the ones you no longer use without losing them.
 
 **Devices you can wire**
 - A camera carries ONVIF relay outputs and digital inputs, and a wire joins a relay of one camera to
-  an input or a lamp of any other: a closed contact pulls its input to 0, and a closed relay lights
-  the lamps it drives.
+  an input or a lamp of any other: a closed contact closes the input's circuit, which reads active
+  while it is not in the idle state the input names, and a closed relay lights the lamps it drives.
 - A relay reports its coil (what `SetRelayOutputState` sets) and its contact apart, and a monostable
   relay de-energises after its delay. A contact, an input or a relay's idle state that changes raises
   the ONVIF `Device/Trigger/Relay` and `Device/Trigger/DigitalInput` property events.
@@ -423,6 +423,9 @@ WS-Discovery, so ONVIF Device Manager, an NVR or `OnvifLib.Probe --discovery` li
   on the DeviceIO service. ONVIF's `RelayOutput` carries settings only, so `GetRelayOutputs` adds the
   live states in the type's extension point: `ons:LogicalState` (the coil, `active`/`inactive`) and
   `ons:PhysicalState` (the contact, `closed`/`open`), in the namespace `urn:onvifsim`.
+  `GetRelayOutputOptions` answers its delays as the schema's `tt:FloatList` — seconds, not durations.
+  A digital input's `LogicalState` follows the idle state it is configured with: `true` means the
+  circuit is not in that idle condition, so the value flips when `IdleState` is changed.
 - **Geolocation**: `GetGeoLocation` answers a camera's position and orientation from the world's
   geographic anchor; `SetGeoLocation` moves a fixed camera in the world (the orientation in the
   request is ignored — the mount sets where it looks), and a camera mounted on a moving car answers

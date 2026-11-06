@@ -54,7 +54,8 @@ public class DeviceIoStateWatcherOnvifTests(MarylandFactory factory) : IClassFix
 
         var input = await WaitForAsync(watcher, DeviceIoKind.DigitalInput, "input",
             state => state.PropertyOperation == "Initialized");
-        Assert.True(input.LogicalState);
+        // The input's idle state is open, and nothing drives its circuit closed: it is idle.
+        Assert.False(input.LogicalState);
         // An input has no contact of its own.
         Assert.Null(input.ContactClosed);
 
@@ -69,13 +70,13 @@ public class DeviceIoStateWatcherOnvifTests(MarylandFactory factory) : IClassFix
         await WaitForAsync(masterWatcher, DeviceIoKind.Relay, "peer", state => state.PropertyOperation == "Initialized");
         var sensorBefore = await WaitForAsync(slaveWatcher, DeviceIoKind.DigitalInput, "input",
             state => state.PropertyOperation == "Initialized");
-        Assert.True(sensorBefore.LogicalState);
+        Assert.False(sensorBefore.LogicalState);
 
         var master = Connect("master");
         try
         {
-            // "peer" drives the slave camera's sensor over a wire: closing its contact shunts the
-            // input to zero.
+            // "peer" drives the slave camera's sensor over a wire: closing its contact closes the
+            // input's circuit, which is active while the idle state is open.
             await master.SetRelayOutputStateAsync("peer", true);
 
             var relay = await WaitForAsync(masterWatcher, DeviceIoKind.Relay, "peer",
@@ -83,7 +84,7 @@ public class DeviceIoStateWatcherOnvifTests(MarylandFactory factory) : IClassFix
             Assert.True(relay.ContactClosed);
 
             var sensor = await WaitForAsync(slaveWatcher, DeviceIoKind.DigitalInput, "input",
-                state => state.PropertyOperation == "Changed" && !state.LogicalState);
+                state => state.PropertyOperation == "Changed" && state.LogicalState);
             Assert.Null(sensor.ContactClosed);
         }
         finally

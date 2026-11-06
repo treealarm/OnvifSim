@@ -42,10 +42,14 @@ public static class DeviceEvents
         var document = new XmlDocument();
         var device = EventXml.TopicRoot(document, "Device");
         var trigger = (XmlElement)device.AppendChild(document.CreateElement("Trigger"))!;
+        // The types are the ones the Device IO spec's MessageDescription uses: a relay's state is a
+        // tt:RelayLogicalState (active/inactive), an input's is an xs:boolean. PhysicalState is the
+        // simulator's own extension beside them.
         EventXml.Leaf(document, trigger, "Relay",
-            [("RelayToken", "tt:ReferenceToken")], [("LogicalState", "xs:string"), ("PhysicalState", "xs:string")]);
+            [("RelayToken", "tt:ReferenceToken")],
+            [("LogicalState", "tt:RelayLogicalState"), ("PhysicalState", "xs:string")]);
         EventXml.Leaf(document, trigger, "DigitalInput",
-            [("InputToken", "tt:ReferenceToken")], [("LogicalState", "xs:string")]);
+            [("InputToken", "tt:ReferenceToken")], [("LogicalState", "xs:boolean")]);
         return new TopicSetType { Any = [device] };
     }
 }

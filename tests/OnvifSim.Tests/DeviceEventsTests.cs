@@ -31,8 +31,9 @@ public class DeviceEventsTests
         // A relay reports both states: the logical one (inactive, not energised) and the physical one
         // (its normally-open contact is open).
         Assert.Equal([("Device/Trigger/Relay", "lamp", "inactive", "open", "Initialized")], Read(await PullAsync(relayPoint, 1)));
-        // An open relay leaves the input pulled up, so it reads true. An input has no contact.
-        Assert.Equal([("Device/Trigger/DigitalInput", "sensor", "true", null, "Initialized")], Read(await PullAsync(inputPoint, 1)));
+        // The relay's contact is open, so the input's circuit is open too; with its idle state open,
+        // that is the idle state and it reads false. An input has no contact.
+        Assert.Equal([("Device/Trigger/DigitalInput", "sensor", "false", null, "Initialized")], Read(await PullAsync(inputPoint, 1)));
     }
 
     [Fact]
@@ -58,8 +59,8 @@ public class DeviceEventsTests
         Assert.True(rig.Switches.SetRelay("cam1", "lamp", true));
 
         Assert.Equal([("Device/Trigger/Relay", "lamp", "active", "closed", "Changed")], Read(await PullAsync(relayPoint, 1)));
-        // A closed contact shunts the input to zero.
-        Assert.Equal([("Device/Trigger/DigitalInput", "sensor", "false", null, "Changed")], Read(await PullAsync(inputPoint, 1)));
+        // The closed contact closes the input's circuit, which with its idle state open is active.
+        Assert.Equal([("Device/Trigger/DigitalInput", "sensor", "true", null, "Changed")], Read(await PullAsync(inputPoint, 1)));
     }
 
     [Fact]
@@ -87,6 +88,20 @@ public class DeviceEventsTests
         rig.Store.Update(world => Camera(world, "cam1").RelayOutputs[0].IdleState = IdleStateModel.Closed);
 
         Assert.Equal([("Device/Trigger/Relay", "lamp", "inactive", "closed", "Changed")], Read(await PullAsync(point, 1)));
+    }
+
+    [Fact]
+    public async Task ChangingTheInputsIdleState_FlipsItsLogicalStateAndIsReported()
+    {
+        using var rig = new Rig(WithDevices);
+        var point = rig.Points.Create("cam2", DevicesOnly, TimeSpan.FromMinutes(1));
+        Assert.Equal([("Device/Trigger/DigitalInput", "sensor", "false", null, "Initialized")], Read(await PullAsync(point, 1)));
+
+        // The circuit is still open; declaring that the idle state is the closed circuit makes the
+        // open one the active state.
+        rig.Store.Update(world => Camera(world, "cam2").DigitalInputs[0].IdleState = IdleStateModel.Closed);
+
+        Assert.Equal([("Device/Trigger/DigitalInput", "sensor", "true", null, "Changed")], Read(await PullAsync(point, 1)));
     }
 
     [Fact]
@@ -220,8 +235,9 @@ public class DeviceEventServiceTests(SimFactory factory) : IClassFixture<SimFact
         Assert.All(messages, message => Assert.Equal("Initialized", message.Attribute("PropertyOperation")?.Value));
         Assert.Contains(messages, message => Item(message, "RelayToken") == "lamp"
             && Item(message, "LogicalState") == "active" && Item(message, "PhysicalState") == "closed");
-        // The relay is closed, so the input it drives reads zero.
-        Assert.Contains(messages, message => Item(message, "InputToken") == "sensor" && Item(message, "LogicalState") == "false");
+        // The relay's contact is closed, so the circuit of the input it drives is closed; with the
+        // input's idle state open, that is its active state.
+        Assert.Contains(messages, message => Item(message, "InputToken") == "sensor" && Item(message, "LogicalState") == "true");
     }
 
     private static string? Item(XElement message, string name) => message

@@ -36,7 +36,10 @@ public sealed class DeviceIoHandlers(OnvifRequestContext context)
 
     public GetDigitalInputConfigurationOptionsResponse GetDigitalInputConfigurationOptions(GetDigitalInputConfigurationOptionsRequest request)
     {
-        RequireInput(context.CurrentCamera, request.Token);
+        // An empty token asks for the device's generic options (Device IO spec 5.7.2); a token that
+        // names no input is still a fault.
+        if (!string.IsNullOrWhiteSpace(request.Token))
+            RequireInput(context.CurrentCamera, request.Token);
         return new GetDigitalInputConfigurationOptionsResponse(new DigitalInputConfigurationOptions
         {
             IdleState = [DigitalIdleState.open, DigitalIdleState.closed],
@@ -64,7 +67,7 @@ public sealed class DeviceIoHandlers(OnvifRequestContext context)
         if (!string.IsNullOrWhiteSpace(request.RelayOutputToken))
         {
             var relay = relays.FirstOrDefault(r => DeviceIo.Same(r.Token, request.RelayOutputToken))
-                ?? throw OnvifFault.InvalidArgValue($"The camera has no relay output '{request.RelayOutputToken}'.");
+                ?? throw OnvifFault.RelayToken(request.RelayOutputToken);
             relays = [relay];
         }
         return new GetRelayOutputOptionsResponse { RelayOutputOptions = relays.Select(DeviceIoContract.RelayOptionsOf).ToArray() };

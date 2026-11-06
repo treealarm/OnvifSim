@@ -34,13 +34,27 @@ public static class DeviceIo
     public static bool RelayClosed(WorldModel world, WireModel wire) =>
         FindRelay(world, wire.RelayCameraId, wire.RelayToken) is { } relay && ContactClosed(relay);
 
-    // Whether the input is on. A closed relay contact shunts the input to zero and an open one leaves
-    // it pulled up, so a wired input reads inverted: any closed relay gives false, all open gives
-    // true. Null when no wire drives it, which is not the same as a wire from a relay that is off.
-    public static bool? InputActive(WorldModel world, string cameraId, string token)
+    // Whether the input's circuit is closed: any wired relay contact is closed. The electrical line
+    // is pulled up while the circuit is open and shunted to zero while it is closed, but ONVIF's
+    // LogicalState is about the circuit, not the line.
+    private static bool? CircuitClosed(WorldModel world, string cameraId, string token)
     {
         var wires = WiresToInput(world, cameraId, token).ToList();
-        return wires.Count == 0 ? null : !wires.Any(wire => RelayClosed(world, wire));
+        return wires.Count == 0 ? null : wires.Any(wire => RelayClosed(world, wire));
+    }
+
+    // The logical state an input reports. The Device IO spec says that a camera supporting
+    // SetDigitalInputConfigurations (OnvifSim does) sets LogicalState true for the active state and
+    // false for the idle one. IdleState names the circuit condition the input rests in, so a closed
+    // circuit is active only when the idle state is open; an idle state of closed inverts that.
+    // Null when no wire drives it, which is not the same as a wire from a relay that is off.
+    public static bool? InputActive(WorldModel world, string cameraId, string token)
+    {
+        if (FindInput(world, cameraId, token) is not { } input)
+            return null;
+        return CircuitClosed(world, cameraId, token) is { } closed
+            ? closed != (input.IdleState == IdleStateModel.Closed)
+            : null;
     }
 
     // Whether a lamp is lit. A normally-open lamp lights while any linked relay is closed; a normally

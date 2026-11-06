@@ -484,12 +484,19 @@ export function relayClosed(world: World, wire: Wire): boolean {
   return relay !== undefined && relayContactClosed(relay);
 }
 
-// Whether an input is on. A closed relay contact shunts the input to zero and an open one leaves it
-// pulled up, so a wired input reads inverted: any closed relay gives false, all open gives true. Null
-// when no wire drives it, which is not the same as a wire from a relay that is off.
+// Whether an input reports active — ONVIF's LogicalState. A wire carries the relay contact, and an
+// input's idle state names the circuit condition it rests in, so the active state is the one the
+// idle state is not: with idle state open a closed circuit is active, with idle state closed an open
+// one is. Null when no wire drives it, which is not the same as a wire from a relay that is off.
 export function inputActive(world: World, cameraId: string, token: string): boolean | null {
   const wires = wiresToInput(world, cameraId, token);
-  return wires.length === 0 ? null : !wires.some((wire) => relayClosed(world, wire));
+  if (wires.length === 0) return null;
+  const input = world.cameras
+    .find((camera) => sameId(camera.id, cameraId))
+    ?.digitalInputs.find((candidate) => sameId(candidate.token, token));
+  if (input === undefined) return null;
+  const closed = wires.some((wire) => relayClosed(world, wire));
+  return closed !== (input.idleState === 'closed');
 }
 
 // Whether a lamp is lit. A normally-open lamp lights while any linked relay is closed; a normally

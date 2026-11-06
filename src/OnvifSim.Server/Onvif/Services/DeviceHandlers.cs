@@ -293,21 +293,28 @@ public sealed class DeviceHandlers(OnvifRequestContext context)
     public SetRelayOutputStateResponse SetRelayOutputState(SetRelayOutputStateRequest request)
     {
         if (!context.DeviceIo.SetRelay(Camera.Id, request.RelayOutputToken, request.LogicalState == RelayLogicalState.active))
-            throw OnvifFault.InvalidArgValue($"The camera has no relay output '{request.RelayOutputToken}'.");
+            throw OnvifFault.RelayToken(request.RelayOutputToken);
         return new SetRelayOutputStateResponse();
     }
 
     public SetRelayOutputSettingsResponse SetRelayOutputSettings(SetRelayOutputSettingsRequest request)
     {
         var settings = request.Properties ?? throw OnvifFault.InvalidArgValue("SetRelayOutputSettings needs relay output settings.");
-        float? delay = DeviceIoContract.DelaySecondsOf(settings.DelayTime);
-        if (delay is < 0.05f or > 3600)
-            throw OnvifFault.InvalidArgValue("A monostable delay must be within 0.05..3600 s.");
+        var mode = DeviceIoContract.ModeOf(settings.Mode);
+        // DelayTime is only meaningful for a monostable relay; the spec says a bistable one shall
+        // ignore it, so a malformed duration there is not a fault either.
+        float? delay = null;
+        if (mode == RelayModeModel.Monostable)
+        {
+            delay = DeviceIoContract.DelaySecondsOf(settings.DelayTime);
+            if (delay is < 0.05f or > 3600)
+                throw OnvifFault.ModeError("A monostable delay must be within 0.05..3600 s.");
+        }
         context.Store.Update(world =>
         {
             var relay = DeviceIo.FindRelay(world, Camera.Id, request.RelayOutputToken)
-                ?? throw OnvifFault.InvalidArgValue($"The camera has no relay output '{request.RelayOutputToken}'.");
-            relay.Mode = DeviceIoContract.ModeOf(settings.Mode);
+                ?? throw OnvifFault.RelayToken(request.RelayOutputToken);
+            relay.Mode = mode;
             if (delay is { } seconds) relay.DelaySeconds = seconds;
             relay.IdleState = DeviceIoContract.IdleStateOf(settings.IdleState);
         });

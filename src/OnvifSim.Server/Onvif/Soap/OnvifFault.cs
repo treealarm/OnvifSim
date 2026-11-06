@@ -17,6 +17,13 @@ public sealed class OnvifFault(bool isSender, string[] subcodes, string reason) 
     public static OnvifFault InvalidArgValue(string reason) =>
         new(true, ["InvalidArgVal"], reason);
 
+    // The Device IO spec's own subcodes for the two faults its commands name explicitly.
+    public static OnvifFault RelayToken(string? token) =>
+        new(true, ["InvalidArgVal", "RelayToken"], $"The camera has no relay output '{token}'.");
+
+    public static OnvifFault ModeError(string reason) =>
+        new(true, ["InvalidArgVal", "ModeError"], reason);
+
     public static OnvifFault NoProfile(string token) =>
         new(true, ["InvalidArgVal", "NoProfile"], $"No profile with token '{token}'.");
 

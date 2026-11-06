@@ -114,8 +114,9 @@ export function DeviceIoSection({
     <>
       <Section title="Devices">
         <p className="muted">
-          A closed relay contact reads 0 on an input and lights a lamp; every camera's relays and every
-          lamp of the world are wired in one place.{' '}
+          A closed relay contact closes an input's circuit and lights a lamp; an input reads 1 (active)
+          while its circuit is not in the idle state it names. Every camera's relays and every lamp of
+          the world are wired in one place.{' '}
           <button type="button" className="link" onClick={() => useEditor.setState({ linksOpen: true })}>
             Wiring…
           </button>

@@ -75,8 +75,8 @@ export function LinksDialog({ open, onClose }: { open: boolean; onClose: () => v
             ) : (
               <>
                 <p className="muted">
-                  A closed relay contact reads 0 on an input; a normally-open lamp is lit while one is
-                  closed.
+                  A closed relay contact closes an input's circuit — the input reads 1 (active) while
+                  that is not the idle state it names; a normally-open lamp is lit while one is closed.
                 </p>
                 <ul className="links-list">
                   {sinks.map((entry) => {

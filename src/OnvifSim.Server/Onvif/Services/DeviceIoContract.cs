@@ -55,7 +55,10 @@ public static class DeviceIoContract
     {
         token = relay.Token,
         Mode = [RelayMode.Bistable, RelayMode.Monostable],
-        DelayTimes = string.Join(' ', Delays.Select(delay => XmlConvert.ToString(delay))),
+        // tt:FloatList is a space-separated list of seconds, not a list of xs:duration: the schema
+        // says "supported delay time range or discrete values in seconds". Unlike RelayOutputSettings
+        // .DelayTime, which really is a duration.
+        DelayTimes = string.Join(' ', Delays.Select(delay => XmlConvert.ToString(delay.TotalSeconds))),
         Discrete = false,
         DiscreteSpecified = true,
     };

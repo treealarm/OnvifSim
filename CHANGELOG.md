@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+- **A digital input's logical state follows the Device IO spec.** A camera that supports
+  `SetDigitalInputConfigurations` — OnvifSim does — reports `true` for the active state and `false`
+  for the idle one, and `IdleState` names the circuit condition the input rests in. Changing that
+  idle state now flips the value the input reports, as a real camera does. The editor's "reads 1/0"
+  is the same state, so it no longer disagrees with the ONVIF events.
+- **Device IO wire details.** `GetRelayOutputOptions` writes its `DelayTimes` as the schema's
+  `tt:FloatList` — space-separated seconds — not as durations; the event topic set declares a
+  relay's `LogicalState` as `tt:RelayLogicalState` and an input's as `xs:boolean`;
+  `GetDigitalInputConfigurationOptions` without a token returns the device's generic options; and
+  the Device IO faults carry their spec subcodes (`ter:RelayToken`, `ter:ModeError`). A bistable
+  relay ignores a malformed `DelayTime`, as the spec says it may.
+
 ## 0.4.0 (2026-11-05)
 
 - **A world with a place on Earth.** The world file now carries a geographic anchor (`geo`: its

@@ -386,7 +386,7 @@ test('trashing the active world opens another one', async ({ page, request }) =>
 
 // A lamp is a device of the world, not a part of a camera, and it is put down from the palette like
 // any object. A relay of a camera drives it, and the same relay may drive a sensor of its own camera:
-// closed, the input reads 0 and the lamp is lit.
+// closed, the input is active and reads 1, and the lamp is lit.
 test('a lamp is placed from the palette and a relay lights it', async ({ page, request }) => {
   await openEditor(page);
 
@@ -409,16 +409,16 @@ test('a lamp is placed from the palette and a relay lights it', async ({ page, r
   // The relay drives a sensor of the camera it belongs to.
   await page.getByLabel('Wired to', { exact: true }).selectOption({ label: `Fixed ${cameraId} / Input input1 (input)` });
   const sensor = page.locator('.io-card').filter({ has: page.locator('strong', { hasText: 'Input input1' }) });
-  await expect(sensor).toContainText('1');
+  await expect(sensor).toContainText('0');
   // The states are a caption on the picture, where a device of a camera is shown.
-  await expect(page.locator('.preview-devices')).toContainText('Input input1: 1');
+  await expect(page.locator('.preview-devices')).toContainText('Input input1: 0');
   // A normally-open relay closes its contact when energised; the card says both things apart.
   const relayCard = page.locator('.io-card').filter({ has: page.getByLabel('Energised (active)') });
   await expect(relayCard).toContainText('Contact: open');
   await page.getByLabel('Energised (active)', { exact: true }).check();
   await expect(relayCard).toContainText('Contact: closed');
-  await expect(sensor).toContainText('0');
-  await expect(page.locator('.preview-devices')).toContainText('Input input1: 0');
+  await expect(sensor).toContainText('1');
+  await expect(page.locator('.preview-devices')).toContainText('Input input1: 1');
   await expect.poll(async () => (await world(request)).wires?.some(
     (w) => w.relayCameraId === cameraId && w.inputCameraId === cameraId && w.inputToken === 'input1')).toBe(true);
 

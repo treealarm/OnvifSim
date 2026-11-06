@@ -134,8 +134,9 @@ public static class DefaultWorld
         // ONVIF before anyone opens the editor: the village camera switches, the tower camera reads.
         world.Cameras[0].RelayOutputs.Add(new RelayOutputModel { Token = "lamp", Name = "Village lamp" });
         world.Cameras[1].DigitalInputs.Add(new DigitalInputModel { Token = "sensor", Name = "Gate sensor" });
-        // A lamp the same relay lights: closed, the input reads 0 and the lamp is on. It stands in the
-        // world on its own, not on a camera.
+        // A lamp the same relay lights: closed, the contact closes the input's circuit (its idle
+        // state is open, so the input is active) and the lamp is on. The lamp stands in the world on
+        // its own, not on a camera.
         world.Lamps.Add(new LampModel
         {
             Id = "gate", Name = "Gate lamp", Position = new(36, 0, 38),

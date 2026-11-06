@@ -54,9 +54,7 @@ public class DeviceIoOnvifTests(SimFactory factory) : IClassFixture<SimFactory>
         factory.Services.GetRequiredService<WorldStore>().Update(world =>
             world.Cameras.Single(c => c.Id == "cam1").RelayOutputs[0].Active = true);
 
-        using var http = new HttpClient();
-        http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic",
-            Convert.ToBase64String(Encoding.UTF8.GetBytes("admin:admin")));
+        using var http = AuthClient();
         var response = await http.PostAsync($"http://127.0.0.1:{PortOf("cam1")}/onvif/device_service", Soap(
             "<GetRelayOutputs xmlns=\"http://www.onvif.org/ver10/device/wsdl\"/>"));
         Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync());
@@ -125,6 +123,97 @@ public class DeviceIoOnvifTests(SimFactory factory) : IClassFixture<SimFactory>
         Assert.True(options.MaxDelayMs >= options.MinDelayMs);
     }
 
+    // tt:FloatList is seconds, not xs:duration. OnvifLib parses both, so only a raw read pins the
+    // wire format.
+    [Fact]
+    public async Task RelayOutputOptions_SendDelayTimesAsASecondsList()
+    {
+        PutDevices("cam1");
+        using var http = AuthClient();
+        var response = await http.PostAsync($"http://127.0.0.1:{PortOf("cam1")}/onvif/deviceio_service", Soap(
+            "<GetRelayOutputOptions xmlns=\"http://www.onvif.org/ver10/deviceIO/wsdl\"/>"));
+        Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync());
+
+        var delayTimes = XDocument.Parse(await response.Content.ReadAsStringAsync()).Root!
+            .Descendants().Single(element => element.Name.LocalName == "DelayTimes").Value;
+        Assert.Equal("0.5 1 2 5 10 30 60", delayTimes);
+    }
+
+    [Fact]
+    public async Task EventProperties_DescribeTheDeviceTriggerTypes()
+    {
+        PutDevices("cam1");
+        using var http = AuthClient();
+        var response = await http.PostAsync($"http://127.0.0.1:{PortOf("cam1")}/onvif/event_service", Soap(
+            "<GetEventProperties xmlns=\"http://www.onvif.org/ver10/events/wsdl\"/>"));
+        Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync());
+
+        XNamespace tt = "http://www.onvif.org/ver10/schema";
+        var document = XDocument.Parse(await response.Content.ReadAsStringAsync());
+        static XElement Leaf(XDocument document, string name) => document.Descendants()
+            .Single(element => element.Name.LocalName == name
+                && element.Descendants().Any(child => child.Name.LocalName == "MessageDescription"));
+        static string? TypeOf(XElement leaf, string item) => (string?)leaf
+            .Descendants(XName.Get("SimpleItemDescription", "http://www.onvif.org/ver10/schema"))
+            .Single(element => (string?)element.Attribute("Name") == item)
+            .Attribute("Type");
+
+        Assert.Equal("tt:RelayLogicalState", TypeOf(Leaf(document, "Relay"), "LogicalState"));
+        Assert.Equal("xs:boolean", TypeOf(Leaf(document, "DigitalInput"), "LogicalState"));
+    }
+
+    [Fact]
+    public async Task DigitalInputOptions_WithoutAToken_AreTheDevicesGenericOnes()
+    {
+        PutDevices("cam1");
+        using var http = AuthClient();
+        var response = await http.PostAsync($"http://127.0.0.1:{PortOf("cam1")}/onvif/deviceio_service", Soap(
+            "<GetDigitalInputConfigurationOptions xmlns=\"http://www.onvif.org/ver10/deviceIO/wsdl\"/>"));
+        Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync());
+        Assert.Contains("closed", await response.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task SetRelayOutputState_OnAnUnknownRelay_CarriesTheRelayTokenSubcode()
+    {
+        PutDevices("cam1");
+        using var http = AuthClient();
+        var response = await http.PostAsync($"http://127.0.0.1:{PortOf("cam1")}/onvif/device_service", Soap(
+            "<SetRelayOutputState xmlns=\"http://www.onvif.org/ver10/device/wsdl\">"
+            + "<RelayOutputToken>nobody</RelayOutputToken><LogicalState>active</LogicalState>"
+            + "</SetRelayOutputState>"));
+        Assert.Contains("ter:RelayToken", await response.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task AMonostableDelayOutsideItsRange_CarriesTheModeErrorSubcode()
+    {
+        PutDevices("cam1");
+        using var http = AuthClient();
+        var response = await http.PostAsync($"http://127.0.0.1:{PortOf("cam1")}/onvif/device_service", Soap(
+            "<SetRelayOutputSettings xmlns=\"http://www.onvif.org/ver10/device/wsdl\""
+            + " xmlns:tt=\"http://www.onvif.org/ver10/schema\">"
+            + "<RelayOutputToken>lamp</RelayOutputToken><Properties>"
+            + "<tt:Mode>Monostable</tt:Mode><tt:DelayTime>PT0S</tt:DelayTime><tt:IdleState>open</tt:IdleState>"
+            + "</Properties></SetRelayOutputSettings>"));
+        Assert.Contains("ter:ModeError", await response.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task ABistableRelay_IgnoresAMalformedDelayTime()
+    {
+        PutDevices("cam1");
+        using var http = AuthClient();
+        var response = await http.PostAsync($"http://127.0.0.1:{PortOf("cam1")}/onvif/device_service", Soap(
+            "<SetRelayOutputSettings xmlns=\"http://www.onvif.org/ver10/device/wsdl\""
+            + " xmlns:tt=\"http://www.onvif.org/ver10/schema\">"
+            + "<RelayOutputToken>lamp</RelayOutputToken><Properties>"
+            + "<tt:Mode>Bistable</tt:Mode><tt:DelayTime>not-a-duration</tt:DelayTime><tt:IdleState>open</tt:IdleState>"
+            + "</Properties></SetRelayOutputSettings>"));
+        Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync());
+        Assert.Equal(RelayModeModel.Bistable, Relay("cam1").Mode);
+    }
+
     [Fact]
     public async Task DigitalInputOptions_NameTheInput_AndAnUnknownOneIsRefused()
     {
@@ -159,9 +248,18 @@ public class DeviceIoOnvifTests(SimFactory factory) : IClassFixture<SimFactory>
         Assert.Equal("1", capabilities.Descendants(tt + "InputConnectors").Single().Value);
     }
 
-    // The camera's ONVIF port is its own listener, not the editor's; this is the one test that posts
-    // SOAP by hand, for the capability counts OnvifLib does not surface. GetCapabilities is pre-auth.
+    // The camera's ONVIF port is its own listener, not the editor's; these tests post SOAP by hand
+    // where OnvifLib's typed wrappers hide the wire (the delay list, the topic-set types, a fault's
+    // subcode). GetCapabilities is pre-auth; the rest need the camera's user.
     private static HttpContent Soap(string body) => new StringContent(
         $"<?xml version=\"1.0\" encoding=\"utf-8\"?><s:Envelope xmlns:s=\"http://www.w3.org/2003/05/soap-envelope\"><s:Body>{body}</s:Body></s:Envelope>",
         System.Text.Encoding.UTF8, "application/soap+xml");
+
+    private static HttpClient AuthClient()
+    {
+        var http = new HttpClient();
+        http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic",
+            Convert.ToBase64String(Encoding.UTF8.GetBytes("admin:admin")));
+        return http;
+    }
 }
