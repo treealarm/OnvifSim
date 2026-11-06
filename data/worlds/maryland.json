@@ -706,14 +706,14 @@
       "name": "Building master 2",
       "kind": "fixed",
       "position": {
-        "x": -99.49905,
-        "y": 3,
-        "z": -51.206966
+        "x": -5.018213,
+        "y": 6,
+        "z": -65.01058
       },
-      "heading": 135,
-      "pitch": -10,
+      "heading": 0,
+      "pitch": -12,
       "roll": 0,
-      "hFov": 80,
+      "hFov": 60,
       "angleGrid": false,
       "color": null,
       "video": {
@@ -757,11 +757,11 @@
       "name": "Campus slave 2 (PTZ)",
       "kind": "ptz",
       "position": {
-        "x": -147.08554,
+        "x": -44.99087,
         "y": 6,
-        "z": -22.263899
+        "z": -114.993034
       },
-      "heading": 90,
+      "heading": 113,
       "pitch": 0,
       "roll": 0,
       "hFov": 60,

@@ -82,14 +82,46 @@ public class MarylandWorldTests
         foreach (var id in new[] { "ptz", "ptz2" })
             Assert.True(world.Cameras.Single(c => c.Id == id).Metadata.PtzStatus);
         Assert.False(world.Cameras.Single(c => c.Id == "ptz").Metadata.Analytics);
+        Assert.False(world.Cameras.Single(c => c.Id == "ptz2").Metadata.Analytics);
         Assert.True(world.Cameras.Single(c => c.Id == "master").Metadata.Analytics);
+        Assert.True(world.Cameras.Single(c => c.Id == "master2").Metadata.Analytics);
+    }
+
+    [Fact]
+    public void TheRoadPair_StandsOutOnTheRingRoad()
+    {
+        // The second pair works as one on the stretch of ring road north of the building: the
+        // master on a pole outside the north wall looking north, the slave north of the road
+        // looking south-east along the same stretch, so the master's vehicle boxes can aim it.
+        var world = World();
+        var master = world.Cameras.Single(c => c.Id == "master2");
+        var slave = world.Cameras.Single(c => c.Id == "ptz2");
+
+        Assert.Equal(-5.0, master.Position.X, 0);
+        Assert.Equal(-65.0, master.Position.Z, 0);
+        Assert.Equal(6f, master.Position.Y, 3);
+        Assert.Equal(0f, master.Heading, 3);
+        Assert.Equal(60f, master.HFov, 3);
+        Assert.Equal(-12f, master.Pitch, 3);
+
+        Assert.Equal(-45.0, slave.Position.X, 0);
+        Assert.Equal(-115.0, slave.Position.Z, 0);
+        Assert.Equal(6f, slave.Position.Y, 3);
+        Assert.Equal(113f, slave.Heading, 3);
+        Assert.Equal(60f, slave.Ptz!.FovWide, 3);
+
+        // The car the pair follows is the one the vehicle camera rides.
+        var vehicle = Assert.Single(world.Vehicles);
+        Assert.Equal("v1", vehicle.Id);
+        Assert.True(vehicle.Detectable);
     }
 
     [Fact]
     public void TheCamerasKeepThePortOrderTheDemoProvisions()
     {
-        // ta_vms's demo adds sim-master, sim-ptz, sim-master2 and sim-ptz2 at 8101..8104 from an
-        // ONVIF base of 8101, so the order of the world's cameras is part of the contract.
+        // ta_vms's demo adds sim-master, sim-ptz, sim-master2, sim-ptz2 and sim-vehicle at
+        // 8101..8105 from an ONVIF base of 8101, so the order of the world's cameras is part of
+        // the contract.
         Assert.Equal(["master", "ptz", "master2", "ptz2", "vehicle"],
             World().Cameras.Select(c => c.Id));
     }

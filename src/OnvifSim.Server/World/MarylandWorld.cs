@@ -62,10 +62,15 @@ public static class MarylandWorld
             38.99240, -76.93852, 2.8f, 55, 70, -18),
         new("ptz", "Main room slave (PTZ)", CameraKind.Ptz,
             38.992484, -76.938372, 2.8f, 235, 65, 0),
+        // The second pair works as one too, on the road north of the building: the master stands
+        // on a pole outside the north wall looking across the ring road, and the slave north of
+        // the road looking south-east along the same stretch. The car is 7.4% of the master's
+        // picture height across the whole frame (the detector needs 5%), so its own analytics
+        // drive the slave.
         new("master2", "Building master 2", CameraKind.Fixed,
-            38.99276, -76.93895, 3f, 135, 80, -10),
+            38.992884, -76.937858, 6f, 0, 60, -12),
         new("ptz2", "Campus slave 2 (PTZ)", CameraKind.Ptz,
-            38.99250, -76.93950, 6f, 90, 60, 0),
+            38.993333, -76.938320, 6f, 113, 60, 0),
     ];
 
     // The demo camera that is not placed on a wall: it rides the car.
