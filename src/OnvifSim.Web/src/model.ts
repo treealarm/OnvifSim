@@ -43,6 +43,37 @@ export interface Geo {
   north: number;
 }
 
+// The WGS84 rectangle a world's terrain covers, as the server computes it (TerrainMaps.BoundsFor):
+// each of the four corners through the world's own north rotation, then the box round them. A world
+// turned away from north still gets a rectangle — which is why a picture fetched before the turn no
+// longer matches what is under it.
+export function terrainBounds(geo: Geo, size: number): MapBounds {
+  const radius = 6378137;
+  const theta = (geo.north * Math.PI) / 180;
+  const cos = Math.cos(theta);
+  const sin = Math.sin(theta);
+  const half = size / 2;
+  const cosLat = Math.max(Math.abs(Math.cos((geo.latitude * Math.PI) / 180)), 1e-9);
+  const lat = [], lon = [];
+  for (const [x, z] of [[-half, -half], [half, -half], [half, half], [-half, half]]) {
+    const east = x * cos - z * sin;
+    const north = -x * sin - z * cos;
+    lat.push(geo.latitude + (north / radius) * (180 / Math.PI));
+    lon.push(geo.longitude + (east / (radius * cosLat)) * (180 / Math.PI));
+  }
+  return {
+    south: Math.min(...lat), north: Math.max(...lat),
+    west: Math.min(...lon), east: Math.max(...lon),
+  };
+}
+
+// Whether a picture fetched for one extent still lies under this world's own: half a metre of slack,
+// as the server allows.
+export function sameBounds(a: MapBounds, b: MapBounds): boolean {
+  return Math.abs(a.south - b.south) < 5e-7 && Math.abs(a.north - b.north) < 5e-7
+    && Math.abs(a.west - b.west) < 5e-7 && Math.abs(a.east - b.east) < 5e-7;
+}
+
 export interface Environment {
   sunAzimuth: number;
   sunElevation: number;

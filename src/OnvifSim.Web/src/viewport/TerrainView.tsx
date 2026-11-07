@@ -1,7 +1,7 @@
 import { useThree, type ThreeEvent } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { BufferAttribute, BufferGeometry, Color, SRGBColorSpace, TextureLoader, type Mesh, type Texture } from 'three';
-import { heightAt, type Terrain } from '../model';
+import { heightAt, sameBounds, terrainBounds, type Terrain } from '../model';
 import { addDrawingPoint, clearSelection, finishDrawing, movePoint, pickFromOsm, place, select, updateTerrain, useEditor } from '../store';
 import { applyBrush, type BrushDab } from './brush';
 
@@ -24,7 +24,13 @@ export function TerrainView({ terrain }: { terrain: Terrain }) {
 
   // The ground map, when the world names one and it is switched on: the picture the server cached for
   // this world, drawn as it is (light on a map only makes it harder to read).
-  const mapName = terrain.map && terrain.showMap !== false ? terrain.map : null;
+  // The picture belongs to the extent it was fetched for: moved the anchor, resized the terrain or
+  // turned the world's north, and it no longer lies where it says it does. Drawn only while it does,
+  // as the server draws it only while it does.
+  const geo = useEditor((s) => s.world?.geo);
+  const live = geo ? terrainBounds(geo, terrain.size) : null;
+  const fits = Boolean(terrain.mapBounds && live && sameBounds(live, terrain.mapBounds));
+  const mapName = terrain.map && terrain.showMap !== false && fits ? terrain.map : null;
   const [map, setMap] = useState<Texture | null>(null);
   useEffect(() => {
     if (!mapName) {

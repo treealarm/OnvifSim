@@ -1,5 +1,5 @@
 import type { OsmCandidate } from '../api';
-import { defaultLampColor, lampLit, wiresToLamp, type Environment, type Geo, type Lamp, type World } from '../model';
+import { defaultLampColor, lampLit, sameBounds, terrainBounds, wiresToLamp, type Environment, type Geo, type Lamp, type World } from '../model';
 import {
   bakeGroundMap,
   buildOsmCandidate,
@@ -27,6 +27,10 @@ export function WorldInspector({ world }: { world: World }) {
   const osmFetching = useEditor((s) => s.osmFetching);
   const baking = useEditor((s) => s.mapBaking);
   const mapName = terrain.map ?? null;
+  // A picture fetched for another anchor, another size or another north is not this world's any
+  // more: it is hidden, as the server hides it, until someone bakes it again.
+  const staleMap = Boolean(mapName)
+    && !(terrain.mapBounds && sameBounds(terrainBounds(geo, terrain.size), terrain.mapBounds));
 
   return (
     <>
@@ -87,8 +91,13 @@ export function WorldInspector({ world }: { world: World }) {
             />
             <p className="muted">
               “{mapName}” is a picture cached on this machine and fetched for this world's own extent — never part of a
-              world file. It is not drawn if the world's origin or size has moved since it was fetched.
+              world file. It is not drawn if the world's origin, size or north has moved since it was fetched.
             </p>
+            {staleMap && (
+              <p className="muted">
+                The picture was fetched for a different extent and is hidden: bake it again to bring it back.
+              </p>
+            )}
             <div className="field">
               <button type="button" disabled={baking} onClick={() => void bakeGroundMap()}>
                 {baking ? 'Fetching…' : 'Bake it again'}
