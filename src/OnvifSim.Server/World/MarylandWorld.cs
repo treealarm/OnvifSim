@@ -133,16 +133,20 @@ public static class MarylandWorld
         });
         // The person both pairs work on: the hall master sees them inside Room 101 and boxes them,
         // and the hall slave aims where those boxes say. The route then leaves the room through the
-        // hall and the doorway, walks north toward the ring road — where the road master picks them
-        // up and its slave turns after them — and comes back through the same doorway. The closing
-        // segment of the loop runs along the doorway's line, so the person never crosses a wall.
+        // hall and the doorway, curves north across the ring road toward the road pair's camera
+        // — where its master picks them up and its slave turns after them — and comes back through
+        // the same doorway. Both crossings run along the doorway's line, so the person never walks
+        // through a wall.
         world.Walkers.Add(new WalkerModel
         {
             Id = "w1", Speed = 1.0f, Return = RouteReturn.Loop, Height = 1.75f,
             Route =
             [
-                new(-50, -13), new(-54, -13), new(-54, -18), new(-59, -18), new(-59, -13),
-                new(-50, -13), new(-50, -56), new(-50, -72), new(-52, -82), new(-50, -90),
+                new(-50, -13), new(-50, -56),
+                new(-52, -70), new(-58, -80), new(-60, -90), new(-57, -100), new(-55, -110),
+                new(-51, -110), new(-52, -100), new(-55, -92), new(-58, -84), new(-54, -72),
+                new(-50, -58), new(-50, -45), new(-50, -13),
+                new(-54, -13), new(-54, -18), new(-59, -18), new(-59, -13),
             ],
         });
         Plate(world, "parking", 80, 0, 142, 90, 0.06f, 24, "#5f6165");

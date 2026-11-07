@@ -75,10 +75,10 @@ public class MarylandWorldTests
             .ToList();
         Assert.NotEmpty(indoor);
 
-        var outdoor = walker.Route
-            .Where(point => !InsideRoom101(world, point.X, point.Z))
-            .ToList();
-        Assert.NotEmpty(outdoor);
+        // Outside the building, not merely out of Room 101: the person must cross the north wall.
+        var northZ = WorldGeo.ToWorld(world, MarylandWorld.BuildingNorth, MarylandWorld.BuildingWest, 0).Z;
+        var outside = walker.Route.Where(point => point.Z < northZ).ToList();
+        Assert.NotEmpty(outside);
 
         // The hall master sees every indoor point: the person it works on never leaves its picture.
         foreach (var point in indoor)
@@ -86,8 +86,8 @@ public class MarylandWorldTests
                 world.Cameras.Single(camera => camera.Id == "master").HFov / 2);
 
         // Every crossing of the north wall runs through the doorway: no route segment walks through
-        // a plate. The closing segment of the loop is one of the crossings, so check it too.
-        var northZ = WorldGeo.ToWorld(world, MarylandWorld.BuildingNorth, MarylandWorld.BuildingWest, 0).Z;
+        // a plate. The closing segment of the loop is indoors, so the crossings are the way out and
+        // the way back in.
         var path = walker.Route.Append(walker.Route[0]).ToList();
         var crossings = 0;
         foreach (var (from, to) in path.Zip(path.Skip(1)))
@@ -106,7 +106,7 @@ public class MarylandWorldTests
 
         // The road pair's master is an overview of the road; the person must come into it for the
         // road slave to have something to follow.
-        Assert.Contains(outdoor, point =>
+        Assert.Contains(outside, point =>
             BearingDelta(world, "master2", point.X, point.Z) <=
                 world.Cameras.Single(camera => camera.Id == "master2").HFov / 2
             && Distance(world, "master2", point.X, point.Z) < 45);
