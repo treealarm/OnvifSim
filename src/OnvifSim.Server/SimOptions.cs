@@ -25,6 +25,9 @@ public sealed class SimOptions
     // Open the editor in the browser once started. Only where a desktop can show one: see Browser.
     public bool OpenBrowser { get; init; } = true;
     public bool Bench { get; init; }
+    // Write a world the code builds to the data directory and exit: how data/worlds/maryland.json is
+    // brought up to date after the builder changes.
+    public string? WriteWorld { get; init; }
     // The raster map provider under a world (any {z}/{x}/{y} tile service, not necessarily OSM), and
     // the Overpass endpoint the editor's OSM import asks. Empty turns that feature off.
     public string? MapTiles { get; init; } = OnvifSim.World.TerrainMaps.DefaultTileUrl;
@@ -43,6 +46,7 @@ public sealed class SimOptions
         string mapTiles = Environment.GetEnvironmentVariable("ONVIFSIM_MAP_TILE_URL") ?? OnvifSim.World.TerrainMaps.DefaultTileUrl;
         string osm = Environment.GetEnvironmentVariable("ONVIFSIM_OSM_URL") ?? OnvifSim.World.OsmService.DefaultEndpoint;
         bool bench = false, noBrowser = false;
+        string? writeWorld = null;
         for (int i = 0; i < args.Length; i++)
         {
             var (name, value) = args[i].Split('=', 2) is [var n, var v] ? (n, v) : (args[i], null);
@@ -69,6 +73,7 @@ public sealed class SimOptions
                 case "--advertise-host": advertiseHost = value; break;
                 case "--discovery-port": discoveryPort = int.Parse(value); break;
                 case "--ffmpeg": ffmpeg = value; break;
+                case "--write-world": writeWorld = value; break;
             }
         }
         data ??= Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OnvifSim");
@@ -78,7 +83,7 @@ public sealed class SimOptions
             DataDirectory = Path.GetFullPath(data), WebPort = port, RtspPort = rtspPort, RtpPort = rtpPort,
             OnvifBasePort = onvifBasePort, AdvertiseHost = advertiseHost,
             DiscoveryPort = discoveryPort, Ffmpeg = string.IsNullOrEmpty(ffmpeg) ? null : ffmpeg,
-            OpenBrowser = !noBrowser, Bench = bench,
+            OpenBrowser = !noBrowser, Bench = bench, WriteWorld = writeWorld,
             MapTiles = string.IsNullOrWhiteSpace(mapTiles) ? null : mapTiles,
             OsmEndpoint = string.IsNullOrWhiteSpace(osm) ? null : osm,
         };

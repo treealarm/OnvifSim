@@ -155,7 +155,7 @@ public static class Primitives
     // when its sill is raised). Grain on the walls follows the seed, so a world built twice draws the
     // same thing. The footprint must already be normalised (see Polygon).
     public static void Prism(Mesh m, IReadOnlyList<GroundPoint> points, float height, Vector3 wall, Vector3 roof,
-        IReadOnlyList<OpeningModel>? openings, int seed, bool textured)
+        IReadOnlyList<OpeningModel>? openings, int seed, bool textured, bool tiled = false)
     {
         int n = points.Count;
         if (n < 3 || height <= 0) return;
@@ -208,6 +208,39 @@ public static class Primitives
             m.AddFlatTriangle(f0, f1, f2, floorColor); // the floor, facing up
             m.AddFlatTriangle(f0, f2, f1, floorColor); // and the underside, which nobody sees
         }
+
+        // A tiled prism is a floor: its tiles are the surface, so they stand on its top.
+        if (tiled) TiledCap(m, points, height, roof, seed);
+    }
+
+    // A tiled floor over the footprint: the cap's own colour is the seam, and tiles stand on it with a
+    // couple of centimetres clear of each other. Cells outside the footprint are left out, so an
+    // L-shaped hall is floored in the shape of its floor.
+    private static void TiledCap(Mesh m, IReadOnlyList<GroundPoint> points, float height, Vector3 tile, int seed)
+    {
+        const float size = 1.5f, gap = 0.02f;
+        float minX = float.MaxValue, minZ = float.MaxValue, maxX = float.MinValue, maxZ = float.MinValue;
+        foreach (var p in points)
+        {
+            minX = MathF.Min(minX, p.X);
+            maxX = MathF.Max(maxX, p.X);
+            minZ = MathF.Min(minZ, p.Z);
+            maxZ = MathF.Max(maxZ, p.Z);
+        }
+        float y = height + 0.002f;
+        int across = Math.Max(1, (int)MathF.Round(maxX - minX)), down = Math.Max(1, (int)MathF.Round(maxZ - minZ));
+        for (int i = 0; i < across; i++)
+            for (int j = 0; j < down; j++)
+            {
+                float x0 = minX + i * size + gap, x1 = x0 + size - 2 * gap;
+                float z0 = minZ + j * size + gap, z1 = z0 + size - 2 * gap;
+                if (x1 <= x0 || z1 <= z0) continue;
+                if (!Polygon.Contains(points, new GroundPoint((x0 + x1) / 2, (z0 + z1) / 2))) continue;
+                float shade = 1 + 0.03f * (ColorUtil.Hash(seed, i * 131 + j) - 0.5f) * 2;
+                var color = Vector3.Clamp(tile * shade, Vector3.Zero, Vector3.One);
+                // Counter-clockwise seen from above, as the box's own top face.
+                m.AddFlatQuad(new(x0, y, z1), new(x1, y, z1), new(x1, y, z0), new(x0, y, z0), color);
+            }
     }
 
     private static Vector3 At(GroundPoint p, float y) => new(p.X, y, p.Z);

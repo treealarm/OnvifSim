@@ -22,6 +22,19 @@ if (options.Bench)
     return;
 }
 
+// Write the world the code builds and stop: a world file is the builder's output, never hand-edited.
+if (options.WriteWorld is { Length: > 0 } writeWorld)
+{
+    var built = writeWorld == MarylandWorld.Name
+        ? MarylandWorld.Create()
+        : throw new ArgumentException($"No builder for the world '{writeWorld}'.");
+    var path = Path.Combine(options.DataDirectory, "worlds", writeWorld + ".json");
+    Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+    File.WriteAllText(path, System.Text.Json.JsonSerializer.Serialize(built, WorldStore.Json));
+    Console.WriteLine($"Wrote {path}");
+    return;
+}
+
 // The editor is built next to the binary (see OnvifSim.Server.csproj), whatever the working directory.
 var webRoot = Path.Combine(AppContext.BaseDirectory, "wwwroot");
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions { Args = args, WebRootPath = webRoot });

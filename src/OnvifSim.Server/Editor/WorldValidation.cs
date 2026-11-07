@@ -125,8 +125,8 @@ public static partial class WorldValidation
         Require(points.All(p => float.IsFinite(p.X) && float.IsFinite(p.Z)), $"Object {obj.Id}: every footprint point must be finite.");
         Require(MathF.Abs(obj.Scale.X - 1) < 1e-3f && MathF.Abs(obj.Scale.Z - 1) < 1e-3f,
             $"Object {obj.Id}: a prism's scale.x and scale.z must be 1 — its size is the footprint, not a stretch.");
-        Require(obj.Scale.Y is >= 0.1f and <= MaxPrismHeightM,
-            $"Object {obj.Id}: a prism's height {obj.Scale.Y} m is outside 0.1..{MaxPrismHeightM}.");
+        Require(obj.Scale.Y is >= 0.01f and <= MaxPrismHeightM,
+            $"Object {obj.Id}: a prism's height {obj.Scale.Y} m is outside 0.01..{MaxPrismHeightM}.");
 
         var ring = Polygon.Normalize(points);
         Require(ring.Count == points.Count && SameRing(ring, points),

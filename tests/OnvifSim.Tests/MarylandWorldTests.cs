@@ -1,11 +1,12 @@
 using System.Text.Json;
 using OnvifSim.Editor;
+using OnvifSim.Geometry;
 using OnvifSim.World;
 
 namespace OnvifSim.Tests;
 
-// The demo world: the demo's own anchor, envelope and camera poses, walls that are plates, and the
-// relay, sensor and wire the demo shows on its diagram.
+// The demo world: the real Biomolecular Sciences building and the real roads round its block, the
+// demo's own anchor and camera poses, and the relay, sensor and wire the demo shows on its diagram.
 public class MarylandWorldTests
 {
     private static WorldModel World() => MarylandWorld.Create();
@@ -15,7 +16,7 @@ public class MarylandWorldTests
         WorldValidation.Check(World(), onvifBasePort: 8001);
 
     [Fact]
-    public void TheAnchorIsTheCentreOfTheDemoBuilding()
+    public void TheAnchorIsTheDemoWorlds()
     {
         var world = World();
         Assert.Equal(MarylandWorld.Latitude, world.Geo.Latitude, 9);
@@ -33,8 +34,8 @@ public class MarylandWorldTests
             var geo = WorldGeo.ToGeo(world, camera.Position);
             // A millionth of a degree is about a decimetre: the demo world and the map must agree
             // closer than a marker's own size.
-            Assert.Equal(demo.Latitude, geo.Latitude, 6);
-            Assert.Equal(demo.Longitude, geo.Longitude, 6);
+            Assert.True(Math.Abs(demo.Latitude - geo.Latitude) < 5e-7, $"{demo.Id}: {geo.Latitude} vs {demo.Latitude}");
+            Assert.True(Math.Abs(demo.Longitude - geo.Longitude) < 5e-7, $"{demo.Id}: {geo.Longitude} vs {demo.Longitude}");
             Assert.Equal(demo.Height, geo.Elevation, 2);
             Assert.Equal(demo.Heading, camera.Heading, 3);
         }
@@ -44,25 +45,81 @@ public class MarylandWorldTests
     public void TheRoomCameras_StandWhereTheDemoPlacesThem()
     {
         var world = World();
-        // The master stands south of the room, on the line the person walks out by, so one lens
-        // holds both the room and the doorway 56 m away; the slave is the room's north-east corner.
+        // The master stands south of Room 101, on the line the person walks out by, so one lens holds
+        // both the room and the doorway; the slave is in the room's north-east corner.
         var master = world.Cameras.Single(c => c.Id == "master");
-        Assert.Equal(-50.0, master.Position.X, 1);
-        Assert.Equal(0.0, master.Position.Z, 1);
+        Assert.Equal(-8.0, master.Position.X, 1);
+        Assert.Equal(-57.0, master.Position.Z, 1);
         Assert.Equal(2.8, master.Position.Y, 3);
 
         var ptz = world.Cameras.Single(c => c.Id == "ptz");
-        Assert.Equal(-49.5, ptz.Position.X, 1);
-        Assert.Equal(-20.5, ptz.Position.Z, 1);
+        Assert.Equal(-3.2, ptz.Position.X, 1);
+        Assert.Equal(-64.6, ptz.Position.Z, 1);
+    }
+
+    // The building is the real one: one prism of the footprint OSM gives way 24303349, at the height
+    // OSM gives it. Nothing of it is a stand-in box.
+    [Fact]
+    public void TheBuildingIsTheRealFootprint()
+    {
+        var world = World();
+        var building = world.Objects.Single(o => o.Id == "building");
+        Assert.Equal("prism", building.Type);
+        Assert.Equal(MarylandWorld.BuildingHeight, building.Scale.Y, 2);
+        Assert.Equal(1f, building.Scale.X, 3);
+        Assert.Equal(1f, building.Scale.Z, 3);
+
+        var outline = WorldRing(building);
+        Assert.Equal(MarylandWorld.BuildingOutline.Length, outline.Count);
+        // The stored outline is the normalised one — direction and all — so every corner of the OSM
+        // footprint is in it, to a centimetre.
+        foreach (var expected in MarylandWorld.BuildingOutline)
+            Assert.Contains(outline, actual => MathF.Abs(expected.X - actual.X) < 0.01f && MathF.Abs(expected.Z - actual.Z) < 0.01f);
+        var area = MathF.Abs(Polygon.SignedArea(outline));
+        Assert.InRange(area, 54.8f * 31.3f * 0.7f, 54.8f * 31.3f);
+    }
+
+    // The defect this milestone was opened for: the old hall covered two real roads. No building of
+    // this world may reach into a road's own width.
+    [Fact]
+    public void NoBuildingStandsOnARoad()
+    {
+        var world = World();
+        foreach (var building in world.Objects.Where(o => o.Type == "prism" && o.Scale.Y >= 1))
+        {
+            var ring = WorldRing(building);
+            foreach (var road in world.Roads)
+            {
+                float clearance = PolygonToLineDistance(ring, road.Points);
+                Assert.True(clearance >= road.Width / 2,
+                    $"{building.Id} is {clearance:0.0} m from {road.Id}, which is {road.Width / 2:0.0} m half wide");
+            }
+        }
+    }
+
+    // The tree the demo draws stands on grass: not on a road, not in a lot, not under a building.
+    [Fact]
+    public void TheTreesStandOnGrass()
+    {
+        var world = World();
+        var trees = world.Objects.Where(o => o.Type.StartsWith("tree.")).ToList();
+        Assert.NotEmpty(trees);
+        foreach (var tree in trees)
+        {
+            var at = new GroundPoint(tree.Position.X, tree.Position.Z);
+            foreach (var road in world.Roads)
+                Assert.True(DistanceToLine(road.Points, at) >= road.Width / 2, $"{tree.Id} stands on {road.Id}");
+            foreach (var prism in world.Objects.Where(o => o.Type == "prism"))
+                Assert.False(Polygon.Contains(WorldRing(prism), at), $"{tree.Id} stands inside {prism.Id}");
+        }
     }
 
     [Fact]
     public void TheHallPairWatchesTheRoom_AndTheDoorLetsTheWalkerOut()
     {
         // The hall master's boxes drive its slave's aim, so the master must hold the whole of the
-        // person's walk indoors — Room 101 and the line from it out through the hallway to the
-        // doorway — and the route then leaves through that doorway, where the second pair's master
-        // can pick the person up.
+        // person's walk indoors — Room 101 and the line from it out to the doorway — and the route
+        // then leaves through that doorway, where the second pair's master picks the person up.
         var world = World();
         var slave = MarylandWorld.Cameras.Single(d => d.Id == "ptz");
         Assert.InRange(slave.Latitude, MarylandWorld.Room101South, MarylandWorld.Room101North);
@@ -71,75 +128,73 @@ public class MarylandWorldTests
         var walker = Assert.Single(world.Walkers);
         Assert.True(walker.Detectable);
 
-        var indoor = walker.Route
-            .Where(point => InsideRoom101(world, point.X, point.Z))
-            .ToList();
+        var indoor = walker.Route.Where(point => InsideRoom101(world, point.X, point.Z)).ToList();
         Assert.NotEmpty(indoor);
 
-        // Outside the building, not merely out of Room 101: the person must cross the north wall.
-        var northZ = WorldGeo.ToWorld(world, MarylandWorld.BuildingNorth, MarylandWorld.BuildingWest, 0).Z;
+        // Out of the building, not merely out of Room 101: the person must cross the north wall.
+        var northZ = MarylandWorld.NorthWallZ;
         var outside = walker.Route.Where(point => point.Z < northZ).ToList();
         Assert.NotEmpty(outside);
 
-        // The hall master sees every indoor point: the person it works on never leaves its picture,
-        // from the room to the doorway at the far end of the hall.
+        // Every indoor point stands under the real roof and inside the hall master's picture.
+        var building = world.Objects.Single(o => o.Id == "building");
+        var footprint = WorldRing(building);
         var hallMaster = world.Cameras.Single(camera => camera.Id == "master");
         foreach (var point in walker.Route.Where(point => point.Z > northZ))
         {
+            Assert.True(Polygon.Contains(footprint, new GroundPoint(point.X, point.Z)), $"({point.X},{point.Z}) is outside the building");
             Assert.InRange(BearingDelta(world, "master", point.X, point.Z), 0.0f, hallMaster.HFov / 2);
             Assert.True(Distance(world, "master", point.X, point.Z) < 60);
         }
 
-        // Every crossing of the north wall runs through the doorway: no route segment walks through
-        // a plate. The closing segment of the loop is indoors, so the crossings are the way out and
-        // the way back in.
+        // Every crossing of the north wall runs through the doorway. The closing segment of the loop
+        // is indoors, so the crossings are the way out and the way back in.
         var path = walker.Route.Append(walker.Route[0]).ToList();
         var crossings = 0;
         foreach (var (from, to) in path.Zip(path.Skip(1)))
         {
             var fromSide = from.Z - northZ;
             var toSide = to.Z - northZ;
-            if (fromSide == 0 || toSide == 0 || Math.Sign(fromSide) == Math.Sign(toSide))
-                continue;
+            if (fromSide == 0 || toSide == 0 || Math.Sign(fromSide) == Math.Sign(toSide)) continue;
             var along = fromSide / (fromSide - toSide);
             var x = from.X + (to.X - from.X) * along;
-            Assert.InRange(x, MarylandWorld.DoorX - MarylandWorld.DoorWidth / 2,
-                MarylandWorld.DoorX + MarylandWorld.DoorWidth / 2);
+            Assert.InRange(x, MarylandWorld.DoorX - MarylandWorld.DoorWidth / 2, MarylandWorld.DoorX + MarylandWorld.DoorWidth / 2);
             crossings += 1;
         }
         Assert.Equal(2, crossings);
 
-        // The yard master watches the line the person walks out on: every point of the yard leg is
-        // inside its picture, so the slave over the doorway has a box to follow the whole way out
-        // and back.
+        // The yard master watches the line the person walks out on: every point of the parking lot is
+        // inside its picture, so the slave has a box to follow the whole way out and back.
         var yardMaster = world.Cameras.Single(camera => camera.Id == "master2");
         foreach (var point in walker.Route.Where(point => point.Z < northZ))
         {
             Assert.InRange(BearingDelta(world, "master2", point.X, point.Z), 0.0f, yardMaster.HFov / 2);
-            Assert.InRange(Distance(world, "master2", point.X, point.Z), 25f, 50f);
+            Assert.InRange(Distance(world, "master2", point.X, point.Z), 20f, 50f);
         }
     }
 
+    // The doorway is an opening of the building's own wall, sitting on the segment the walker crosses:
+    // the wall is cut there and a lintel spans the top, so the opening is empty geometry.
     [Fact]
-    public void TheNorthWall_HasADoorwayOnTheWalkersWayOut()
+    public void TheBuildingHasADoorwayOnTheWalkersWayOut()
     {
-        // Two plates either side of the opening and a lintel over it: the wall is still a wall, and
-        // the doorway is empty geometry the person and the cameras can pass through.
         var world = World();
-        var plates = world.Objects.Where(o => o.Id.StartsWith("building-wall-n")).ToList();
-        Assert.Equal(3, plates.Count);
+        var building = world.Objects.Single(o => o.Id == "building");
+        var opening = Assert.Single(building.Openings!);
+        Assert.Equal(MarylandWorld.DoorWidth, opening.Width, 3);
+        Assert.Equal(MarylandWorld.DoorHeight, opening.Height, 3);
+        Assert.Equal(0f, opening.Sill, 3);
+        Assert.InRange(opening.Edge, 0, building.Points!.Count - 1);
 
-        float doorWest = MarylandWorld.DoorX - MarylandWorld.DoorWidth / 2;
-        float doorEast = MarylandWorld.DoorX + MarylandWorld.DoorWidth / 2;
-        foreach (var plate in plates)
-        {
-            float left = plate.Position.X - plate.Scale.X / 2, right = plate.Position.X + plate.Scale.X / 2;
-            float bottom = plate.Position.Y, top = plate.Position.Y + plate.Scale.Y;
-            var blocksTheDoorway = right > doorWest + 0.001f && left < doorEast - 0.001f
-                && bottom < MarylandWorld.DoorHeight - 0.001f && top > 0.001f;
-            Assert.False(blocksTheDoorway, $"{plate.Id} stands in the doorway");
-        }
-        Assert.Contains(plates, plate => plate.Position.Y >= MarylandWorld.DoorHeight - 0.001f);
+        // Its segment crosses the doorway's line at the doorway's height: the wall's own outline.
+        var ring = WorldRing(building);
+        var a = ring[opening.Edge];
+        var b = ring[(opening.Edge + 1) % ring.Count];
+        float length = MathF.Sqrt((b.X - a.X) * (b.X - a.X) + (b.Z - a.Z) * (b.Z - a.Z));
+        var centre = new GroundPoint(a.X + (b.X - a.X) * ((opening.Offset + opening.Width / 2) / length),
+            a.Z + (b.Z - a.Z) * ((opening.Offset + opening.Width / 2) / length));
+        Assert.Equal(MarylandWorld.DoorX, centre.X, 1);
+        Assert.Equal(MarylandWorld.NorthWallZ, centre.Z, 1);
     }
 
     private static bool InsideRoom101(WorldModel world, float x, float z)
@@ -148,6 +203,57 @@ public class MarylandWorldTests
         return geo.Latitude >= MarylandWorld.Room101South && geo.Latitude <= MarylandWorld.Room101North
             && geo.Longitude >= MarylandWorld.Room101West && geo.Longitude <= MarylandWorld.Room101East;
     }
+
+    // A prism's outline in the world's metres (none of this world's objects is turned).
+    private static List<GroundPoint> WorldRing(WorldObject obj) =>
+        obj.Points!.Select(p => new GroundPoint(p.X + obj.Position.X, p.Z + obj.Position.Z)).ToList();
+
+    private static float DistanceToLine(IReadOnlyList<GroundPoint> line, GroundPoint p)
+    {
+        float best = float.MaxValue;
+        for (int i = 0; i + 1 < line.Count; i++)
+            best = MathF.Min(best, DistanceToSegment(line[i], line[i + 1], p));
+        return best;
+    }
+
+    private static float DistanceToSegment(GroundPoint a, GroundPoint b, GroundPoint p)
+    {
+        float dx = b.X - a.X, dz = b.Z - a.Z;
+        float lengthSquared = dx * dx + dz * dz;
+        float t = lengthSquared <= 0 ? 0 : Math.Clamp(((p.X - a.X) * dx + (p.Z - a.Z) * dz) / lengthSquared, 0, 1);
+        float x = a.X + dx * t, z = a.Z + dz * t;
+        return MathF.Sqrt((p.X - x) * (p.X - x) + (p.Z - z) * (p.Z - z));
+    }
+
+    private static float PolygonToLineDistance(IReadOnlyList<GroundPoint> ring, IReadOnlyList<GroundPoint> line)
+    {
+        float best = float.MaxValue;
+        for (int i = 0; i < ring.Count; i++)
+        {
+            var a = ring[i];
+            var b = ring[(i + 1) % ring.Count];
+            best = MathF.Min(best, DistanceToLine(line, a));
+            for (int j = 0; j + 1 < line.Count; j++)
+            {
+                best = MathF.Min(best, DistanceToSegment(a, b, line[j]));
+                best = MathF.Min(best, SegmentDistance(a, b, line[j], line[j + 1]));
+            }
+        }
+        return best;
+    }
+
+    // Zero when two segments meet; otherwise the distance between their nearest points.
+    private static float SegmentDistance(GroundPoint a, GroundPoint b, GroundPoint c, GroundPoint d)
+    {
+        float d1 = Cross(c, d, a), d2 = Cross(c, d, b), d3 = Cross(a, b, c), d4 = Cross(a, b, d);
+        if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0))) return 0;
+        return MathF.Min(
+            MathF.Min(DistanceToSegment(c, d, a), DistanceToSegment(c, d, b)),
+            MathF.Min(DistanceToSegment(a, b, c), DistanceToSegment(a, b, d)));
+    }
+
+    private static float Cross(GroundPoint a, GroundPoint b, GroundPoint c) =>
+        (b.X - a.X) * (c.Z - a.Z) - (b.Z - a.Z) * (c.X - a.X);
 
     /// <summary>How far, in degrees, a ground point is off the camera's heading.</summary>
     private static float BearingDelta(WorldModel world, string cameraId, float x, float z)
@@ -176,39 +282,37 @@ public class MarylandWorldTests
     }
 
     [Fact]
-    public void TheYardPair_StandsBetweenTheDoorwayAndTheRoad()
+    public void TheYardPair_StandsInTheParkingLot()
     {
-        // The second pair works as one out in the yard: the master on a pole between the doorway and
-        // the ring road, looking back along the line the person walks, and the slave on a pole of
-        // its own between that doorway and the master, nearer the master, so it holds the doorway at
-        // one side of its picture and the yard the person turns into at the other.
+        // The second pair works as one in Lot T: the master on a pole north-west of the doorway,
+        // looking back along the line the person crosses, and the slave on a pole of its own between
+        // that doorway and the master, nearer the master.
         var world = World();
         var master = world.Cameras.Single(c => c.Id == "master2");
         var slave = world.Cameras.Single(c => c.Id == "ptz2");
 
-        Assert.Equal(-88.0, master.Position.X, 0);
-        Assert.Equal(-72.0, master.Position.Z, 0);
+        Assert.Equal(-30.0, master.Position.X, 0);
+        Assert.Equal(-112.0, master.Position.Z, 0);
         Assert.Equal(6f, master.Position.Y, 3);
-        Assert.Equal(88.8f, master.Heading, 3);
+        Assert.Equal(125f, master.Heading, 3);
         Assert.Equal(55f, master.HFov, 3);
         Assert.Equal(-9.5f, master.Pitch, 3);
 
-        // Between the doorway and the master: west of the door, out in the yard (the wall is at
-        // z ≈ −55.66), and off the master's line of sight to the door so its own mast cannot hide
-        // the person walking out.
-        Assert.Equal(-64.0, slave.Position.X, 0);
-        Assert.Equal(-64.0, slave.Position.Z, 0);
+        Assert.Equal(-20.0, slave.Position.X, 0);
+        Assert.Equal(-90.0, slave.Position.Z, 0);
         Assert.Equal(5.5f, slave.Position.Y, 3);
-        Assert.Equal(0f, slave.Heading, 3);
+        Assert.Equal(88f, slave.Heading, 3);
         Assert.Equal(60f, slave.Ptz!.FovWide, 3);
-        Assert.True(slave.Position.X < MarylandWorld.DoorX);
+        // Off the master's line of sight to the door, so its own mast cannot hide the person.
         Assert.True(slave.Position.X > master.Position.X);
+        Assert.True(slave.Position.Z > master.Position.Z);
 
-        // The car is no longer what this pair follows: it drives round the ring road 40–50 m away,
-        // too small in the master's picture for the detector, and the vehicle camera rides it.
+        // The car is no longer what this pair follows: it drives round the block, far too small in the
+        // master's picture, and the vehicle camera rides it.
         var vehicle = Assert.Single(world.Vehicles);
         Assert.Equal("v1", vehicle.Id);
         Assert.True(vehicle.Detectable);
+        Assert.True(vehicle.Route.Count > 20);
     }
 
     [Fact]
@@ -249,35 +353,27 @@ public class MarylandWorldTests
             wire.RelayToken == "peer" && wire.InputCameraId == "ptz" && wire.InputToken == "input");
         Assert.Contains(world.Wires, wire =>
             wire.RelayToken == "loop" && wire.InputCameraId == "master" && wire.InputToken == "input");
-        Assert.All(world.Wires, wire =>
-            Assert.Equal("master", wire.RelayCameraId));
+        Assert.All(world.Wires, wire => Assert.Equal("master", wire.RelayCameraId));
 
         // A device on the car would move the wire, and every camera that sees it, every frame.
         Assert.Empty(world.Cameras.Single(c => c.Id == MarylandWorld.VehicleCameraId).DigitalInputs);
         Assert.Empty(world.Cameras.Single(c => c.Id == MarylandWorld.VehicleCameraId).RelayOutputs);
     }
 
+    // The ground map is named, and the bounds it was fetched for are the extent this world covers:
+    // a map is a cache, and what the world holds is where that cache belongs.
     [Fact]
-    public void TheBuildingIsPlates_NotOneSolidBox()
+    public void TheGroundMapLiesUnderTheWholeTerrain()
     {
         var world = World();
-        var plates = world.Objects.Where(o => o.Id.StartsWith("building-") || o.Id.StartsWith("room-")).ToList();
-        Assert.NotEmpty(plates);
-        // The floor is a "floor" — the same slab, but its top is laid out in tiles — and everything
-        // else a wall, a roof or a room partition is a plain plate.
-        var floor = plates.Where(o => o.Type == "floor").Select(o => o.Id).ToList();
-        Assert.Equal(["building-floor"], floor);
-        Assert.All(plates.Where(o => o.Type != "floor"), o => Assert.Equal("box", o.Type));
-
-        // The rooms are walls standing inside the building, and the roof is a plate above them: no
-        // solid house or office stands where a camera has to see the inside.
-        foreach (var camera in MarylandWorld.Cameras)
-        {
-            var position = WorldGeo.ToWorld(World(), camera.Latitude, camera.Longitude, camera.Height);
-            Assert.DoesNotContain(world.Objects, o =>
-                o.Type is "house" or "office" &&
-                MathF.Abs(o.Position.X - position.X) < 15 && MathF.Abs(o.Position.Z - position.Z) < 15);
-        }
+        Assert.Equal("maryland-ground", world.Terrain.Map);
+        Assert.NotNull(world.Terrain.MapBounds);
+        var bounds = TerrainMaps.BoundsOf(world.Geo, world.Terrain.Size);
+        Assert.Equal(bounds.South, world.Terrain.MapBounds!.South, 6);
+        Assert.Equal(bounds.West, world.Terrain.MapBounds.West, 6);
+        Assert.Equal(bounds.North, world.Terrain.MapBounds.North, 6);
+        Assert.Equal(bounds.East, world.Terrain.MapBounds.East, 6);
+        Assert.False(string.IsNullOrWhiteSpace(world.Terrain.MapAttribution));
     }
 
     [Fact]

@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+- **A prism: any footprint extruded to a height.** A world object of type `prism` takes a ring of
+  points and draws walls, a roof and a floor from both sides — a building of any shape is one object
+  rather than a box. `openings` cut a wall into panels and the band above them, which is how a doorway
+  is made; `texture: "tiles"` lays the top out as a tiled floor. Footprints are normalised, checked
+  (a crossing or a nearly empty one is refused) and triangulated by ear clipping; the editor draws one
+  point by point and edits its openings in the object's card. Imported objects keep their `sourceOsm`.
+- **A raster map under the ground.** `terrain.map` names a picture drawn under the terrain, sampled
+  through per-vertex UVs with perspective-correct interpolation, bilinear filtering and fog after the
+  sample; the terrain chunk is unlit so a map reads as a map. The picture is a local cache under the
+  data directory (`maps/<name>.png`), fetched once per world from any `{z}/{x}/{y}` tile provider
+  (`ONVIFSIM_MAP_TILE_URL`) and never part of a world file. Every output pixel is a world coordinate
+  taken back to WGS84 and then to a tile, so an anchor, a true north and any terrain size come out
+  right; a map missing, mismatched or broken is not drawn, and the world stays valid. The editor
+  bakes it, shows it and switches it off.
+- **Real objects out of OpenStreetMap.** The editor's Map → Pick from OSM tool asks Overpass what lies
+  under a click — `nwr` for buildings, parking and water (multipolygons included), `way` for roads,
+  `node` for trees — outlines the candidate and builds a prism, a road or a tree from it. Buildings
+  with a courtyard are refused with a message.
+- **The Maryland world is the real campus.** The building is Biomolecular Sciences (OSM way
+  24303349): its 20-corner footprint at 11.78 m, with a doorway on the north wall. The yard is Lot T,
+  the parking lot the person crosses; the car drives the real ring of Regents, Paint Branch and
+  Technology Drive; the neighbours, the lots and the pond are their OSM footprints. The ground carries
+  the campus map, and the demo's cameras, Room 101 and the walker's route moved with the building.
 - **A doorway in the Maryland world, and a person who walks out of it.** The building's north wall
   has a real opening (two plates and a lintel), and the walker's route leaves Room 101 through the
   hall and the doorway, walks out into the yard, turns right and follows the ring road for a short

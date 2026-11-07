@@ -165,8 +165,39 @@ restart.
   active-world.json       the world a restart opens
   worlds/<name>.json      every world
   trash/<name>.json       worlds moved out of the list
+  maps/<name>.png         ground maps fetched for a world, with <name>.json beside them
   recordings.json         the cameras' own recordings (see Profile G below)
 ```
+
+### A map under the ground
+
+A world can carry a raster map drawn under its terrain, which makes it easy to lay a building out
+over a real place. The picture is **not part of the world file**: it is a local cache in
+`maps/<name>.png`, fetched once for the world's own extent from a tile provider and kept on the
+machine. Every output pixel is turned into a world coordinate and then into a tile, so the world's
+anchor, its true north and any terrain size come out right.
+
+- **Terrain settings:** `map` names the cache, `mapBounds` records where the picture's edges lie, so a
+  moved anchor or a resized terrain shows up as a map that no longer fits rather than one drawn in the
+  wrong place, `showMap` switches drawing off without deleting it, and `mapAttribution` is the credit
+  the provider requires.
+- **Bake it** from the editor's world panel (or `POST /api/terrain/map/bake {"name": "..."}`); it
+  needs the internet once. A map that cannot be fetched, does not fit or is broken is simply not
+  drawn — the terrain keeps its own colour, and a world without a map is a valid world.
+- **Provider:** `ONVIFSIM_MAP_TILE_URL` (default `https://tile.openstreetmap.org/{z}/{x}/{y}.png`),
+  any `{z}`/`{x}`/`{y}` service. The OpenStreetMap tile service's policy forbids bulk downloading and
+  offline maps, so OnvifSim never ships pixels: each installation fetches a handful of tiles for its
+  own world once. Point this at your own or a commercial provider for a product deployment, and keep
+  the credit line.
+
+### Building from the real world
+
+The editor's **Map → Pick from OSM** tool asks OpenStreetMap (through Overpass, `ONVIFSIM_OSM_URL`,
+default `https://overpass-api.de/api/interpreter`) what lies under a click and offers what of it this
+simulator can build: a building or a parking lot as a prism of its footprint, a road as a road, a tree
+as a tree. The clicked object is outlined before it is built, and the OSM element it came from is kept
+on the object (`sourceOsm`). Buildings drawn with a courtyard are refused with a message: a prism has
+no holes yet. Data © OpenStreetMap contributors.
 
 - **Switch** by choosing a world in the header's list. Edits in the outgoing world are saved first,
   and the new world starts with an empty undo history.
