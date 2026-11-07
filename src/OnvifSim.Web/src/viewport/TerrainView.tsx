@@ -38,6 +38,9 @@ export function TerrainView({ terrain }: { terrain: Terrain }) {
         if (!live) return;
         texture.colorSpace = SRGBColorSpace;
         texture.anisotropy = 4;
+        // The cache's first row is the map's north edge, and v = 0 is the world's (see terrainGeometry).
+        // three.js flips an image on upload by default, which would put the south half under the north.
+        texture.flipY = false;
         setMap(texture);
       },
       undefined,

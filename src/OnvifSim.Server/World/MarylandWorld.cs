@@ -73,12 +73,13 @@ public static class MarylandWorld
     [
         // The pair of the demo's room: the master stands south of Room 101 on the line the person
         // walks out by, and looks along it — the room at 8–14 m, the doorway 24 m away — so one lens
-        // holds the whole of the person's walk indoors. The slave stands in the room's north-east
-        // corner, looking back across it.
+        // holds the whole of the person's walk indoors. The slave stands in the room's south-east
+        // corner, its back to the wall, and looks across the room: at 4.5–11 m from the person it
+        // follows they cross its view slowly enough for a command every two seconds to hold them.
         new("master", "Main room master", CameraKind.Fixed,
             38.9928120, -76.9378925, 2.8f, 0f, 45, -8f),
         new("ptz", "Main room slave (PTZ)", CameraKind.Ptz,
-            38.9928803, -76.9378370, 2.8f, 310f, 65, 0),
+            38.9928722, -76.9378196, 2.8f, 310f, 65, 0),
         // The second pair works in the parking lot: the master stands on a pole north-west of the
         // doorway, looking back along the line the person crosses, and its boxes are what aim the
         // slave. The person is 7.4–11.5 % of the master's picture height over the whole walk (the
@@ -247,13 +248,13 @@ public static class MarylandWorld
             Id = "w1", Speed = 1.0f, Return = RouteReturn.Loop, Height = 1.75f,
             Route =
             [
-                new(-8.5f, -70.5f), new(-11f, -70.5f), new(-11f, -65.5f), new(-6f, -65.5f), new(-6f, -70.5f),
-                new(-8.5f, -70.5f),
+                new(-8.5f, -72.5f), new(-11f, -72.5f), new(-11f, -67.5f), new(-6f, -67.5f), new(-6f, -72.5f),
+                new(-8.5f, -72.5f),
                 new(-8f, -78f), new(-8f, -86f), new(-8f, -91f), new(-8f, -96f), new(-8f, -100f),
                 new(-6f, -100f), new(-2f, -100f), new(2f, -100f), new(6f, -100f), new(10f, -100f),
                 new(6f, -100f), new(2f, -100f), new(-2f, -100f), new(-6f, -100f), new(-8f, -100f),
                 new(-8f, -96f), new(-8f, -91f), new(-8f, -86f), new(-8f, -78f),
-                new(-8.5f, -70.5f),
+                new(-8.5f, -72.5f),
             ],
         });
 

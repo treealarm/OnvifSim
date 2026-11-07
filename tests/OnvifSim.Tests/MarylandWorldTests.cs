@@ -46,15 +46,15 @@ public class MarylandWorldTests
     {
         var world = World();
         // The master stands south of Room 101, on the line the person walks out by, so one lens holds
-        // both the room and the doorway; the slave is in the room's north-east corner.
+        // both the room and the doorway; the slave is in the room's south-east corner.
         var master = world.Cameras.Single(c => c.Id == "master");
         Assert.Equal(-8.0, master.Position.X, 1);
         Assert.Equal(-57.0, master.Position.Z, 1);
         Assert.Equal(2.8, master.Position.Y, 3);
 
         var ptz = world.Cameras.Single(c => c.Id == "ptz");
-        Assert.Equal(-3.2, ptz.Position.X, 1);
-        Assert.Equal(-64.6, ptz.Position.Z, 1);
+        Assert.Equal(-1.7, ptz.Position.X, 1);
+        Assert.Equal(-63.7, ptz.Position.Z, 1);
     }
 
     // The building is the real one: one prism of the footprint OSM gives way 24303349, at the height
