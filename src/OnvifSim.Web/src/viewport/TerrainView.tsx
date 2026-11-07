@@ -92,7 +92,11 @@ export function TerrainView({ terrain }: { terrain: Terrain }) {
     if (e.delta > 4) return;
     if (tool.kind === 'place') void place(tool.what, e.point.x, e.point.z);
     else if (tool.kind === 'draw') addDrawingPoint({ x: round(e.point.x), z: round(e.point.z) });
-    else if (tool.kind === 'osm') void pickFromOsm(e.point.x, e.point.z);
+    else if (tool.kind === 'osm') {
+      // The answer is shown by the world's own panel, which a selected object would replace.
+      select(null);
+      void pickFromOsm(e.point.x, e.point.z);
+    }
     else if (tool.kind === 'select') select(null);
   }
 

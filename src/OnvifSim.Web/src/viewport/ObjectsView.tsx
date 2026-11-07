@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import type { BufferGeometry, Object3D, Plane } from 'three';
 import { api } from '../api';
 import { heightAt, type Terrain, type WorldObject } from '../model';
-import { select, showError, updateObject, useEditor } from '../store';
+import { pickFromOsm, select, showError, updateObject, useEditor } from '../store';
 import { CUTAWAY_HEIGHT_M, useCutawayPlanes } from './cutaway';
 import { yawDegrees } from './orientation';
 
@@ -79,7 +79,18 @@ function ObjectView({ obj, terrain, geometry, selected, clippingPlanes }: Object
   const ground = heightAt(terrain, obj.position.x, obj.position.z);
 
   function onClick(e: ThreeEvent<MouseEvent>) {
-    if (e.delta > 4 || useEditor.getState().tool.kind !== 'select') return;
+    if (e.delta > 4) return;
+    const tool = useEditor.getState().tool;
+    // Picking from the real world: the object is what the click is about, at its own place. The
+    // ground behind a roof is a different spot — from an oblique view the ray over a tall building
+    // lands tens of metres past it.
+    if (tool.kind === 'osm') {
+      e.stopPropagation();
+      select(null);
+      void pickFromOsm(obj.position.x, obj.position.z);
+      return;
+    }
+    if (tool.kind !== 'select') return;
     // A face the cutaway hides still catches the ray. Above the cut, let the click through to what
     // stands behind it, or a room's roof would be what clicking into the room selects.
     if (useEditor.getState().cutaway && e.point.y > CUTAWAY_HEIGHT_M) return;

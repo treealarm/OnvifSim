@@ -25,6 +25,7 @@ export function WorldInspector({ world }: { world: World }) {
   const terrain = world.terrain;
   const activeWorld = useEditor((s) => s.activeWorld);
   const osm = useEditor((s) => s.osm);
+  const osmLooking = useEditor((s) => s.osmLooking);
   const [baking, setBaking] = useState(false);
   const mapName = terrain.map ?? null;
 
@@ -52,7 +53,7 @@ export function WorldInspector({ world }: { world: World }) {
   return (
     <>
       <h2>World</h2>
-      {osm && <OsmPickCard candidates={osm.candidates} picked={osm.picked} />}
+      {(osm || osmLooking) && <OsmPickCard candidates={osm?.candidates ?? null} picked={osm?.picked ?? 0} />}
       <p className="muted">
         Pick something from the toolbar and click the ground to place it; click an object or a camera, or a row in
         Contents, to edit it.
@@ -147,8 +148,15 @@ export function WorldInspector({ world }: { world: World }) {
 
 // What lies under the click, in the real world: each candidate can be looked at before it is built,
 // and a courtyard is refused here rather than built as a lid over it.
-function OsmPickCard({ candidates, picked }: { candidates: OsmCandidate[]; picked: number }) {
-  const candidate = candidates[picked];
+function OsmPickCard({ candidates, picked }: { candidates: OsmCandidate[] | null; picked: number }) {
+  const candidate = candidates?.[picked];
+  if (!candidates) {
+    return (
+      <Section title="From OpenStreetMap">
+        <p className="muted">Looking under the point… a public Overpass server takes a while at a busy hour.</p>
+      </Section>
+    );
+  }
   return (
     <Section title="From OpenStreetMap">
       <div className="io-card">

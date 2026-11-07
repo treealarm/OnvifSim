@@ -13,7 +13,7 @@ import {
   type Terrain,
   type Vehicle,
 } from '../model';
-import { select, updateCamera, useEditor } from '../store';
+import { pickFromOsm, select, updateCamera, useEditor } from '../store';
 import { castFootprint, FOOTPRINT_COLUMNS, FOOTPRINT_ROWS, type Footprint } from './footprint';
 import { Label } from './Label';
 import { lookOf, yawDegrees } from './orientation';
@@ -94,7 +94,17 @@ export function CameraGizmo({ camera, head, terrain, environment, vehicles, view
   });
 
   function onClick(e: ThreeEvent<MouseEvent>) {
-    if (e.delta > 4 || useEditor.getState().tool.kind !== 'select') return;
+    if (e.delta > 4) return;
+    const tool = useEditor.getState().tool;
+    // Picking from the real world: a camera stands on the ground it is mounted over, so that is the
+    // spot the click asks about.
+    if (tool.kind === 'osm') {
+      e.stopPropagation();
+      select(null);
+      void pickFromOsm(camera.position.x, camera.position.z);
+      return;
+    }
+    if (tool.kind !== 'select') return;
     e.stopPropagation();
     select({ kind: 'camera', id: camera.id });
   }

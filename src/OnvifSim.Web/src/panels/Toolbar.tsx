@@ -146,7 +146,7 @@ export function Toolbar() {
           <div className="group" role="group" aria-label="Real objects">
             <ToolButton current={tool} value={{ kind: 'osm' }} label="Pick from OSM" />
             {tool.kind === 'osm' && (
-              <span className="hint">Click the ground where the real object is; what lies under the click is offered in the panel.</span>
+              <span className="hint">Click an object or the ground where the real one is; what lies under the click is offered in the panel.</span>
             )}
           </div>
         )}

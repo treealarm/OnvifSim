@@ -103,6 +103,14 @@ public static class EditorApi
                 var candidates = await osm.PickAsync(store.Current, request.X, request.Z, cancellationToken);
                 return Results.Json(new { candidates });
             }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                // The query's own deadline, not the browser hanging up: say what it means rather than
+                // relaying "The operation was canceled".
+                return Results.Json(
+                    new { error = "OpenStreetMap did not answer in time; try again, or point ONVIFSIM_OSM_URL at a nearer Overpass server." },
+                    statusCode: StatusCodes.Status502BadGateway);
+            }
             catch (Exception ex)
             {
                 return Results.Json(new { error = ex.Message }, statusCode: StatusCodes.Status502BadGateway);

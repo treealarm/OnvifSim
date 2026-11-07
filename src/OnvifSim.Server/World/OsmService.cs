@@ -14,6 +14,10 @@ public sealed class OsmService
     public const string DefaultEndpoint = "https://overpass-api.de/api/interpreter";
     // How far round the click the query reaches: enough for the object under it and its neighbours.
     private const int RadiusM = 30;
+    // How long the provider may spend on the query, in its own budget and as the client's patience. A
+    // public Overpass under load takes tens of seconds at a peak; a click that gives up sooner is a
+    // click that never answers.
+    private const int QueryTimeoutS = 60;
     private const int MaxCandidates = 5;
     private static readonly TimeSpan CacheLife = TimeSpan.FromSeconds(30);
     // One query a second, and never more than this from a response.
@@ -66,7 +70,7 @@ public sealed class OsmService
         var at = string.Create(CultureInfo.InvariantCulture, $"(around:{RadiusM},{latitude:0.######},{longitude:0.######})");
         // nwr reaches relations too, which is how a building drawn as a multipolygon arrives; a tree
         // is a node. Everything in one request, so a click costs one round trip.
-        return $"[out:json][timeout:25];(" +
+        return $"[out:json][timeout:{QueryTimeoutS}];(" +
                $"nwr{at}[building];nwr{at}[amenity=parking];nwr{at}[natural=water];" +
                $"way{at}[highway];node{at}[natural=tree];" +
                ");out tags geom;";
@@ -86,7 +90,7 @@ public sealed class OsmService
             for (int attempt = 0; ; attempt++)
             {
                 using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                timeout.CancelAfter(TimeSpan.FromSeconds(25));
+                timeout.CancelAfter(TimeSpan.FromSeconds(QueryTimeoutS + 15));
                 using var content = new FormUrlEncodedContent([new KeyValuePair<string, string>("data", query)]);
                 using var response = await _http.PostAsync(_endpoint, content, timeout.Token);
                 if (response.IsSuccessStatusCode)

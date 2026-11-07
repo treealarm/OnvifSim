@@ -54,7 +54,9 @@ builder.Services.AddSingleton(sp =>
 });
 builder.Services.AddSingleton(sp =>
 {
-    var http = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
+    // The query's own deadline is what bounds a click (OsmService); this one only has to outlast it,
+    // and a public Overpass at a busy hour answers in tens of seconds, not in one.
+    var http = new HttpClient { Timeout = TimeSpan.FromSeconds(90) };
     http.DefaultRequestHeaders.UserAgent.ParseAdd($"OnvifSim/{CameraIdentity.FirmwareVersion} (+https://treealarm.dev)");
     return new OsmService(options.OsmEndpoint, http, sp.GetRequiredService<ILogger<OsmService>>());
 });

@@ -77,8 +77,11 @@ interface EditorState {
   brushStrength: number;
   // Where the viewport is asked to fly to, and how far back to stand from it.
   focus: FocusRequest | null;
-  // What the last click asked OpenStreetMap, while the pick tool is active.
+  // What the last click asked OpenStreetMap, while the pick tool is active; and whether that question
+  // is still on its way — the provider takes seconds, sometimes a minute, and a click with no visible
+  // answer reads as a click that did nothing.
   osm: OsmPick | null;
+  osmLooking: boolean;
   // The point of the selected road or route being dragged over the ground.
   draggedPoint: number | null;
   error: string | null;
@@ -105,6 +108,7 @@ export const useEditor = create<EditorState>()(() => ({
   brushStrength: 0.5,
   focus: null,
   osm: null,
+  osmLooking: false,
   draggedPoint: null,
   error: null,
   undoSteps: 0,
@@ -854,16 +858,19 @@ export function movePoint(selection: Selection, index: number, point: GroundPoin
 // ---- The real world under a click ----
 
 export function startOsmPick() {
-  set({ tool: { kind: 'osm' }, toolGroup: 'map', osm: null });
+  set({ tool: { kind: 'osm' }, toolGroup: 'map', osm: null, osmLooking: false });
 }
 
-// Asks the server what of the real world lies under a point of this one, and offers it.
+// Asks the server what of the real world lies under a point of this one, and offers it. The answer
+// takes a while, so the panel says the question is out before the answer arrives.
 export async function pickFromOsm(x: number, z: number) {
+  set({ osm: null, osmLooking: true });
   try {
     const { candidates } = await api.osmPick(x, z);
-    set({ osm: candidates.length > 0 ? { candidates, picked: 0 } : null });
+    set({ osm: candidates.length > 0 ? { candidates, picked: 0 } : null, osmLooking: false });
     if (candidates.length === 0) showError('Nothing from OpenStreetMap lies under that point.');
   } catch (error) {
+    set({ osmLooking: false });
     showError(error);
   }
 }
@@ -874,7 +881,7 @@ export function pickOsmCandidate(index: number) {
 }
 
 export function cancelOsmPick() {
-  set({ tool: { kind: 'select' }, toolGroup: 'select', osm: null });
+  set({ tool: { kind: 'select' }, toolGroup: 'select', osm: null, osmLooking: false });
 }
 
 // The picked object becomes one of this world: a prism of its footprint, a road along its line, a tree

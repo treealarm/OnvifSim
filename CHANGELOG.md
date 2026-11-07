@@ -18,8 +18,10 @@
   bakes it, shows it and switches it off.
 - **Real objects out of OpenStreetMap.** The editor's Map → Pick from OSM tool asks Overpass what lies
   under a click — `nwr` for buildings, parking and water (multipolygons included), `way` for roads,
-  `node` for trees — outlines the candidate and builds a prism, a road or a tree from it. Buildings
-  with a courtyard are refused with a message.
+  `node` for trees — outlines the candidate and builds a prism, a road or a tree from it. A click on
+  an object asks about the object's own place, not the ground behind its roof; the panel says the
+  question is out until the answer arrives, and a query that has not answered in 60 s says so instead
+  of failing silently. Buildings with a courtyard are refused with a message.
 - **The Maryland world is the real campus.** The building is Biomolecular Sciences (OSM way
   24303349): its 20-corner footprint at 11.78 m, with a doorway on the north wall. The yard is Lot T,
   the parking lot the person crosses; the car drives the real ring of Regents, Paint Branch and
