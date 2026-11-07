@@ -320,10 +320,10 @@
         "y": 0.04,
         "z": 1
       },
-      "color": "#5f6165",
-      "color2": "#5f6165",
+      "color": "#4f5358",
+      "color2": "#4f5358",
       "seed": 3,
-      "texture": "none",
+      "texture": "parking",
       "points": [
         {
           "x": -6.947059,
@@ -409,10 +409,10 @@
         "y": 0.04,
         "z": 1
       },
-      "color": "#5f6165",
-      "color2": "#5f6165",
+      "color": "#4f5358",
+      "color2": "#4f5358",
       "seed": 4,
-      "texture": "none",
+      "texture": "parking",
       "points": [
         {
           "x": -27.550003,
@@ -454,10 +454,10 @@
         "y": 0.04,
         "z": 1
       },
-      "color": "#5f6165",
-      "color2": "#5f6165",
+      "color": "#4f5358",
+      "color2": "#4f5358",
       "seed": 5,
-      "texture": "none",
+      "texture": "parking",
       "points": [
         {
           "x": -7.8500004,

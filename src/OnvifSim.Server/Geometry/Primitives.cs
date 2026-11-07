@@ -155,7 +155,7 @@ public static class Primitives
     // when its sill is raised). Grain on the walls follows the seed, so a world built twice draws the
     // same thing. The footprint must already be normalised (see Polygon).
     public static void Prism(Mesh m, IReadOnlyList<GroundPoint> points, float height, Vector3 wall, Vector3 roof,
-        IReadOnlyList<OpeningModel>? openings, int seed, bool textured, bool tiled = false)
+        IReadOnlyList<OpeningModel>? openings, int seed, bool textured, bool tiled = false, bool parking = false)
     {
         int n = points.Count;
         if (n < 3 || height <= 0) return;
@@ -211,6 +211,47 @@ public static class Primitives
 
         // A tiled prism is a floor: its tiles are the surface, so they stand on its top.
         if (tiled) TiledCap(m, points, height, roof, seed);
+        // A parking apron is read by its bays, painted on the same top.
+        if (parking) ParkingCap(m, points, height);
+    }
+
+    // The bays of a parking apron, painted along the edges of its footprint: a white divider every
+    // 2.5 m, reaching 5 m in from the edge, with the lane between two rows left clear. A divider that
+    // would run out of the apron is not drawn, so a lot of any shape keeps its own outline, and the
+    // short ends of a lot carry no rows.
+    private static void ParkingCap(Mesh m, IReadOnlyList<GroundPoint> points, float height)
+    {
+        const float bay = 2.5f, depth = 5f, line = 0.12f, shortestRow = 12f;
+        var paint = new Vector3(0.94f, 0.94f, 0.90f);
+        float y = height + 0.004f;
+        bool Inside(float x, float z) => Polygon.Contains(points, new GroundPoint(x, z));
+        for (int i = 0; i < points.Count; i++)
+        {
+            var a = points[i];
+            var b = points[(i + 1) % points.Count];
+            float dx = b.X - a.X, dz = b.Z - a.Z;
+            float length = MathF.Sqrt(dx * dx + dz * dz);
+            if (length < shortestRow) continue;
+            // The inward side of this edge: whichever of the two normals puts a point just inside the
+            // ring. A footprint is normalised, so an edge cannot have both sides inside.
+            float nx = -dz / length, nz = dx / length;
+            float mx = (a.X + b.X) / 2, mz = (a.Z + b.Z) / 2;
+            if (!Inside(mx + nx * 0.5f, mz + nz * 0.5f)) (nx, nz) = (-nx, -nz);
+
+            int bays = (int)(length / bay);
+            for (int k = 1; k < bays; k++)
+            {
+                float t = k * bay / length;
+                float px = a.X + dx * t, pz = a.Z + dz * t;
+                float ex = px + nx * depth, ez = pz + nz * depth;
+                // The row has to stay on the apron: the lane between two rows runs through the middle.
+                if (!Inside(ex, ez) || !Inside((px + ex) / 2, (pz + ez) / 2)) continue;
+                // A divider is a thin quad along the normal, its winding giving an upward face.
+                float wx = -nz * line / 2, wz = nx * line / 2;
+                m.AddFlatQuad(new(px + wx, y, pz + wz), new(ex + wx, y, ez + wz),
+                    new(ex - wx, y, ez - wz), new(px - wx, y, pz - wz), paint);
+            }
+        }
     }
 
     // A tiled floor over the footprint: the cap's own colour is the seam, and tiles stand on it with a

@@ -108,7 +108,7 @@ public static partial class WorldValidation
         Require(IsFinite(obj.Position) && float.IsFinite(obj.RotationY), $"Object {obj.Id}: position and rotation must be finite.");
         Require(obj.Scale is { X: > 0 and <= MaxObjectSize, Y: > 0 and <= MaxObjectSize, Z: > 0 and <= MaxObjectSize },
             $"Object {obj.Id}: every size must be above 0 and at most {MaxObjectSize} m.");
-        RequireTexture($"Object {obj.Id}", obj.Texture, ["none", "grain", "tiles"]);
+        RequireTexture($"Object {obj.Id}", obj.Texture, ["none", "grain", "tiles", "parking"]);
         if (obj.Type == "car") CheckPlate($"Object {obj.Id}", obj.Plate);
         if (obj.Type == "prism") CheckPrism(obj);
     }

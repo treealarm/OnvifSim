@@ -374,7 +374,8 @@ public static class SceneBuilder
                 var wall = ColorUtil.Parse(o.Color, ColorUtil.Rgb(200, 204, 210));
                 var roof = ColorUtil.Parse(o.Color2, ColorUtil.Rgb(112, 116, 122));
                 Primitives.Prism(m, o.Points ?? [], s.Y, wall, roof, o.Openings, o.Seed, !Smooth(texture),
-                    tiled: string.Equals(texture, "tiles", StringComparison.OrdinalIgnoreCase));
+                    tiled: string.Equals(texture, "tiles", StringComparison.OrdinalIgnoreCase),
+                    parking: string.Equals(texture, "parking", StringComparison.OrdinalIgnoreCase));
                 break;
             }
         }

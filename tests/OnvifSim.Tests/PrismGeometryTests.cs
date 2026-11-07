@@ -102,6 +102,39 @@ public class PrismGeometryTests
         Assert.Equal((8 + 4) * 2 + 2 * 4, SceneBuilder.ObjectMesh(prism).TriangleCount);
     }
 
+    // A parking apron carries its bays: white dividers along the long edges, every 2.5 m, five metres
+    // in — and none of them runs off the apron, so a lot of any shape keeps its own outline.
+    [Fact]
+    public void AParkingApron_IsPaintedWithItsBays()
+    {
+        var ring = Polygon.Normalize(Ring((0, 0), (40, 0), (40, 20), (0, 20)));
+        var apron = new WorldObject { Id = "lot", Type = "prism", Scale = new Vec3(1, 0.04f, 1), Texture = "parking", Points = ring };
+        var plain = new WorldObject { Id = "lot", Type = "prism", Scale = new Vec3(1, 0.04f, 1), Texture = "none", Points = ring };
+
+        var painted = SceneBuilder.ObjectMesh(apron);
+        var bare = SceneBuilder.ObjectMesh(plain);
+        Assert.True(painted.TriangleCount > bare.TriangleCount, "the apron is drawn with no bays at all");
+
+        // Every painted corner lies on the apron, a hair above its top: a bay that reached past the
+        // outline would be a line drawn on the grass.
+        var paint = new HashSet<(float, float)>();
+        for (int i = 0; i < painted.Positions.Count; i++)
+        {
+            var p = painted.Positions[i];
+            if (p.Y <= 0.04f + 0.001f || p.Y > 0.06f) continue;
+            paint.Add((MathF.Round(p.X, 2), MathF.Round(p.Z, 2)));
+            Assert.True(Polygon.Contains(ring, new GroundPoint(p.X, p.Z)),
+                $"a bay line reaches ({p.X:0.0}, {p.Z:0.0}), which is off the apron");
+        }
+        Assert.NotEmpty(paint);
+
+        // The short ends carry no rows: the bays stand along the two 40 m edges, five metres deep.
+        Assert.All(paint, corner => Assert.InRange(corner.Item1, 0, 40));
+        Assert.All(paint, corner => Assert.InRange(corner.Item2, 0, 20));
+        Assert.Contains(paint, corner => corner.Item2 < 6f);
+        Assert.Contains(paint, corner => corner.Item2 > 14f);
+    }
+
     [Fact]
     public void APrism_IsDrawnTheSameTwice()
     {

@@ -283,9 +283,9 @@ public static class MarylandWorld
     // water rather than grass.
     private static void Ground(WorldModel world)
     {
-        AddPrism(world, "lot-t", Normalized(LotT), 0.04f, "#5f6165", "#5f6165", null, seed: 3, texture: "none");
-        AddPrism(world, "lot-ff2", Normalized(LotFf2), 0.04f, "#5f6165", "#5f6165", null, seed: 4, texture: "none");
-        AddPrism(world, "lot-yy", Normalized(LotYy), 0.04f, "#5f6165", "#5f6165", null, seed: 5, texture: "none");
+        AddPrism(world, "lot-t", Normalized(LotT), 0.04f, "#4f5358", "#4f5358", null, seed: 3, texture: "parking");
+        AddPrism(world, "lot-ff2", Normalized(LotFf2), 0.04f, "#4f5358", "#4f5358", null, seed: 4, texture: "parking");
+        AddPrism(world, "lot-yy", Normalized(LotYy), 0.04f, "#4f5358", "#4f5358", null, seed: 5, texture: "parking");
         AddPrism(world, "pond", Normalized(Pond), 0.03f, "#3f6b86", "#3f6b86", null, seed: 6, texture: "none");
         for (int i = 0; i < Neighbours.Length; i++)
         {

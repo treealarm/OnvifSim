@@ -1045,6 +1045,11 @@ export async function buildOsmCandidate() {
         position: { x: cx, y: 0, z: cz },
         scale: { x: 1, y: candidate.height, z: 1 },
         points: ring.map((p) => ({ x: p.x - cx, z: p.z - cz })),
+        // An apron of the real world is asphalt with its bays painted on, not a pale slab; anything
+        // else keeps the light wall and dark roof a building has by default.
+        ...(candidate.kind === 'parking'
+          ? { color: '#4f5358', color2: '#4f5358', texture: 'parking' }
+          : {}),
         seed: randomSeed(),
         sourceOsm: source,
       });

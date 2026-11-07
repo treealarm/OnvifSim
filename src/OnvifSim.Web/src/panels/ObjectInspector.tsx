@@ -50,6 +50,7 @@ const textureOptions = [
   { value: 'none', label: 'Smooth' },
   { value: 'grain', label: 'Grain' },
   { value: 'tiles', label: 'Tiles' },
+  { value: 'parking', label: 'Parking bays' },
 ];
 
 export function ObjectInspector({ obj }: { obj: WorldObject }) {
