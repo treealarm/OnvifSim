@@ -4,12 +4,30 @@
 
 - **A doorway in the Maryland world, and a person who walks out of it.** The building's north wall
   has a real opening (two plates and a lintel), and the walker's route leaves Room 101 through the
-  hall and the doorway, walks out into the yard toward the ring road, and comes back in. Both pairs
-  follow that person, each from its own side: the hall master stands south of the room on the line
-  out to the doorway, and the yard pair's slave hangs over the doorway while its master — a pole
-  between the doorway and the road — looks back along the line the person walks. The yard leg turns
-  round before the road, so the whole of it stays inside the yard master's picture.
-  `data/worlds/maryland.json` is rebuilt from the builder.
+  hall and the doorway, walks out into the yard, turns right and follows the ring road for a short
+  stretch, then comes back in. Both pairs follow that person, each from its own side: the hall
+  master stands south of the room on the line out to the doorway, and the yard pair works the walk
+  outside — its master on a pole between the doorway and the road, and its slave on a pole of its
+  own between the door and that master, so it holds the doorway at one side of its picture and the
+  yard the person turns into at the other. The walk turns back before the master's picture runs
+  out, so the whole of it stays inside it. `data/worlds/maryland.json` is rebuilt from the builder.
+- **Surfaces carry a texture.** A box is no longer one flat colour: its faces are cut into cells a
+  few metres across and shaded slightly differently, with the bottom a touch darker, so a wall reads
+  as a wall. A road darkens towards its edges and shifts from metre to metre; steep terrain keeps its
+  rock and its dry patches. A new object type, **floor**, lays its top out in tiles with seams and a
+  gentle gradient from the middle outwards; the Maryland building's floor is one. Every pattern is
+  drawn from the colours — no pictures, nothing to load — and follows an object's seed and a cell's
+  place, so two builds of a world draw the same thing.
+- **Texture is a setting, and it is on by default.** An object's `texture` chooses "grain", "tiles"
+  or "none"; a terrain's, "grass" or "none"; a road's, "asphalt" or "none". Left out, a surface keeps
+  its type's own: a box and a building's walls grained, a floor tiled, the terrain and roads
+  textured, and a tree, a rock or a car plain — its shape tells it apart. The editor offers the
+  choice on an object, a road and the terrain, so a world can be made flat-coloured where a pattern
+  is not wanted.
+- **The editor's view prism is a grid.** Each camera's view is cast as rays across its picture, and
+  the grid is drawn where they land on the ground or an object: the patch a camera covers is visible
+  even when part of its picture looks over the horizon. Rays that meet nothing stop at the "view
+  reaches" length, now found in the camera views section of the world inspector.
 - **A digital input's logical state follows the Device IO spec.** A camera that supports
   `SetDigitalInputConfigurations` — OnvifSim does — reports `true` for the active state and `false`
   for the idle one, and `IdleState` names the circuit condition the input rests in. Changing that

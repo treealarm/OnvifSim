@@ -13,9 +13,9 @@ namespace OnvifSim.World;
 // the second pair is out by that doorway: its slave hangs over it and turns after the person in the
 // yard, and its master stands between the doorway and the road looking back at that line. Every
 // wall is a box plate, never one solid box: the rasterizer culls back faces, so a solid building is
-// invisible from the inside. Floor, outer walls and roof are slabs, and a camera in the hall sees
-// its inside the way a person in it would. What the editor cannot see that way is what its cutaway
-// (a plane at 2.5 m) is for.
+// invisible from the inside. The floor is a slab laid out in tiles, the outer walls and the roof are
+// plain slabs, and a camera in the hall sees its inside the way a person in it would. What the
+// editor cannot see that way is what its cutaway (a plane at 2.5 m) is for.
 public static class MarylandWorld
 {
     public const string Name = "maryland";
@@ -52,6 +52,9 @@ public static class MarylandWorld
     public const float DoorHeight = 2.2f;
 
     private const string FloorColor = "#8f959d";
+    // The seams between the floor's tiles: darker than the tiles, but not lines, so the hall floor
+    // reads as a tiled floor from across the room without looking like a grid drawn on it.
+    private const string FloorSeamColor = "#6f747b";
     private const string WallColor = "#c8ccd2";
     private const string RoofColor = "#6f747c";
     // Where the demo's Room 101 lies in the hall: its rectangle's north-east corner is where the
@@ -76,16 +79,17 @@ public static class MarylandWorld
             38.9923000, -76.9383779, 2.8f, 342.3f, 45, -7.5f),
         new("ptz", "Main room slave (PTZ)", CameraKind.Ptz,
             38.992484, -76.938372, 2.8f, 235, 65, 0),
-        // The second pair is out in the yard: the slave hangs over the doorway the person walks out
-        // of, so it watches them from the moment they step out and follows them to the road and
-        // back; the master stands on a pole between that doorway and the ring road, looking back
-        // along the line, and its boxes are what aim the slave. The person is 7.7–10% of the
-        // master's picture height over the whole walk (the detector needs 5%); it never comes
-        // closer than about 30 m to the master, which is why one lens holds the whole walk.
+        // The second pair is out in the yard: the master stands on a pole between the doorway and
+        // the ring road, looking back along the line, and its boxes are what aim the slave. The
+        // slave hangs on a pole of its own between that doorway and the master, nearer the master,
+        // so its picture holds the doorway at one side and the yard the person turns into at the
+        // other. The person is 6.3–8.1% of the master's picture height over the whole walk (the
+        // detector needs 5%); the walk is what fits one lens, which is why it turns back before the
+        // far end of the yard.
         new("master2", "Building master 2", CameraKind.Fixed,
             38.9929468, -76.9388171, 6f, 88.8f, 55, -9.5f),
         new("ptz2", "Campus slave 2 (PTZ)", CameraKind.Ptz,
-            38.9928031, -76.9383779, 5.5f, 0, 60, 0),
+            38.9928749, -76.9385397, 5.5f, 0, 60, 0),
     ];
 
     // The demo camera that is not placed on a wall: it rides the car.
@@ -106,8 +110,11 @@ public static class MarylandWorld
         float cx = (eastX + westX) / 2, cz = (southZ + northZ) / 2;
         float width = eastX - westX, depth = southZ - northZ;
         // The floor's top sits just above the terrain: at exactly its height the two z-fight, and the
-        // cameras see grass grow through the floor.
-        Plate(world, "building-floor", cx, -0.25f, cz, width, 0.3f, depth, FloorColor);
+        // cameras see grass grow through the floor. It is a "floor", not a box: its top is laid out
+        // in tiles with seams, so it reads as a floor in the cameras' pictures instead of one flat
+        // slab of grey.
+        Add(world, "building-floor", "floor", cx, -0.25f, cz, width, 0.3f, depth,
+            color: FloorColor, color2: FloorSeamColor);
         Plate(world, "building-roof", cx, InteriorHeight, cz, width, 0.35f, depth, RoofColor);
         NorthWall(world, westX - WallThickness / 2, northZ, eastX + WallThickness / 2);
         Plate(world, "building-wall-s", cx, 0, southZ, width + WallThickness, InteriorHeight, WallThickness, WallColor);
@@ -137,18 +144,19 @@ public static class MarylandWorld
         });
         // The person both pairs work on: the walk starts with the room the hall pair stands by, goes
         // out through the hall to the doorway — the line the hall master watches — and into the
-        // yard, where the slave over the doorway picks them up and follows them out toward the ring
-        // road and back. The yard leg turns round before the road: the whole of it is inside the
-        // yard master's picture, and a walk longer than that would leave its far end. Both crossings
-        // run along the doorway's line, so the person never walks through a wall.
+        // yard. Out there they walk a few metres from the door, turn right, and follow the ring road
+        // for a short stretch before turning back, so the yard slave swings right after them. The
+        // stretch stops before the master's picture runs out: the person is still 6% of its height
+        // at the far end, and the walk back is a couple of metres to the side of the way out. Both
+        // crossings run along the doorway's line, so the person never walks through a wall.
         world.Walkers.Add(new WalkerModel
         {
             Id = "w1", Speed = 1.0f, Return = RouteReturn.Loop, Height = 1.75f,
             Route =
             [
                 new(-50, -13), new(-50, -56),
-                new(-52, -66), new(-55, -75), new(-58, -82), new(-59, -86),
-                new(-54, -86), new(-52, -78), new(-50, -68), new(-50, -56),
+                new(-51, -64), new(-52, -72), new(-51, -79), new(-48, -84), new(-44, -88), new(-41, -89),
+                new(-42, -85), new(-46, -83), new(-50, -78), new(-52, -71), new(-51, -64), new(-50, -56),
                 new(-50, -45), new(-50, -13),
                 new(-54, -13), new(-54, -18), new(-59, -18), new(-59, -13),
             ],

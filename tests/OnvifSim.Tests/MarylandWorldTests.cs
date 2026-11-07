@@ -179,8 +179,9 @@ public class MarylandWorldTests
     public void TheYardPair_StandsBetweenTheDoorwayAndTheRoad()
     {
         // The second pair works as one out in the yard: the master on a pole between the doorway and
-        // the ring road, looking back along the line the person walks, and the slave hanging over
-        // the doorway itself, so its picture holds the person from the moment they step out.
+        // the ring road, looking back along the line the person walks, and the slave on a pole of
+        // its own between that doorway and the master, nearer the master, so it holds the doorway at
+        // one side of its picture and the yard the person turns into at the other.
         var world = World();
         var master = world.Cameras.Single(c => c.Id == "master2");
         var slave = world.Cameras.Single(c => c.Id == "ptz2");
@@ -192,12 +193,16 @@ public class MarylandWorldTests
         Assert.Equal(55f, master.HFov, 3);
         Assert.Equal(-9.5f, master.Pitch, 3);
 
-        // Over the doorway: on its line, just outside the wall, above the lintel.
-        Assert.Equal(MarylandWorld.DoorX, slave.Position.X, 0);
-        Assert.Equal(-56.0, slave.Position.Z, 0);
+        // Between the doorway and the master: west of the door, out in the yard (the wall is at
+        // z ≈ −55.66), and off the master's line of sight to the door so its own mast cannot hide
+        // the person walking out.
+        Assert.Equal(-64.0, slave.Position.X, 0);
+        Assert.Equal(-64.0, slave.Position.Z, 0);
         Assert.Equal(5.5f, slave.Position.Y, 3);
         Assert.Equal(0f, slave.Heading, 3);
         Assert.Equal(60f, slave.Ptz!.FovWide, 3);
+        Assert.True(slave.Position.X < MarylandWorld.DoorX);
+        Assert.True(slave.Position.X > master.Position.X);
 
         // The car is no longer what this pair follows: it drives round the ring road 40–50 m away,
         // too small in the master's picture for the detector, and the vehicle camera rides it.
@@ -258,7 +263,11 @@ public class MarylandWorldTests
         var world = World();
         var plates = world.Objects.Where(o => o.Id.StartsWith("building-") || o.Id.StartsWith("room-")).ToList();
         Assert.NotEmpty(plates);
-        Assert.All(plates, o => Assert.Equal("box", o.Type));
+        // The floor is a "floor" — the same slab, but its top is laid out in tiles — and everything
+        // else a wall, a roof or a room partition is a plain plate.
+        var floor = plates.Where(o => o.Type == "floor").Select(o => o.Id).ToList();
+        Assert.Equal(["building-floor"], floor);
+        Assert.All(plates.Where(o => o.Type != "floor"), o => Assert.Equal("box", o.Type));
 
         // The rooms are walls standing inside the building, and the roof is a plate above them: no
         // solid house or office stands where a camera has to see the inside.

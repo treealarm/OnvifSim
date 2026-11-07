@@ -76,20 +76,22 @@ editor, and put away the ones you no longer use without losing them.
 - An optional pan/tilt degree grid over the picture shows where the camera is pointing.
 
 **A world you edit in the browser**
-- Place trees, houses and flat-roofed offices, rocks, boxes, cars with editable licence plates and
-  fixed or PTZ cameras;
-  sculpt the terrain; draw roads and routes for people who walk them and cars that drive them over
-  and over.
+- Place trees, houses and flat-roofed offices, rocks, boxes, floors tiled by the server, cars with
+  editable licence plates and fixed or PTZ cameras; sculpt the terrain; draw roads and routes for
+  people who walk them and cars that drive them over and over. Every surface carries a texture of
+  its own — drawn from its colours, never from a picture — so a wall, a road and a floor are told
+  apart at a glance; a surface can also be made smooth.
 - Prepare any number of named worlds in the data directory and switch between them in the header,
   without restarting; move a world to the trash and restore it, or empty the trash for good. A
   Maryland hall with a fixed master and a PTZ camera facing each other, a doorway onto a ring road
-  where a second pair — a slave over the door, a master looking back along the way out — follows
-  the person who walks through it, a camera riding the car and relays wired to a lamp and a sensor
-  ship as an example.
+  where a second pair — a master looking back along the way out, a slave between it and the door —
+  follows the person who walks out and turns along the road, a camera riding the car and relays
+  wired to a lamp and a sensor ship as an example.
 - See each camera's picture beside the 3D view, with the people and cars its analytics reports
   boxed, and drive PTZ cameras with a joystick.
-- See where every camera looks at a glance: each view is a prism in a colour of its own, its base on
-  the ground or the wall the camera actually meets. **Cutaway** opens a building from above.
+- See where every camera looks at a glance: each view is a prism in a colour of its own, with the
+  grid of rays where its picture meets the ground or an object — the patch it really covers, even
+  when part of that picture looks over the horizon. **Cutaway** opens a building from above.
 - Find every object, camera, road, person and moving car in the contents tree and select it there —
   the reliable way to reach a person only a few pixels tall in the 3D view.
 - Every edit is live, on all streams within a moment; undo and redo; no Save button.
