@@ -38,6 +38,9 @@ public sealed class TerrainMaps
     private readonly HttpClient? _http;
     private readonly ILogger? _log;
     private readonly Lock _gate = new();
+    // One bake at a time: a world whose extent just changed makes the scene ask for its picture
+    // while the editor asks for the same one, and two writers over one file is a lock, not a picture.
+    private readonly SemaphoreSlim _bakeGate = new(1, 1);
     private readonly Dictionary<string, Task> _fetching = [];
     private readonly Dictionary<string, DateTimeOffset> _failedAt = [];
     private readonly HashSet<string> _reported = [];
@@ -94,6 +97,19 @@ public sealed class TerrainMaps
         if (string.IsNullOrWhiteSpace(name) || !IsSafeName(name))
             throw new ArgumentException($"'{name}' is not a map name.");
 
+        await _bakeGate.WaitAsync(cancellationToken);
+        try
+        {
+            return await BakeLocked(world, name, cancellationToken);
+        }
+        finally
+        {
+            _bakeGate.Release();
+        }
+    }
+
+    private async Task<Meta> BakeLocked(WorldModel world, string name, CancellationToken cancellationToken)
+    {
         var bounds = Wanted(world);
         int zoom = ChooseZoom(bounds);
         var tiles = await DownloadAsync(bounds, zoom, cancellationToken);

@@ -4,7 +4,9 @@ import {
   cameraIoOf,
   decodeWorld,
   nextId,
+  sameBounds,
   sameId,
+  terrainBounds,
   type CameraIo,
   type CameraKind,
   type CameraModel,
@@ -920,10 +922,21 @@ export async function bakeGroundMap(): Promise<string | null> {
   if (!world) return null;
   set({ mapBaking: true });
   try {
-    const name = world.terrain.map ?? `${mapSlug(activeWorld)}-ground`;
+    // The picture is read for the rectangle the world says its map lies in, and that rectangle is
+    // the world's extent: move the anchor, resize the terrain or turn its north, and the world holds
+    // the old one until it is told the new one. Told first, then baked — the server bakes for the
+    // world it holds.
+    const live = useEditor.getState().world ?? world;
+    const extent = terrainBounds(live.geo, live.terrain.size);
+    if (!live.terrain.mapBounds || !sameBounds(extent, live.terrain.mapBounds)) {
+      updateTerrain({ ...live.terrain, mapBounds: extent });
+    }
+    await settleEdits();
+    const current = useEditor.getState().world ?? live;
+    const name = current.terrain.map ?? `${mapSlug(activeWorld)}-ground`;
     const meta = await api.bakeMap(name);
     updateTerrain({
-      ...world.terrain,
+      ...current.terrain,
       map: name,
       mapBounds: { south: meta.south, west: meta.west, north: meta.north, east: meta.east },
       mapAttribution: meta.attribution,

@@ -95,7 +95,9 @@ export function WorldInspector({ world }: { world: World }) {
             </p>
             {staleMap && (
               <p className="muted">
-                The picture was fetched for a different extent and is hidden: bake it again to bring it back.
+                {baking
+                  ? 'Reading the picture for the new extent…'
+                  : 'The picture was fetched for a different extent and is hidden: bake it again to bring it back.'}
               </p>
             )}
             <div className="field">

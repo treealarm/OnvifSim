@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useGroundMapFollow } from './groundMap';
 import { CameraInspector } from './panels/CameraInspector';
 import { ObjectInspector } from './panels/ObjectInspector';
 import { ObjectTree } from './panels/ObjectTree';
@@ -15,6 +16,9 @@ export function App() {
   const error = useEditor((s) => s.error);
 
   useEffect(connect, []);
+  // The ground map keeps up with the world it lies under: another anchor, size or north is another
+  // extent, and the picture is read for it rather than left not fitting.
+  useGroundMapFollow();
   useEffect(() => {
     window.addEventListener('keydown', onShortcut);
     return () => window.removeEventListener('keydown', onShortcut);
