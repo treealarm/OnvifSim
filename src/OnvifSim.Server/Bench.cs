@@ -10,7 +10,7 @@ namespace OnvifSim;
 // for the frame as a stream builds them). Used to pick default resolutions and frame rates.
 public static class Bench
 {
-    public static void Run(WorldModel world)
+    public static void Run(WorldModel world, Texture? groundMap = null)
     {
         var sw = Stopwatch.StartNew();
         var env = world.Environment;
@@ -44,11 +44,24 @@ public static class Bench
                     for (int i = 0; i < n; i++) renderer.Render(s, Moving(), pose, frame);
                     return sw.Elapsed.TotalMilliseconds / n;
                 }).ToList();
+                // The same picture with the ground map under it, when the world has one cached: what
+                // sampling a texture costs a camera per frame.
+                double? withMap = null;
+                if (groundMap is not null)
+                {
+                    var mapped = RenderScene.Build(world, groundMap);
+                    List<RenderScene.Chunk> Moving() => CameraMarkers.Build(mapped, world, cam.Id, c => c.Ptz!.Position, now);
+                    for (int i = 0; i < 5; i++) renderer.Render(mapped, Moving(), pose, frame);
+                    sw.Restart();
+                    for (int i = 0; i < n; i++) renderer.Render(mapped, Moving(), pose, frame);
+                    withMap = sw.Elapsed.TotalMilliseconds / n;
+                }
                 sw.Restart();
                 int size = 0;
                 for (int i = 0; i < n; i++) size = JpegEncoder.Encode(frame, cam.Video.Quality).Length;
                 double jpeg = sw.Elapsed.TotalMilliseconds / n;
-                Console.WriteLine($"{cam.Id,-6} {w}x{h,-5} render {times[0],6:F1} ms  +cameras {times[1],6:F1} ms  +fields of view {times[2],6:F1} ms  jpeg {jpeg,6:F1} ms  {size / 1024,4} KiB");
+                var mapNote = withMap is { } m ? $"  map {m,6:F1} ms (+{(m - times[0]) / times[0] * 100,4:F0}%)" : "";
+                Console.WriteLine($"{cam.Id,-6} {w}x{h,-5} render {times[0],6:F1} ms  +cameras {times[1],6:F1} ms  +fields of view {times[2],6:F1} ms{mapNote}  jpeg {jpeg,6:F1} ms  {size / 1024,4} KiB");
             }
     }
 }

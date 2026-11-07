@@ -146,6 +146,15 @@ public sealed class TerrainMaps
         }
     }
 
+    // The cached picture of a map, decoded, or null when it is not there: what a bench or a test
+    // needs without a network or a world behind it.
+    public static Texture? LoadCached(string dataDirectory, string name)
+    {
+        if (!IsSafeName(name)) return null;
+        var path = Path.Combine(dataDirectory, "maps", name + ".png");
+        return File.Exists(path) ? Decode(path) : null;
+    }
+
     public string? PictureFile(string name) =>
         IsSafeName(name) && File.Exists(PicturePath(name)) ? PicturePath(name) : null;
 

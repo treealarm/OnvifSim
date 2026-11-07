@@ -18,7 +18,8 @@ var store = new WorldStore(options.DataDirectory, world => WorldValidation.Check
 
 if (options.Bench)
 {
-    Bench.Run(store.Current);
+    var groundMap = store.Current.Terrain.Map is { } mapName ? TerrainMaps.LoadCached(options.DataDirectory, mapName) : null;
+    Bench.Run(store.Current, groundMap);
     return;
 }
 
