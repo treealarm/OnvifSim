@@ -9,12 +9,13 @@ namespace OnvifSim.World;
 //
 // The building is one big hall, not a row of rooms: the demo's hall master and PTZ slave work as a
 // pair (the master's boxes drive the slave's aim), so they stand in one space with a person walking
-// between them. The person's route also takes them out of the doorway in the north wall, toward the
-// ring road, where the second pair is: its master watches the road and the slave turns after the
-// person outside as well as after the car. Every wall is a box plate, never one solid box: the
-// rasterizer culls back faces, so a solid building is invisible from the inside. Floor, outer walls
-// and roof are slabs, and a camera in the hall sees its inside the way a person in it would. What
-// the editor cannot see that way is what its cutaway (a plane at 2.5 m) is for.
+// between them. The hall master watches the line the person walks from the slave to the doorway;
+// the second pair is out by that doorway: its slave hangs over it and turns after the person in the
+// yard, and its master stands between the doorway and the road looking back at that line. Every
+// wall is a box plate, never one solid box: the rasterizer culls back faces, so a solid building is
+// invisible from the inside. Floor, outer walls and roof are slabs, and a camera in the hall sees
+// its inside the way a person in it would. What the editor cannot see that way is what its cutaway
+// (a plane at 2.5 m) is for.
 public static class MarylandWorld
 {
     public const string Name = "maryland";
@@ -67,23 +68,24 @@ public static class MarylandWorld
 
     public static readonly DemoCamera[] Cameras =
     [
-        // The pair of the demo: one room, the master in its south-west corner looking across it and
-        // the slave in the north-east corner looking back. A person walks between them.
+        // The pair of the demo's room: the master stands south of the room on the line the person
+        // walks out by, and looks along it — the room at the left of its picture, the doorway 56 m
+        // away at the right — so one fixed lens holds the whole of the person's walk indoors. The
+        // slave is in the room's north-east corner, beside that line, looking back at the room.
         new("master", "Main room master", CameraKind.Fixed,
-            38.99240, -76.93852, 2.8f, 55, 70, -18),
+            38.9923000, -76.9383779, 2.8f, 342.3f, 45, -7.5f),
         new("ptz", "Main room slave (PTZ)", CameraKind.Ptz,
             38.992484, -76.938372, 2.8f, 235, 65, 0),
-        // The second pair works as one too, on the road north of the building: the master stands
-        // on a pole outside the north wall looking across the ring road, and the slave north of
-        // the road looking south. The slave sees both the lane and the doorway the person walks
-        // out of, so it can turn after the car and after a person on the ground between. The car
-        // is 7.4% of the master's picture height across the whole frame (the detector needs 5%),
-        // so its own analytics drive the slave; the master is an overview: the whole stretch of
-        // road is in its picture, and the person never comes closer than about 12 m to it.
+        // The second pair is out in the yard: the slave hangs over the doorway the person walks out
+        // of, so it watches them from the moment they step out and follows them to the road and
+        // back; the master stands on a pole between that doorway and the ring road, looking back
+        // along the line, and its boxes are what aim the slave. The person is 7.7–10% of the
+        // master's picture height over the whole walk (the detector needs 5%); it never comes
+        // closer than about 30 m to the master, which is why one lens holds the whole walk.
         new("master2", "Building master 2", CameraKind.Fixed,
-            38.992884, -76.938447, 6f, 0, 60, -12),
+            38.9929468, -76.9388171, 6f, 88.8f, 55, -9.5f),
         new("ptz2", "Campus slave 2 (PTZ)", CameraKind.Ptz,
-            38.993468, -76.938447, 6f, 180, 60, 0),
+            38.9928031, -76.9383779, 5.5f, 0, 60, 0),
     ];
 
     // The demo camera that is not placed on a wall: it rides the car.
@@ -114,7 +116,9 @@ public static class MarylandWorld
 
         // The racks the demo's plan draws, as plain boxes: the simulator does not repeat the demo's
         // tree of switches and ports, it only stands something in the hall to recognize the corner
-        // by. They stand where the demo's Room 101 is, along the row the master looks down.
+        // by. They stand where the demo's Room 101 is, in the row the person's walk keeps east of:
+        // between the racks and the line the hall master watches, a rack would hide the person's
+        // feet, and the aim reads the ground from the foot of the box.
         for (int i = 0; i < 4; i++)
             Plate(world, $"rack-{i + 1}", RackWestX + i * 3.2f, 0, RackNorthZ, 0.6f, 2f, 1.2f, "#3d4149");
 
@@ -131,21 +135,21 @@ public static class MarylandWorld
             Id = "v1", Route = [.. ring], Speed = 8, Return = RouteReturn.Loop,
             Color = "#2f6fde", Color2 = "#f0f0ea", Plate = "M777MM",
         });
-        // The person both pairs work on: the hall master sees them inside Room 101 and boxes them,
-        // and the hall slave aims where those boxes say. The route then leaves the room through the
-        // hall and the doorway, curves north across the ring road toward the road pair's camera
-        // — where its master picks them up and its slave turns after them — and comes back through
-        // the same doorway. Both crossings run along the doorway's line, so the person never walks
-        // through a wall.
+        // The person both pairs work on: the walk starts with the room the hall pair stands by, goes
+        // out through the hall to the doorway — the line the hall master watches — and into the
+        // yard, where the slave over the doorway picks them up and follows them out toward the ring
+        // road and back. The yard leg turns round before the road: the whole of it is inside the
+        // yard master's picture, and a walk longer than that would leave its far end. Both crossings
+        // run along the doorway's line, so the person never walks through a wall.
         world.Walkers.Add(new WalkerModel
         {
             Id = "w1", Speed = 1.0f, Return = RouteReturn.Loop, Height = 1.75f,
             Route =
             [
                 new(-50, -13), new(-50, -56),
-                new(-52, -70), new(-58, -80), new(-60, -90), new(-57, -100), new(-55, -110),
-                new(-51, -110), new(-52, -100), new(-55, -92), new(-58, -84), new(-54, -72),
-                new(-50, -58), new(-50, -45), new(-50, -13),
+                new(-52, -66), new(-55, -75), new(-58, -82), new(-59, -86),
+                new(-54, -86), new(-52, -78), new(-50, -68), new(-50, -56),
+                new(-50, -45), new(-50, -13),
                 new(-54, -13), new(-54, -18), new(-59, -18), new(-59, -13),
             ],
         });

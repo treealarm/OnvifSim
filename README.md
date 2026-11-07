@@ -83,8 +83,9 @@ editor, and put away the ones you no longer use without losing them.
 - Prepare any number of named worlds in the data directory and switch between them in the header,
   without restarting; move a world to the trash and restore it, or empty the trash for good. A
   Maryland hall with a fixed master and a PTZ camera facing each other, a doorway onto a ring road
-  where a second pair watches a car and the person who walks out, a camera riding the car and
-  relays wired to a lamp and a sensor ships as an example.
+  where a second pair — a slave over the door, a master looking back along the way out — follows
+  the person who walks through it, a camera riding the car and relays wired to a lamp and a sensor
+  ship as an example.
 - See each camera's picture beside the 3D view, with the people and cars its analytics reports
   boxed, and drive PTZ cameras with a joystick.
 - See where every camera looks at a glance: each view is a prism in a colour of its own, its base on

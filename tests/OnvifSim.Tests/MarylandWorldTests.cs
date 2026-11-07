@@ -44,9 +44,11 @@ public class MarylandWorldTests
     public void TheRoomCameras_StandWhereTheDemoPlacesThem()
     {
         var world = World();
+        // The master stands south of the room, on the line the person walks out by, so one lens
+        // holds both the room and the doorway 56 m away; the slave is the room's north-east corner.
         var master = world.Cameras.Single(c => c.Id == "master");
-        Assert.Equal(-62.3, master.Position.X, 1);
-        Assert.Equal(-11.1, master.Position.Z, 1);
+        Assert.Equal(-50.0, master.Position.X, 1);
+        Assert.Equal(0.0, master.Position.Z, 1);
         Assert.Equal(2.8, master.Position.Y, 3);
 
         var ptz = world.Cameras.Single(c => c.Id == "ptz");
@@ -57,15 +59,14 @@ public class MarylandWorldTests
     [Fact]
     public void TheHallPairWatchesTheRoom_AndTheDoorLetsTheWalkerOut()
     {
-        // The hall master's boxes drive its slave's aim, so both must watch Room 101 of the demo's
-        // floor plan and the person must walk inside it; the route then leaves through the doorway
-        // in the north wall, where the road pair's master can pick the person up.
+        // The hall master's boxes drive its slave's aim, so the master must hold the whole of the
+        // person's walk indoors — Room 101 and the line from it out through the hallway to the
+        // doorway — and the route then leaves through that doorway, where the second pair's master
+        // can pick the person up.
         var world = World();
-        foreach (var demo in MarylandWorld.Cameras.Where(d => d.Id is "master" or "ptz"))
-        {
-            Assert.InRange(demo.Latitude, MarylandWorld.Room101South, MarylandWorld.Room101North);
-            Assert.InRange(demo.Longitude, MarylandWorld.Room101West, MarylandWorld.Room101East);
-        }
+        var slave = MarylandWorld.Cameras.Single(d => d.Id == "ptz");
+        Assert.InRange(slave.Latitude, MarylandWorld.Room101South, MarylandWorld.Room101North);
+        Assert.InRange(slave.Longitude, MarylandWorld.Room101West, MarylandWorld.Room101East);
 
         var walker = Assert.Single(world.Walkers);
         Assert.True(walker.Detectable);
@@ -80,10 +81,14 @@ public class MarylandWorldTests
         var outside = walker.Route.Where(point => point.Z < northZ).ToList();
         Assert.NotEmpty(outside);
 
-        // The hall master sees every indoor point: the person it works on never leaves its picture.
-        foreach (var point in indoor)
-            Assert.InRange(BearingDelta(world, "master", point.X, point.Z), 0.0f,
-                world.Cameras.Single(camera => camera.Id == "master").HFov / 2);
+        // The hall master sees every indoor point: the person it works on never leaves its picture,
+        // from the room to the doorway at the far end of the hall.
+        var hallMaster = world.Cameras.Single(camera => camera.Id == "master");
+        foreach (var point in walker.Route.Where(point => point.Z > northZ))
+        {
+            Assert.InRange(BearingDelta(world, "master", point.X, point.Z), 0.0f, hallMaster.HFov / 2);
+            Assert.True(Distance(world, "master", point.X, point.Z) < 60);
+        }
 
         // Every crossing of the north wall runs through the doorway: no route segment walks through
         // a plate. The closing segment of the loop is indoors, so the crossings are the way out and
@@ -104,12 +109,15 @@ public class MarylandWorldTests
         }
         Assert.Equal(2, crossings);
 
-        // The road pair's master is an overview of the road; the person must come into it for the
-        // road slave to have something to follow.
-        Assert.Contains(outside, point =>
-            BearingDelta(world, "master2", point.X, point.Z) <=
-                world.Cameras.Single(camera => camera.Id == "master2").HFov / 2
-            && Distance(world, "master2", point.X, point.Z) < 45);
+        // The yard master watches the line the person walks out on: every point of the yard leg is
+        // inside its picture, so the slave over the doorway has a box to follow the whole way out
+        // and back.
+        var yardMaster = world.Cameras.Single(camera => camera.Id == "master2");
+        foreach (var point in walker.Route.Where(point => point.Z < northZ))
+        {
+            Assert.InRange(BearingDelta(world, "master2", point.X, point.Z), 0.0f, yardMaster.HFov / 2);
+            Assert.InRange(Distance(world, "master2", point.X, point.Z), 25f, 50f);
+        }
     }
 
     [Fact]
@@ -168,29 +176,31 @@ public class MarylandWorldTests
     }
 
     [Fact]
-    public void TheRoadPair_StandsOutOnTheRingRoad()
+    public void TheYardPair_StandsBetweenTheDoorwayAndTheRoad()
     {
-        // The second pair works as one north of the building: the master on a pole outside the north
-        // wall, looking north over the road and the doorway, and the slave north of the road looking
-        // south, so its picture holds both the lane and the ground the person walks out onto.
+        // The second pair works as one out in the yard: the master on a pole between the doorway and
+        // the ring road, looking back along the line the person walks, and the slave hanging over
+        // the doorway itself, so its picture holds the person from the moment they step out.
         var world = World();
         var master = world.Cameras.Single(c => c.Id == "master2");
         var slave = world.Cameras.Single(c => c.Id == "ptz2");
 
-        Assert.Equal(-56.0, master.Position.X, 0);
-        Assert.Equal(-65.0, master.Position.Z, 0);
+        Assert.Equal(-88.0, master.Position.X, 0);
+        Assert.Equal(-72.0, master.Position.Z, 0);
         Assert.Equal(6f, master.Position.Y, 3);
-        Assert.Equal(0f, master.Heading, 3);
-        Assert.Equal(60f, master.HFov, 3);
-        Assert.Equal(-12f, master.Pitch, 3);
+        Assert.Equal(88.8f, master.Heading, 3);
+        Assert.Equal(55f, master.HFov, 3);
+        Assert.Equal(-9.5f, master.Pitch, 3);
 
-        Assert.Equal(-56.0, slave.Position.X, 0);
-        Assert.Equal(-130.0, slave.Position.Z, 0);
-        Assert.Equal(6f, slave.Position.Y, 3);
-        Assert.Equal(180f, slave.Heading, 3);
+        // Over the doorway: on its line, just outside the wall, above the lintel.
+        Assert.Equal(MarylandWorld.DoorX, slave.Position.X, 0);
+        Assert.Equal(-56.0, slave.Position.Z, 0);
+        Assert.Equal(5.5f, slave.Position.Y, 3);
+        Assert.Equal(0f, slave.Heading, 3);
         Assert.Equal(60f, slave.Ptz!.FovWide, 3);
 
-        // The car the pair follows is the one the vehicle camera rides.
+        // The car is no longer what this pair follows: it drives round the ring road 40–50 m away,
+        // too small in the master's picture for the detector, and the vehicle camera rides it.
         var vehicle = Assert.Single(world.Vehicles);
         Assert.Equal("v1", vehicle.Id);
         Assert.True(vehicle.Detectable);
