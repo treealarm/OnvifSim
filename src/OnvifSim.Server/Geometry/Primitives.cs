@@ -1,4 +1,5 @@
 using System.Numerics;
+using OnvifSim.World;
 
 namespace OnvifSim.Geometry;
 
@@ -143,4 +144,105 @@ public static class Primitives
             m.AddFlatTriangle(v[f[i]], v[f[i + 1]], v[f[i + 2]], Vector3.Clamp(c, Vector3.Zero, Vector3.One));
         }
     }
+
+    // The underside of a cap sits this far above the terrain: enough that the ground does not shine
+    // through it and a camera inside a building stands on a floor rather than on the grass.
+    public const float PrismFloorLift = 0.02f;
+
+    // A building shell from its footprint in the object's own metres: a wall on every segment, a roof
+    // and a floor, all drawn from both sides, so a camera inside sees the walls and a camera outside
+    // sees the building. An opening cuts its segment into two panels and the band above it (and below,
+    // when its sill is raised). Grain on the walls follows the seed, so a world built twice draws the
+    // same thing. The footprint must already be normalised (see Polygon).
+    public static void Prism(Mesh m, IReadOnlyList<GroundPoint> points, float height, Vector3 wall, Vector3 roof,
+        IReadOnlyList<OpeningModel>? openings, int seed, bool textured)
+    {
+        int n = points.Count;
+        if (n < 3 || height <= 0) return;
+
+        for (int i = 0; i < n; i++)
+        {
+            var a = points[i];
+            var b = points[(i + 1) % n];
+            float length = MathF.Sqrt((b.X - a.X) * (b.X - a.X) + (b.Z - a.Z) * (b.Z - a.Z));
+            if (length < Polygon.MinPointGapM) continue;
+
+            var cuts = openings?.Where(o => o.Edge == i && o.Width > 0 && o.Height > 0).OrderBy(o => o.Offset).ToList();
+            float cursor = 0;
+            if (cuts is not null)
+                foreach (var opening in cuts)
+                {
+                    float start = Math.Clamp(opening.Offset, 0, length);
+                    float end = Math.Clamp(opening.Offset + opening.Width, 0, length);
+                    if (start > cursor) Wall(m, a, b, cursor, start, 0, height);
+                    if (opening.Sill > 0) Wall(m, a, b, start, end, 0, opening.Sill);
+                    if (opening.Sill + opening.Height < height) Wall(m, a, b, start, end, opening.Sill + opening.Height, height);
+                    cursor = Math.Max(cursor, end);
+                }
+            if (cursor < length) Wall(m, a, b, cursor, length, 0, height);
+
+            // Each wall is drawn twice: from outside and from inside, where culling would drop one face.
+            void Wall(Mesh target, GroundPoint from, GroundPoint to, float t0, float t1, float y0, float y1)
+            {
+                if (t1 - t0 <= Polygon.MinPointGapM || y1 - y0 <= 0) return;
+                var p0 = Lerp(from, to, t0 / length);
+                var p1 = Lerp(from, to, t1 / length);
+                Quad(target, p0, p1, y0, y1, wall, seed * 131 + i, textured);
+            }
+        }
+
+        var roofColor = roof;
+        var floorColor = Vector3.Clamp(roof * 0.8f, Vector3.Zero, Vector3.One);
+        var triangles = Polygon.Triangulate(points);
+        for (int t = 0; t + 2 < triangles.Count; t += 3)
+        {
+            var a = At(points[triangles[t]], height);
+            var b = At(points[triangles[t + 1]], height);
+            var c = At(points[triangles[t + 2]], height);
+            m.AddFlatTriangle(a, b, c, roofColor);   // the roof, facing up
+            m.AddFlatTriangle(a, c, b, roofColor * 1.02f); // and its underside, the ceiling
+
+            var f0 = At(points[triangles[t]], PrismFloorLift);
+            var f1 = At(points[triangles[t + 1]], PrismFloorLift);
+            var f2 = At(points[triangles[t + 2]], PrismFloorLift);
+            m.AddFlatTriangle(f0, f1, f2, floorColor); // the floor, facing up
+            m.AddFlatTriangle(f0, f2, f1, floorColor); // and the underside, which nobody sees
+        }
+    }
+
+    private static Vector3 At(GroundPoint p, float y) => new(p.X, y, p.Z);
+
+    private static GroundPoint Lerp(GroundPoint a, GroundPoint b, float t) =>
+        new(a.X + (b.X - a.X) * t, a.Z + (b.Z - a.Z) * t);
+
+    // One panel of wall between two points along its segment, from y0 to y1, cut into a few cells of
+    // grain and drawn from both sides.
+    private static void Quad(Mesh m, GroundPoint a, GroundPoint b, float y0, float y1, Vector3 color, int seed, bool textured)
+    {
+        int across = textured ? Math.Clamp((int)MathF.Ceiling(Distance(a, b) / 2.5f), 1, 64) : 1;
+        int down = textured ? Math.Clamp((int)MathF.Ceiling((y1 - y0) / 2.5f), 1, 32) : 1;
+        for (int j = 0; j < down; j++)
+        {
+            float t0 = (float)j / down, t1 = (float)(j + 1) / down;
+            float bottom = y0 + (y1 - y0) * t0, top = y0 + (y1 - y0) * t1;
+            for (int i = 0; i < across; i++)
+            {
+                var p0 = Lerp(a, b, (float)i / across);
+                var p1 = Lerp(a, b, (float)(i + 1) / across);
+                float shade = textured
+                    ? 1 + 0.03f * (ColorUtil.Hash(seed, i * 31 + j) - 0.5f) * 2 - 0.05f * (1 - (t0 + t1) / 2)
+                    : 1;
+                var cell = Vector3.Clamp(color * shade, Vector3.Zero, Vector3.One);
+                var v00 = new Vector3(p0.X, bottom, p0.Z);
+                var v10 = new Vector3(p1.X, bottom, p1.Z);
+                var v11 = new Vector3(p1.X, top, p1.Z);
+                var v01 = new Vector3(p0.X, top, p0.Z);
+                m.AddFlatQuad(v00, v10, v11, v01, cell);         // facing out of the footprint
+                m.AddFlatQuad(v00, v01, v11, v10, cell * 0.92f); // and the inner face, a little darker
+            }
+        }
+    }
+
+    private static float Distance(GroundPoint a, GroundPoint b) =>
+        MathF.Sqrt((a.X - b.X) * (a.X - b.X) + (a.Z - b.Z) * (a.Z - b.Z));
 }

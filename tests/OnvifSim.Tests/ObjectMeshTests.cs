@@ -11,7 +11,13 @@ public class ObjectMeshTests
     public void EveryObjectType_BuildsAMesh()
     {
         foreach (var type in SceneBuilder.ObjectTypes)
-            Assert.True(SceneBuilder.ObjectMesh(new WorldObject { Type = type, Scale = new Vec3(4, 5, 4) }).TriangleCount > 0, type);
+        {
+            var obj = new WorldObject { Type = type, Scale = new Vec3(4, 5, 4) };
+            // A prism's size across comes from its footprint, not from Scale.
+            if (type == "prism")
+                obj.Points = Polygon.Normalize([new GroundPoint(0, 0), new GroundPoint(4, 0), new GroundPoint(4, 4), new GroundPoint(0, 4)]);
+            Assert.True(SceneBuilder.ObjectMesh(obj).TriangleCount > 0, type);
+        }
     }
 
     // A surface's grain and a floor's tiles come from a seed and a cell's place, never from a clock:

@@ -238,13 +238,14 @@ public static class SceneBuilder
         o.Texture ?? (o.Type switch
         {
             "floor" => "tiles",
-            "box" or "house" or "office" => "grain",
+            "box" or "house" or "office" or "prism" => "grain",
             _ => "none",
         });
 
     // The object types ObjectMesh knows. "floor" is a slab whose top is tiled: a floor is drawn as a
-    // grid of tiles with seams, not as a flat box, so a hall reads as a hall.
-    public static readonly string[] ObjectTypes = ["tree.pine", "tree.oak", "house", "office", "rock", "box", "floor", "car"];
+    // grid of tiles with seams, not as a flat box, so a hall reads as a hall. "prism" is any footprint
+    // extruded to a height — a building of any shape, a parking apron, a pond.
+    public static readonly string[] ObjectTypes = ["tree.pine", "tree.oak", "house", "office", "rock", "box", "floor", "car", "prism"];
 
     public static Mesh ObjectMesh(WorldObject o)
     {
@@ -347,6 +348,15 @@ public static class SceneBuilder
                     ColorUtil.Parse(o.Color, ColorUtil.Rgb(58, 110, 165)),
                     ColorUtil.Parse(o.Color2, ColorUtil.Rgb(240, 240, 234)),
                     o.Plate);
+            case "prism":
+            {
+                // A footprint of its own, of any shape: Color is the wall, Color2 the roof and the
+                // floor, Scale.Y the height. The size across comes from the outline, not from Scale.
+                var wall = ColorUtil.Parse(o.Color, ColorUtil.Rgb(200, 204, 210));
+                var roof = ColorUtil.Parse(o.Color2, ColorUtil.Rgb(112, 116, 122));
+                Primitives.Prism(m, o.Points ?? [], s.Y, wall, roof, o.Openings, o.Seed, !Smooth(texture));
+                break;
+            }
         }
         return m;
     }

@@ -41,7 +41,7 @@ export interface Environment {
   frustumLength: number;
 }
 
-export const objectTypes = ['tree.pine', 'tree.oak', 'house', 'office', 'rock', 'box', 'floor', 'car'] as const;
+export const objectTypes = ['tree.pine', 'tree.oak', 'house', 'office', 'rock', 'box', 'floor', 'car', 'prism'] as const;
 export type ObjectType = (typeof objectTypes)[number];
 
 export const objectTypeNames: Record<ObjectType, string> = {
@@ -53,7 +53,18 @@ export const objectTypeNames: Record<ObjectType, string> = {
   box: 'Box',
   floor: 'Floor',
   car: 'Car',
+  prism: 'Building',
 };
+
+// A hole in one wall of a prism: on segment `edge` of the footprint, `offset` metres along it from the
+// segment's first point, `width` wide, `height` tall, its bottom `sill` metres above the base.
+export interface Opening {
+  edge: number;
+  offset: number;
+  width: number;
+  height: number;
+  sill: number;
+}
 
 export interface WorldObject {
   id: string;
@@ -69,6 +80,12 @@ export interface WorldObject {
   texture?: string | null;
   // A car's licence plate: absent or null keeps the default, an empty string draws a blank plate.
   plate?: string | null;
+  // A prism's footprint in its own metres, before its rotation, in the direction the server stores it
+  // (see normalizeOutline); only a prism has one.
+  points?: GroundPoint[] | null;
+  openings?: Opening[] | null;
+  // The OSM element an imported object was built from, "way/24303349".
+  sourceOsm?: string | null;
 }
 
 // A spot on the ground; the height comes from the terrain.

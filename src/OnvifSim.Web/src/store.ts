@@ -29,7 +29,7 @@ import {
 export type Selection = { kind: 'object' | 'camera' | 'road' | 'walker' | 'vehicle' | 'lamp'; id: string };
 export type Placeable = ObjectType | 'camera.fixed' | 'camera.ptz' | 'lamp';
 export type BrushKind = 'raise' | 'lower' | 'smooth' | 'flatten';
-export type Drawable = 'road' | 'walker' | 'vehicle';
+export type Drawable = 'road' | 'walker' | 'vehicle' | 'building';
 // Which tool palette the toolbar shows. Choosing a palette does not change the active tool.
 export type ToolGroup = 'select' | 'add' | 'draw' | 'terrain';
 // Drawing a road or a walker's route point by point; extending adds the points to the end of an
@@ -659,7 +659,47 @@ export const defaultScale: Record<ObjectType, Vec3> = {
   box: { x: 3, y: 3, z: 3 },
   floor: { x: 30, y: 0.3, z: 30 },
   car: { x: 1.8, y: 1.45, z: 4.4 },
+  // A prism's size across is its footprint; the scale only carries the height, and the server refuses
+  // a stretched one.
+  prism: { x: 1, y: 8, z: 1 },
 };
+
+// An outline as the server stores one (Polygon.Normalize): no points closer than a centimetre, no
+// point that only stands on a straight edge, and the direction whose top face points up. A footprint
+// that is drawn round the other way is flipped here, so drawing a building never fails on direction.
+export function normalizeOutline(points: GroundPoint[]): GroundPoint[] {
+  const ring: GroundPoint[] = [];
+  for (const p of points) {
+    const last = ring.at(-1);
+    if (!last || Math.hypot(last.x - p.x, last.z - p.z) > 0.01) ring.push(p);
+  }
+  while (ring.length > 1 && Math.hypot(ring[0].x - ring.at(-1)!.x, ring[0].z - ring.at(-1)!.z) <= 0.01)
+    ring.pop();
+
+  const cross = (a: GroundPoint, b: GroundPoint, c: GroundPoint) =>
+    (b.x - a.x) * (c.z - a.z) - (b.z - a.z) * (c.x - a.x);
+  let removed = true;
+  while (removed && ring.length > 3) {
+    removed = false;
+    for (let i = 0; i < ring.length; i++) {
+      const previous = ring[(i + ring.length - 1) % ring.length];
+      const next = ring[(i + 1) % ring.length];
+      if (Math.abs(cross(previous, ring[i], next)) > 1e-3) continue;
+      ring.splice(i, 1);
+      removed = true;
+      break;
+    }
+  }
+
+  let area = 0;
+  for (let i = 0; i < ring.length; i++) {
+    const a = ring[i];
+    const b = ring[(i + 1) % ring.length];
+    area += a.x * b.z - b.x * a.z;
+  }
+  if (ring.length >= 3 && area > 0) ring.reverse();
+  return ring;
+}
 
 // Adds an object, a camera or a lamp on the ground at (x, z) and selects it. Only what differs from
 // the server's defaults is sent; the full model arrives with the next world, as it does for any edit.
@@ -755,6 +795,24 @@ export async function finishDrawing() {
       await api.putWalker({ id, route: points });
       remember({ kind: 'walker', id, value: null }, false);
       select({ kind: 'walker', id });
+    } else if (what === 'building') {
+      // A footprint becomes one prism: the outline is moved to its own centre, and the object stands
+      // there — so moving and turning the building later moves the whole shape with it.
+      const ring = normalizeOutline(points);
+      if (ring.length < 3) return;
+      const cx = ring.reduce((sum, p) => sum + p.x, 0) / ring.length;
+      const cz = ring.reduce((sum, p) => sum + p.z, 0) / ring.length;
+      const id = nextId('o', world.objects.map((o) => o.id));
+      await api.putObject({
+        id,
+        type: 'prism',
+        position: { x: cx, y: 0, z: cz },
+        scale: defaultScale.prism,
+        points: ring.map((p) => ({ x: p.x - cx, z: p.z - cz })),
+        seed: randomSeed(),
+      });
+      remember({ kind: 'object', id, value: null }, false);
+      select({ kind: 'object', id });
     } else {
       const id = nextId('v', world.vehicles.map((v) => v.id));
       await api.putVehicle({ id, route: points });

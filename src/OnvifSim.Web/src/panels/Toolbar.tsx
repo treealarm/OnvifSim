@@ -48,6 +48,8 @@ const drawables: { what: Drawable; label: string }[] = [
   { what: 'road', label: 'Road' },
   { what: 'walker', label: 'Person' },
   { what: 'vehicle', label: 'Car route' },
+  // A footprint clicked point by point, built as one prism: any building shape, a lot, a pond.
+  { what: 'building', label: 'Building' },
 ];
 
 function sameTool(a: Tool, b: Tool): boolean {

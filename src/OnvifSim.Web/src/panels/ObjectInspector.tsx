@@ -1,4 +1,4 @@
-import { objectTypeNames, objectTypes, plateText, type ObjectType, type Vec3, type WorldObject } from '../model';
+import { objectTypeNames, objectTypes, plateText, type ObjectType, type Opening, type Vec3, type WorldObject } from '../model';
 import { defaultScale, driveCar, removeSelected, updateObject } from '../store';
 import { ColorField, NumberField, Section, SelectField, TextField } from './fields';
 import { InspectorTitle } from './FindButton';
@@ -32,13 +32,19 @@ const colorSlots: Record<ObjectType, { label: string; fallback: string }[]> = {
     { label: 'Paint', fallback: '#3a6ea5' },
     { label: 'Plate background', fallback: '#f0f0ea' },
   ],
+  prism: [
+    { label: 'Walls', fallback: '#c8ccd2' },
+    { label: 'Roof and floor', fallback: '#70747c' },
+  ],
 };
 
-const typeOptions = objectTypes.map((type) => ({ value: type, label: objectTypeNames[type] }));
+// A prism is drawn, not dropped: its footprint is the shape, so it is not offered as a type to switch
+// an ordinary object into.
+const typeOptions = objectTypes.filter((type) => type !== 'prism').map((type) => ({ value: type, label: objectTypeNames[type] }));
 
 // The types whose surface the mesh builder can pattern, and the pattern they carry by default: a floor
 // is tiled, a box or a building's walls are grained. "Type default" leaves the choice to the server.
-const texturedTypes: ObjectType[] = ['box', 'floor', 'house', 'office'];
+const texturedTypes: ObjectType[] = ['box', 'floor', 'house', 'office', 'prism'];
 const textureOptions = [
   { value: '', label: 'Type default' },
   { value: 'none', label: 'Smooth' },
@@ -74,9 +80,21 @@ export function ObjectInspector({ obj }: { obj: WorldObject }) {
         <NumberField label="Rotation" value={obj.rotationY} min={0} max={360} slider onChange={(rotationY) => change({ rotationY })} />
       </Section>
       <Section title="Shape">
-        <NumberField label="Width" value={obj.scale.x} min={0.1} max={1000} step={0.1} onChange={(x) => changeScale({ x })} />
-        <NumberField label="Height" value={obj.scale.y} min={0.1} max={1000} step={0.1} onChange={(y) => changeScale({ y })} />
-        <NumberField label="Depth" value={obj.scale.z} min={0.1} max={1000} step={0.1} onChange={(z) => changeScale({ z })} />
+        {obj.type === 'prism' ? (
+          <>
+            <NumberField label="Height" value={obj.scale.y} min={0.1} max={200} step={0.1} onChange={(y) => changeScale({ y })} />
+            <p className="muted">
+              The size across is the footprint drawn on the ground — {obj.points?.length ?? 0} points. Deleting this
+              building and drawing it again is how the outline changes.
+            </p>
+          </>
+        ) : (
+          <>
+            <NumberField label="Width" value={obj.scale.x} min={0.1} max={1000} step={0.1} onChange={(x) => changeScale({ x })} />
+            <NumberField label="Height" value={obj.scale.y} min={0.1} max={1000} step={0.1} onChange={(y) => changeScale({ y })} />
+            <NumberField label="Depth" value={obj.scale.z} min={0.1} max={1000} step={0.1} onChange={(z) => changeScale({ z })} />
+          </>
+        )}
         <ColorField label={first.label} value={obj.color ?? first.fallback} onChange={(color) => change({ color })} />
         {second && <ColorField label={second.label} value={obj.color2 ?? second.fallback} onChange={(color2) => change({ color2 })} />}
         {texturedTypes.includes(obj.type) && (
@@ -94,6 +112,44 @@ export function ObjectInspector({ obj }: { obj: WorldObject }) {
           </button>
         </div>
       </Section>
+      {obj.type === 'prism' && (
+        <Section title="Openings">
+          {(obj.openings ?? []).map((opening, index) => {
+            const openings = obj.openings ?? [];
+            const changeOpening = (patch: Partial<Opening>) =>
+              change({ openings: openings.map((o, i) => (i === index ? { ...o, ...patch } : o)) });
+            return (
+              <div key={index} className="io-card">
+                <NumberField
+                  label="Wall (segment)"
+                  value={opening.edge}
+                  min={0}
+                  max={Math.max(0, (obj.points?.length ?? 1) - 1)}
+                  step={1}
+                  onChange={(edge) => changeOpening({ edge: Math.round(edge) })}
+                />
+                <NumberField label="Along the wall, m" value={opening.offset} min={0} step={0.1} onChange={(offset) => changeOpening({ offset })} />
+                <NumberField label="Width, m" value={opening.width} min={0.2} max={200} step={0.1} onChange={(width) => changeOpening({ width })} />
+                <NumberField label="Height, m" value={opening.height} min={0.2} max={200} step={0.1} onChange={(height) => changeOpening({ height })} />
+                <NumberField label="Sill, m" value={opening.sill} min={0} max={200} step={0.1} onChange={(sill) => changeOpening({ sill })} />
+                <button type="button" onClick={() => change({ openings: openings.filter((_, i) => i !== index) })}>
+                  Remove opening
+                </button>
+              </div>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => change({ openings: [...(obj.openings ?? []), { edge: 0, offset: 0, width: 1.8, height: 2.2, sill: 0 }] })}
+          >
+            Add a doorway
+          </button>
+          <p className="muted">
+            An opening sits on one segment of the footprint, measured along it from the segment's first point; a
+            raised sill makes it a window.
+          </p>
+        </Section>
+      )}
       {obj.type === 'car' && (
         <Section title="License plate">
           <TextField label="Plate text" value={obj.plate ?? 'A123BC'} onChange={(text) => change({ plate: plateText(text) })} />

@@ -17,6 +17,10 @@ public static partial class WorldValidation
     private const int MaxVideoSide = 2040;
     private const float MaxObjectSize = 1000;
     private const int MaxTerrainResolution = 1024;
+    // A footprint of a few thousand points is a county, not a building; a prism of a hundred metres
+    // is already a tower. Beyond these the renderer stops being the right tool.
+    private const int MaxPrismPoints = 2000;
+    private const float MaxPrismHeightM = 200;
     private const int MaxStreamPathLength = 128;
 
     // Camera ids and device tokens stay URL-safe: they are RTSP paths, and appear in editor API URLs.
@@ -106,6 +110,53 @@ public static partial class WorldValidation
             $"Object {obj.Id}: every size must be above 0 and at most {MaxObjectSize} m.");
         RequireTexture($"Object {obj.Id}", obj.Texture, ["none", "grain", "tiles"]);
         if (obj.Type == "car") CheckPlate($"Object {obj.Id}", obj.Plate);
+        if (obj.Type == "prism") CheckPrism(obj);
+    }
+
+    // A prism is any footprint extruded: the outline has to be the normalised one the renderer folds
+    // into walls (see Polygon.Normalize), so that an opening's edge index means what it says. Editors
+    // and importers normalise before they write; a hand-written outline that does not is refused here
+    // rather than drawn inside out.
+    private static void CheckPrism(WorldObject obj)
+    {
+        var points = obj.Points;
+        Require(points is { Count: >= 3 }, $"Object {obj.Id}: a prism needs a footprint of at least three points.");
+        Require(points!.Count <= MaxPrismPoints, $"Object {obj.Id}: a footprint of {points.Count} points is beyond {MaxPrismPoints}.");
+        Require(points.All(p => float.IsFinite(p.X) && float.IsFinite(p.Z)), $"Object {obj.Id}: every footprint point must be finite.");
+        Require(MathF.Abs(obj.Scale.X - 1) < 1e-3f && MathF.Abs(obj.Scale.Z - 1) < 1e-3f,
+            $"Object {obj.Id}: a prism's scale.x and scale.z must be 1 — its size is the footprint, not a stretch.");
+        Require(obj.Scale.Y is >= 0.1f and <= MaxPrismHeightM,
+            $"Object {obj.Id}: a prism's height {obj.Scale.Y} m is outside 0.1..{MaxPrismHeightM}.");
+
+        var ring = Polygon.Normalize(points);
+        Require(ring.Count == points.Count && SameRing(ring, points),
+            $"Object {obj.Id}: the footprint must be normalised — counter-clockwise, without repeated or collinear points.");
+        Require(Polygon.IsSimple(points), $"Object {obj.Id}: the footprint crosses itself, so it has no inside.");
+        Require(MathF.Abs(Polygon.SignedArea(points)) >= Polygon.MinAreaM2,
+            $"Object {obj.Id}: the footprint covers less than {Polygon.MinAreaM2} m².");
+
+        foreach (var opening in obj.Openings ?? [])
+        {
+            Require(opening.Edge >= 0 && opening.Edge < points.Count,
+                $"Object {obj.Id}: an opening names segment {opening.Edge}, beyond the footprint's {points.Count} segments.");
+            var a = points[opening.Edge];
+            var b = points[(opening.Edge + 1) % points.Count];
+            float length = MathF.Sqrt((b.X - a.X) * (b.X - a.X) + (b.Z - a.Z) * (b.Z - a.Z));
+            Require(opening.Width > 0 && opening.Height > 0, $"Object {obj.Id}: an opening must have a positive width and height.");
+            Require(opening.Sill >= 0, $"Object {obj.Id}: an opening's sill cannot be below the base.");
+            Require(opening.Offset >= 0 && opening.Offset + opening.Width <= length + 1e-3f,
+                $"Object {obj.Id}: an opening reaches past its segment ({length:0.##} m).");
+            Require(opening.Sill + opening.Height <= obj.Scale.Y + 1e-3f,
+                $"Object {obj.Id}: an opening is taller than the prism.");
+        }
+    }
+
+    private static bool SameRing(IReadOnlyList<GroundPoint> a, IReadOnlyList<GroundPoint> b)
+    {
+        for (int i = 0; i < a.Count; i++)
+            if (MathF.Abs(a[i].X - b[i].X) > 1e-3f || MathF.Abs(a[i].Z - b[i].Z) > 1e-3f)
+                return false;
+        return true;
     }
 
     private static void CheckRoad(RoadModel road)

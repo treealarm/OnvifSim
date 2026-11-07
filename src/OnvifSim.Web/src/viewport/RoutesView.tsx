@@ -182,13 +182,15 @@ function PointHandles({ points, terrain }: { points: GroundPoint[]; terrain: Ter
   ));
 }
 
-// The points clicked so far while drawing a road or a route.
+// The points clicked so far while drawing a road or a route; a footprint is shown closed, as it will be
+// built.
 function DrawingPreview({ terrain }: { terrain: Terrain }) {
   const tool = useEditor((s) => s.tool);
   if (tool.kind !== 'draw' || tool.points.length === 0) return null;
+  const outline = tool.what === 'building' && tool.points.length > 2 ? [...tool.points, tool.points[0]] : tool.points;
   return (
     <>
-      {tool.points.length > 1 && <GroundLine points={tool.points} terrain={terrain} color="#ffffff" />}
+      {outline.length > 1 && <GroundLine points={outline} terrain={terrain} color="#ffffff" />}
       {tool.points.map((p, i) => (
         <mesh key={i} position={[p.x, heightAt(terrain, p.x, p.z) + 0.6, p.z]} raycast={() => null}>
           <sphereGeometry args={[0.7, 10, 8]} />

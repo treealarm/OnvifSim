@@ -40,6 +40,30 @@ public sealed class TerrainModel
     // flat colour. Cheap either way — it is drawn from the colour, never from a picture.
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Texture { get; set; }
+    // A raster map drawn under the world, named as the editor's bake names it: the picture itself is a
+    // local cache under the data directory and never part of a world file or a repository.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Map { get; set; }
+    // Where that map's edges lie on the Earth, so a moved anchor or another terrain size shows up as a
+    // map that no longer fits, rather than as a map drawn in the wrong place.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public MapBoundsModel? MapBounds { get; set; }
+    // The credit the map's provider requires, shown by the editor wherever the map is.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? MapAttribution { get; set; }
+    // Whether the map is drawn under the world; null means it is (a map that is named and fits is
+    // meant to be seen). A world without a map ignores it.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? ShowMap { get; set; }
+}
+
+// The WGS84 rectangle a ground map covers: its south-west and north-east corners.
+public sealed class MapBoundsModel
+{
+    public double South { get; set; }
+    public double West { get; set; }
+    public double North { get; set; }
+    public double East { get; set; }
 }
 
 // The geographic anchor of the world's metres: X east, Y up, Z south, and North is the true bearing
@@ -93,6 +117,30 @@ public sealed class WorldObject
     // A car's licence plate text: null keeps the car's default, an empty string leaves the plate blank.
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Plate { get; set; }
+    // A prism's footprint in its own metres, before its rotation: a closed ring, the first point not
+    // repeated. The outline is stored counter-clockwise as the renderer draws it (see Polygon). Null
+    // for every other type.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<GroundPoint>? Points { get; set; }
+    // Holes cut in a prism's walls: a door is an opening whose sill is nought.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<OpeningModel>? Openings { get; set; }
+    // The OSM element an imported object was built from, "way/24303349": provenance, so a repeated
+    // import updates the object instead of adding a second one. The object's own id never depends on it.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? SourceOsm { get; set; }
+}
+
+// A hole in one wall of a prism: on segment `Edge` of the footprint (counting from nought), `Offset`
+// metres along it from the segment's first point, `Width` wide, `Height` tall, its bottom `Sill`
+// metres above the base. Sill nought is a doorway; a raised sill is how a window will be cut.
+public sealed class OpeningModel
+{
+    public int Edge { get; set; }
+    public float Offset { get; set; }
+    public float Width { get; set; } = 1;
+    public float Height { get; set; } = 2;
+    public float Sill { get; set; }
 }
 
 // A road or a footpath: a strip of the given width laid on the ground along a line of points.
