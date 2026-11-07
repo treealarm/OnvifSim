@@ -1,6 +1,6 @@
 import { defaultLampColor, lampLit, wiresToLamp, type Environment, type Geo, type Lamp, type World } from '../model';
 import { removeLamp, updateEnvironment, updateGeo, updateLamp, updateTerrain, useEditor } from '../store';
-import { BlurTextField, CheckboxField, ColorField, NumberField, Section } from './fields';
+import { BlurTextField, CheckboxField, ColorField, NumberField, Section, SelectField } from './fields';
 import { InspectorTitle } from './FindButton';
 
 // What shows when nothing is selected: settings of the world as a whole.
@@ -31,15 +31,29 @@ export function WorldInspector({ world }: { world: World }) {
         <NumberField label="Fog from, m" value={environment.fogStart} min={0} step={10} onChange={(fogStart) => change({ fogStart })} />
         <NumberField label="Fog hides at, m" value={environment.fogEnd} min={1} step={10} onChange={(fogEnd) => change({ fogEnd })} />
       </Section>
-      <Section title="In the camera pictures">
-        <CheckboxField label="Other cameras" checked={environment.showCameras} onChange={(showCameras) => change({ showCameras })} />
-        <CheckboxField label="Where they look (wire frame)" checked={environment.showFrustums} onChange={(showFrustums) => change({ showFrustums })} />
-        <NumberField label="View reaches, m (no ground)" value={environment.frustumLength} min={1} max={1000} step={5} onChange={(frustumLength) => change({ frustumLength })} />
+      <Section title="Camera views">
+        <CheckboxField label="Other cameras in the pictures" checked={environment.showCameras} onChange={(showCameras) => change({ showCameras })} />
+        <CheckboxField label="Their views in the pictures (wire frame)" checked={environment.showFrustums} onChange={(showFrustums) => change({ showFrustums })} />
+        <NumberField label="A view reaches where it meets nothing, m" value={environment.frustumLength} min={1} max={1000} step={5} onChange={(frustumLength) => change({ frustumLength })} />
+        <p className="muted">
+          The editor draws every camera's view as a wire frame: its edges, and the grid where the
+          picture meets the ground or an object. A ray that meets neither (one pointed at the sky)
+          stops at the length above.
+        </p>
       </Section>
       <Section title="Terrain">
         <NumberField label="Size, m" value={world.terrain.size} min={10} max={10000} step={10} onChange={(size) => updateTerrain({ ...world.terrain, size })} />
         <ColorField label="Ground" value={world.terrain.color} onChange={(color) => updateTerrain({ ...world.terrain, color })} />
-        <p className="muted">Steep slopes still turn to rock, with lighter patches breaking up the colour.</p>
+        <SelectField
+          label="Surface texture"
+          value={world.terrain.texture ?? 'grass'}
+          options={[
+            { value: 'grass', label: 'Grass and rock' },
+            { value: 'none', label: 'Smooth' },
+          ]}
+          onChange={(texture) => updateTerrain({ ...world.terrain, texture: texture === 'grass' ? null : texture })}
+        />
+        <p className="muted">Textured, steep slopes turn to rock and lighter patches break up the colour; smooth is one flat colour.</p>
       </Section>
       {/* A lamp is a thing of the world, like a camera: it is placed from the palette and edited in
           its own card, not in the world's settings. */}

@@ -1,6 +1,6 @@
 import { plateText, type GroundPoint, type Road, type Vehicle, type Walker } from '../model';
 import { removeSelected, startDrawing, updateRoad, updateVehicle, updateWalker } from '../store';
-import { CheckboxField, ColorField, NumberField, Section, TextField } from './fields';
+import { CheckboxField, ColorField, NumberField, Section, SelectField, TextField } from './fields';
 import { InspectorTitle } from './FindButton';
 
 export function RoadInspector({ road }: { road: Road }) {
@@ -15,6 +15,15 @@ export function RoadInspector({ road }: { road: Road }) {
       <Section title="Road">
         <NumberField label="Width, m" value={road.width} min={0.5} max={50} step={0.5} onChange={(width) => change({ width })} />
         <ColorField label="Surface" value={road.color ?? '#55575a'} onChange={(color) => change({ color })} />
+        <SelectField
+          label="Surface texture"
+          value={road.texture ?? 'asphalt'}
+          options={[
+            { value: 'asphalt', label: 'Asphalt' },
+            { value: 'none', label: 'Smooth' },
+          ]}
+          onChange={(texture) => change({ texture: texture === 'asphalt' ? null : texture })}
+        />
       </Section>
       <Points
         points={road.points}

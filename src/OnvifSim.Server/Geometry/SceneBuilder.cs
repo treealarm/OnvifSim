@@ -23,7 +23,7 @@ public static class SceneBuilder
         var chunks = new List<SceneChunk>();
         for (int cz = 0; cz < terrain.Resolution; cz += TerrainChunkCells)
             for (int cx = 0; cx < terrain.Resolution; cx += TerrainChunkCells)
-                chunks.Add(Chunk($"terrain_{cx}_{cz}", TerrainChunk(terrain, world.Terrain.Color, cx, cz)));
+                chunks.Add(Chunk($"terrain_{cx}_{cz}", TerrainChunk(terrain, world.Terrain.Color, world.Terrain.Texture, cx, cz)));
 
         foreach (var obj in world.Objects)
         {
@@ -80,6 +80,9 @@ public static class SceneBuilder
         var points = road.Points.Select(p => new Vector2(p.X, p.Z)).ToList();
         if (points.Count < 2) return mesh;
         var color = ColorUtil.Parse(road.Color, ColorUtil.Rgb(85, 87, 90));
+        // A road told to be smooth is one flat grey; otherwise its edges are darker than its crown
+        // and the surface shifts a little from metre to metre, so it reads as asphalt.
+        bool textured = !Smooth(road.Texture);
         float half = road.Width / 2;
         int across = Math.Max(2, (int)MathF.Ceiling(road.Width / RoadSampleSpacing));
         int segments = road.Closed ? points.Count : points.Count - 1;
@@ -106,7 +109,12 @@ public static class SceneBuilder
                 for (int k = 0; k <= across; k++)
                 {
                     var at = centre + side * (half * (2f * k / across - 1));
-                    mesh.AddVertex(new Vector3(at.X, terrain.HeightAt(at.X, at.Y) + RoadLift, at.Y), Vector3.UnitY, color);
+                    float edge = MathF.Abs(2f * k / across - 1);
+                    float grain = 1 + 0.015f * (ColorUtil.Hash(i * 1009 + s, k * 7) - 0.5f) * 2;
+                    var shade = textured
+                        ? Vector3.Clamp(color * ((1 - 0.08f * edge * edge) * grain), Vector3.Zero, Vector3.One)
+                        : color;
+                    mesh.AddVertex(new Vector3(at.X, terrain.HeightAt(at.X, at.Y) + RoadLift, at.Y), Vector3.UnitY, shade);
                 }
                 if (previousRow >= 0)
                     for (int k = 0; k < across; k++)
@@ -164,10 +172,11 @@ public static class SceneBuilder
     private static readonly Vector3 Grass = ColorUtil.Rgb(92, 128, 60);
     private static readonly Vector3 Rock = ColorUtil.Rgb(118, 112, 104);
 
-    private static Mesh TerrainChunk(Terrain t, string? color, int cx0, int cz0)
+    private static Mesh TerrainChunk(Terrain t, string? color, string? texture, int cx0, int cz0)
     {
         var m = new Mesh();
         var grass = ColorUtil.Parse(color, Grass);
+        bool textured = !Smooth(texture);
         // The dry patches are the chosen colour shifted towards straw, so any grass colour keeps its
         // variation; at the default colour this is the old (128, 136, 74).
         var dryGrass = Vector3.Min(grass * new Vector3(1.39f, 1.06f, 1.23f), Vector3.One);
@@ -178,7 +187,13 @@ public static class SceneBuilder
             {
                 var n = t.NormalAt(ix, iz);
                 // Steep slopes turn to rock; a cheap hash breaks up the grass so distance is readable.
-                float noise = Hash(ix, iz);
+                // A terrain told to be smooth is one flat colour, lit by its own shape.
+                if (!textured)
+                {
+                    m.AddVertex(new(t.VertexX(ix), t[ix, iz], t.VertexZ(iz)), n, grass);
+                    continue;
+                }
+                float noise = ColorUtil.Hash(ix, iz);
                 var patch = Vector3.Lerp(grass, dryGrass, noise * 0.6f);
                 float rockiness = Math.Clamp((0.92f - n.Y) * 6, 0, 1);
                 m.AddVertex(new(t.VertexX(ix), t[ix, iz], t.VertexZ(iz)), n, Vector3.Lerp(patch, Rock, rockiness));
@@ -194,15 +209,42 @@ public static class SceneBuilder
         return m;
     }
 
-    private static float Hash(int x, int z)
+    // A slab or a wall with the pattern it is asked for: tiles, grain, or nothing at all.
+    private static void Surface(Mesh m, float w, float h, float d, Vector3 color, Vector3 seam, string texture,
+        int seed, float y0 = 0)
     {
-        uint h = (uint)(x * 374761393 + z * 668265263);
-        h = (h ^ (h >> 13)) * 1274126177;
-        return ((h ^ (h >> 16)) & 0xffff) / 65535f;
+        switch (texture)
+        {
+            case "tiles":
+                Primitives.TiledFloor(m, w, h, d, color, seam, seed, y0);
+                break;
+            case "grain":
+                Primitives.GrainedBox(m, w, h, d, color, seed, y0);
+                break;
+            default:
+                Primitives.Box(m, w, h, d, color, y0);
+                break;
+        }
     }
 
-    // The object types ObjectMesh knows.
-    public static readonly string[] ObjectTypes = ["tree.pine", "tree.oak", "house", "office", "rock", "box", "car"];
+    // A surface told to be smooth carries no pattern: one flat colour, lit by its own shape.
+    private static bool Smooth(string? texture) =>
+        string.Equals(texture, "none", StringComparison.OrdinalIgnoreCase);
+
+    // The texture an object is drawn with: the one it names, or the default its type has. A floor is
+    // tiled, a box and a building's walls are grained, and a tree, a rock or a car is not textured at
+    // all — its own shape tells it apart.
+    private static string TextureOf(WorldObject o) =>
+        o.Texture ?? (o.Type switch
+        {
+            "floor" => "tiles",
+            "box" or "house" or "office" => "grain",
+            _ => "none",
+        });
+
+    // The object types ObjectMesh knows. "floor" is a slab whose top is tiled: a floor is drawn as a
+    // grid of tiles with seams, not as a flat box, so a hall reads as a hall.
+    public static readonly string[] ObjectTypes = ["tree.pine", "tree.oak", "house", "office", "rock", "box", "floor", "car"];
 
     public static Mesh ObjectMesh(WorldObject o)
     {
@@ -210,6 +252,7 @@ public static class SceneBuilder
         var s = o.Scale;
         var rng = new Random(o.Seed);
         float Vary(float amount) => 1 + amount * ((float)rng.NextDouble() * 2 - 1);
+        var texture = TextureOf(o);
         switch (o.Type)
         {
             case "tree.pine":
@@ -239,7 +282,7 @@ public static class SceneBuilder
                 var dark = ColorUtil.Rgb(60, 52, 48);
                 var glass = ColorUtil.Rgb(58, 72, 88);
                 // Walls reach 2 m below the base so a house on a slope never floats.
-                Primitives.Box(m, s.X, s.Y + 2, s.Z, wall, -2);
+                Surface(m, s.X, s.Y + 2, s.Z, wall, wall * 0.8f, texture, o.Seed, -2);
                 Primitives.GableRoof(m, s.X, s.Z, s.Y, s.X * 0.38f, 0.5f, roof, wall);
                 var door = new Mesh();
                 Primitives.Box(door, 1.1f, 2.1f, 0.12f, dark);
@@ -260,7 +303,7 @@ public static class SceneBuilder
                 var roof = ColorUtil.Parse(o.Color2, ColorUtil.Rgb(88, 92, 98));
                 var glass = ColorUtil.Rgb(54, 70, 92);
                 // Walls reach 2 m below the base so a building on a slope never floats.
-                Primitives.Box(m, s.X, s.Y + 2, s.Z, wall, -2);
+                Surface(m, s.X, s.Y + 2, s.Z, wall, wall * 0.8f, texture, o.Seed, -2);
                 // A window band standing a few centimetres proud of the walls, so it shows on every side.
                 Primitives.Box(m, s.X + 0.06f, MathF.Min(1.2f, s.Y * 0.4f), s.Z + 0.06f, glass, s.Y * 0.5f);
                 // A flat roof: a slab with a parapet round it.
@@ -290,8 +333,15 @@ public static class SceneBuilder
                 break;
             }
             case "box":
-                Primitives.Box(m, s.X, s.Y, s.Z, ColorUtil.Parse(o.Color, ColorUtil.Rgb(200, 200, 200)));
+            case "floor":
+            {
+                // Color is the surface, Color2 the seam between tiles where there are any. A box is
+                // grained and a floor tiled unless the object says otherwise.
+                var tile = ColorUtil.Parse(o.Color, ColorUtil.Rgb(180, 184, 190));
+                var seam = ColorUtil.Parse(o.Color2, tile * 0.8f);
+                Surface(m, s.X, s.Y, s.Z, tile, seam, texture, o.Seed);
                 break;
+            }
             case "car":
                 return CarMesh.Build(s.X, s.Y, s.Z,
                     ColorUtil.Parse(o.Color, ColorUtil.Rgb(58, 110, 165)),

@@ -36,6 +36,10 @@ public sealed class TerrainModel
     public float[] Heights { get; set; } = [];
     // Grass colour; steep slopes still turn to rock and a little variation keeps the ground readable.
     public string Color { get; set; } = "#5c803c";
+    // The surface pattern: null or "grass" for the patches and the rock on slopes, "none" for one
+    // flat colour. Cheap either way — it is drawn from the colour, never from a picture.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Texture { get; set; }
 }
 
 // The geographic anchor of the world's metres: X east, Y up, Z south, and North is the true bearing
@@ -81,6 +85,11 @@ public sealed class WorldObject
     public string? Color { get; set; }
     public string? Color2 { get; set; }
     public int Seed { get; set; }
+    // The surface pattern the mesh builder draws on it: null for the type's own ("tiles" for a floor,
+    // "grain" for a box or a building's walls, nothing for a tree, a rock or a car), "none" for a
+    // smooth surface, or "grain"/"tiles" to choose. Drawn from the colours, never from a picture.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Texture { get; set; }
     // A car's licence plate text: null keeps the car's default, an empty string leaves the plate blank.
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Plate { get; set; }
@@ -93,6 +102,10 @@ public sealed class RoadModel
     public List<GroundPoint> Points { get; set; } = [];
     public float Width { get; set; } = 4;
     public string? Color { get; set; }
+    // The surface pattern: null or "asphalt" for a darker crown and a shift of shade from metre to
+    // metre, "none" for one flat colour.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Texture { get; set; }
     // Join the last point to the first: the road goes round as a ring instead of ending.
     public bool Closed { get; set; }
 }

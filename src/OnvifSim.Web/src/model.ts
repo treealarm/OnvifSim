@@ -14,6 +14,8 @@ export interface Terrain {
   heights: Float32Array;
   // Grass colour; steep slopes still turn to rock.
   color: string;
+  // The surface pattern: absent or "grass" for the patches and the rock, "none" for one flat colour.
+  texture?: string | null;
 }
 
 // Where the world sits on the Earth. North is the true bearing of the world's -Z direction, degrees
@@ -39,7 +41,7 @@ export interface Environment {
   frustumLength: number;
 }
 
-export const objectTypes = ['tree.pine', 'tree.oak', 'house', 'office', 'rock', 'box', 'car'] as const;
+export const objectTypes = ['tree.pine', 'tree.oak', 'house', 'office', 'rock', 'box', 'floor', 'car'] as const;
 export type ObjectType = (typeof objectTypes)[number];
 
 export const objectTypeNames: Record<ObjectType, string> = {
@@ -49,6 +51,7 @@ export const objectTypeNames: Record<ObjectType, string> = {
   office: 'Office',
   rock: 'Rock',
   box: 'Box',
+  floor: 'Floor',
   car: 'Car',
 };
 
@@ -61,6 +64,9 @@ export interface WorldObject {
   color: string | null;
   color2: string | null;
   seed: number;
+  // The surface pattern: absent for the type's own (a box grained, a floor tiled), "none" for a smooth
+  // surface, "grain" or "tiles" to choose one.
+  texture?: string | null;
   // A car's licence plate: absent or null keeps the default, an empty string draws a blank plate.
   plate?: string | null;
 }
@@ -76,6 +82,9 @@ export interface Road {
   points: GroundPoint[];
   width: number;
   color: string | null;
+  // The surface pattern: absent or "asphalt" for the crown and the shift of shade, "none" for one
+  // flat colour.
+  texture?: string | null;
   // Whether the last point joins the first, making a ring.
   closed: boolean;
 }

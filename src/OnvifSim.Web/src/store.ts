@@ -657,6 +657,7 @@ export const defaultScale: Record<ObjectType, Vec3> = {
   office: { x: 24, y: 9, z: 16 },
   rock: { x: 2.6, y: 2, z: 2 },
   box: { x: 3, y: 3, z: 3 },
+  floor: { x: 30, y: 0.3, z: 30 },
   car: { x: 1.8, y: 1.45, z: 4.4 },
 };
 

@@ -29,6 +29,7 @@ const placeables: { what: Placeable; label: string }[] = [
   { what: 'house', label: 'House' },
   { what: 'rock', label: 'Rock' },
   { what: 'box', label: 'Box' },
+  { what: 'floor', label: 'Floor' },
   { what: 'car', label: 'Car' },
   { what: 'camera.fixed', label: 'Fixed camera' },
   { what: 'camera.ptz', label: 'PTZ camera' },

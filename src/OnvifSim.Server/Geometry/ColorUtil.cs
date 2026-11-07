@@ -15,4 +15,13 @@ public static class ColorUtil
     }
 
     public static Vector3 Rgb(int r, int g, int b) => new Vector3(r, g, b) / 255f;
+
+    // A cheap deterministic 0..1 noise from two integers. The terrain's dry patches and the grain of
+    // a wall are both this, drawn from a seed and a cell's place, so a world built twice looks the same.
+    public static float Hash(int x, int z)
+    {
+        uint h = (uint)(x * 374761393 + z * 668265263);
+        h = (h ^ (h >> 13)) * 1274126177;
+        return ((h ^ (h >> 16)) & 0xffff) / 65535f;
+    }
 }

@@ -24,6 +24,10 @@ const colorSlots: Record<ObjectType, { label: string; fallback: string }[]> = {
   ],
   rock: [{ label: 'Colour', fallback: '#807c76' }],
   box: [{ label: 'Colour', fallback: '#c8c8c8' }],
+  floor: [
+    { label: 'Tile', fallback: '#b4b8be' },
+    { label: 'Seam', fallback: '#8f939a' },
+  ],
   car: [
     { label: 'Paint', fallback: '#3a6ea5' },
     { label: 'Plate background', fallback: '#f0f0ea' },
@@ -31,6 +35,16 @@ const colorSlots: Record<ObjectType, { label: string; fallback: string }[]> = {
 };
 
 const typeOptions = objectTypes.map((type) => ({ value: type, label: objectTypeNames[type] }));
+
+// The types whose surface the mesh builder can pattern, and the pattern they carry by default: a floor
+// is tiled, a box or a building's walls are grained. "Type default" leaves the choice to the server.
+const texturedTypes: ObjectType[] = ['box', 'floor', 'house', 'office'];
+const textureOptions = [
+  { value: '', label: 'Type default' },
+  { value: 'none', label: 'Smooth' },
+  { value: 'grain', label: 'Grain' },
+  { value: 'tiles', label: 'Tiles' },
+];
 
 export function ObjectInspector({ obj }: { obj: WorldObject }) {
   const change = (patch: Partial<WorldObject>) => updateObject({ ...obj, ...patch });
@@ -65,6 +79,14 @@ export function ObjectInspector({ obj }: { obj: WorldObject }) {
         <NumberField label="Depth" value={obj.scale.z} min={0.1} max={1000} step={0.1} onChange={(z) => changeScale({ z })} />
         <ColorField label={first.label} value={obj.color ?? first.fallback} onChange={(color) => change({ color })} />
         {second && <ColorField label={second.label} value={obj.color2 ?? second.fallback} onChange={(color2) => change({ color2 })} />}
+        {texturedTypes.includes(obj.type) && (
+          <SelectField
+            label="Surface texture"
+            value={obj.texture ?? ''}
+            options={textureOptions}
+            onChange={(texture) => change({ texture: texture === '' ? null : texture })}
+          />
+        )}
         <div className="field">
           <span>Variation</span>
           <button type="button" onClick={() => change({ seed: Math.floor(Math.random() * 2 ** 31) })}>

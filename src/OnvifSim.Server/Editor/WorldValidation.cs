@@ -67,6 +67,16 @@ public static partial class WorldValidation
         Require(terrain.Heights.Length is 0 || terrain.Heights.Length == samples,
             $"Terrain of resolution {terrain.Resolution} needs {samples} heights, got {terrain.Heights.Length}.");
         Require(terrain.Heights.All(float.IsFinite), "Terrain heights must be finite numbers.");
+        RequireTexture("Terrain", terrain.Texture, ["grass", "none"]);
+    }
+
+    // A surface's pattern is a word the mesh builder knows; an unknown one would silently draw a
+    // smooth surface, so it is refused when the world is written.
+    private static void RequireTexture(string what, string? texture, string[] allowed)
+    {
+        if (texture is null) return;
+        Require(allowed.Contains(texture, StringComparer.OrdinalIgnoreCase),
+            $"{what}: unknown texture '{texture}', expected one of {string.Join(", ", allowed)} or nothing.");
     }
 
     private static void CheckGeo(GeoModel geo)
@@ -94,6 +104,7 @@ public static partial class WorldValidation
         Require(IsFinite(obj.Position) && float.IsFinite(obj.RotationY), $"Object {obj.Id}: position and rotation must be finite.");
         Require(obj.Scale is { X: > 0 and <= MaxObjectSize, Y: > 0 and <= MaxObjectSize, Z: > 0 and <= MaxObjectSize },
             $"Object {obj.Id}: every size must be above 0 and at most {MaxObjectSize} m.");
+        RequireTexture($"Object {obj.Id}", obj.Texture, ["none", "grain", "tiles"]);
         if (obj.Type == "car") CheckPlate($"Object {obj.Id}", obj.Plate);
     }
 
@@ -103,6 +114,7 @@ public static partial class WorldValidation
         Require(road.Points.Count >= 2, $"Road {road.Id} needs at least two points.");
         Require(road.Points.All(IsFinite), $"Road {road.Id}: points must be finite.");
         Require(road.Width is >= 0.5f and <= 50, $"Road {road.Id}: width {road.Width} m is outside 0.5..50.");
+        RequireTexture($"Road {road.Id}", road.Texture, ["asphalt", "none"]);
     }
 
     private static void CheckWalker(WalkerModel walker)
