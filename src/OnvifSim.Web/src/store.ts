@@ -127,6 +127,12 @@ export function select(selection: Selection | null) {
   set({ selection, tool: { kind: 'select' }, toolGroup: 'select' });
 }
 
+// Drops what was selected without putting the select tool in hand: picking from the real world asks
+// the world's own panel to show the answer, and the pick tool has to stay in hand for the next click.
+export function clearSelection() {
+  set({ selection: null });
+}
+
 // Which palette a tool belongs to; the toolbar marks that group so switching tabs never hides what the
 // viewport will do.
 export function toolGroupOf(tool: Tool): ToolGroup {
@@ -882,7 +888,9 @@ export async function pickFromOsm(x: number, z: number) {
       set({ osmArea: area });
     }
     const { candidates } = await pickWithFreshArea(x, z);
-    set({ osm: candidates.length > 0 ? { candidates, picked: 0 } : null });
+    // A click that answered clears the last one's complaint: the banner is about the click that
+    // failed, not about the tool.
+    set({ osm: candidates.length > 0 ? { candidates, picked: 0 } : null, error: null });
     if (candidates.length === 0) showError('Nothing from OpenStreetMap lies under that point.');
   } catch (error) {
     set({ osmFetching: false });
@@ -1043,7 +1051,7 @@ export async function buildOsmCandidate() {
       remember({ kind: 'object', id, value: null }, false);
       select({ kind: 'object', id });
     }
-    set({ osm: null });
+    set({ osm: null, error: null });
   } catch (error) {
     showError(error);
   }

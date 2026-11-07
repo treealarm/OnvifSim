@@ -13,7 +13,7 @@ import {
   type Terrain,
   type Vehicle,
 } from '../model';
-import { pickFromOsm, select, updateCamera, useEditor } from '../store';
+import { clearSelection, pickFromOsm, select, updateCamera, useEditor } from '../store';
 import { castFootprint, FOOTPRINT_COLUMNS, FOOTPRINT_ROWS, type Footprint } from './footprint';
 import { Label } from './Label';
 import { lookOf, yawDegrees } from './orientation';
@@ -100,7 +100,7 @@ export function CameraGizmo({ camera, head, terrain, environment, vehicles, view
     // spot the click asks about.
     if (tool.kind === 'osm') {
       e.stopPropagation();
-      select(null);
+      clearSelection();
       void pickFromOsm(camera.position.x, camera.position.z);
       return;
     }

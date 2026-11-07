@@ -2,7 +2,7 @@ import { useThree, type ThreeEvent } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { BufferAttribute, BufferGeometry, Color, SRGBColorSpace, TextureLoader, type Mesh, type Texture } from 'three';
 import { heightAt, type Terrain } from '../model';
-import { addDrawingPoint, finishDrawing, movePoint, pickFromOsm, place, select, updateTerrain, useEditor } from '../store';
+import { addDrawingPoint, clearSelection, finishDrawing, movePoint, pickFromOsm, place, select, updateTerrain, useEditor } from '../store';
 import { applyBrush, type BrushDab } from './brush';
 
 interface Stroke {
@@ -94,7 +94,7 @@ export function TerrainView({ terrain }: { terrain: Terrain }) {
     else if (tool.kind === 'draw') addDrawingPoint({ x: round(e.point.x), z: round(e.point.z) });
     else if (tool.kind === 'osm') {
       // The answer is shown by the world's own panel, which a selected object would replace.
-      select(null);
+      clearSelection();
       void pickFromOsm(e.point.x, e.point.z);
     }
     else if (tool.kind === 'select') select(null);

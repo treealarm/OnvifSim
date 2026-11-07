@@ -145,8 +145,12 @@ public sealed class OsmService
                 // A busy or broken provider gets one more try; anything else is the client's problem.
                 bool retryable = (int)response.StatusCode is 429 or >= 500;
                 if (!retryable || attempt > 0)
-                    throw new HttpRequestException($"OSM answered {(int)response.StatusCode}");
-                await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+                    throw new HttpRequestException((int)response.StatusCode == 429
+                        ? "OpenStreetMap is busy right now (HTTP 429); try again in a minute."
+                        : $"OpenStreetMap answered HTTP {(int)response.StatusCode}.");
+                // A rate limit is a queue that has to drain; a broken server is worth asking again at
+                // once.
+                await Task.Delay(TimeSpan.FromSeconds((int)response.StatusCode == 429 ? 10 : 1), cancellationToken);
             }
         }
         finally

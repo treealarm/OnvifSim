@@ -72,6 +72,9 @@ export class ApiError extends Error {
 interface ProblemDetails {
   detail?: string;
   title?: string;
+  // The editor's own endpoints answer with this rather than a ProblemDetails of their own, and its
+  // text is the one written for the person reading it.
+  error?: string;
   code?: string;
 }
 
@@ -88,7 +91,7 @@ async function send(method: string, path: string, body?: unknown): Promise<Respo
 async function errorOf(response: Response): Promise<ApiError> {
   try {
     const problem = (await response.json()) as ProblemDetails;
-    return new ApiError(problem.detail ?? problem.title ?? response.statusText, response.status, problem.code);
+    return new ApiError(problem.detail ?? problem.error ?? problem.title ?? response.statusText, response.status, problem.code);
   } catch {
     return new ApiError(`${response.status} ${response.statusText}`, response.status);
   }

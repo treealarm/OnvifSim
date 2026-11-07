@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import type { BufferGeometry, Object3D, Plane } from 'three';
 import { api } from '../api';
 import { heightAt, type Terrain, type WorldObject } from '../model';
-import { pickFromOsm, select, showError, updateObject, useEditor } from '../store';
+import { clearSelection, pickFromOsm, select, showError, updateObject, useEditor } from '../store';
 import { CUTAWAY_HEIGHT_M, useCutawayPlanes } from './cutaway';
 import { yawDegrees } from './orientation';
 
@@ -86,7 +86,7 @@ function ObjectView({ obj, terrain, geometry, selected, clippingPlanes }: Object
     // lands tens of metres past it.
     if (tool.kind === 'osm') {
       e.stopPropagation();
-      select(null);
+      clearSelection();
       void pickFromOsm(obj.position.x, obj.position.z);
       return;
     }
