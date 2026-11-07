@@ -7,12 +7,14 @@ namespace OnvifSim.World;
 // camera, the trees and the neighbouring office — is made up here, because the map does not know it
 // and need not.
 //
-// The building is one big hall, not a row of rooms: the demo's master and PTZ slave work as a pair
-// (the master's boxes drive the slave's aim), so they stand in one space with a person walking
-// between them. Every wall is a box plate, never one solid box: the rasterizer culls back faces, so
-// a solid building is invisible from the inside. Floor, outer walls and roof are slabs, and a camera
-// in the hall sees its inside the way a person in it would. What the editor cannot see that way is
-// what its cutaway (a plane at 2.5 m) is for.
+// The building is one big hall, not a row of rooms: the demo's hall master and PTZ slave work as a
+// pair (the master's boxes drive the slave's aim), so they stand in one space with a person walking
+// between them. The person's route also takes them out of the doorway in the north wall, toward the
+// ring road, where the second pair is: its master watches the road and the slave turns after the
+// person outside as well as after the car. Every wall is a box plate, never one solid box: the
+// rasterizer culls back faces, so a solid building is invisible from the inside. Floor, outer walls
+// and roof are slabs, and a camera in the hall sees its inside the way a person in it would. What
+// the editor cannot see that way is what its cutaway (a plane at 2.5 m) is for.
 public static class MarylandWorld
 {
     public const string Name = "maryland";
@@ -26,9 +28,9 @@ public static class MarylandWorld
     public const double BuildingNorth = 38.9928;
     public const double BuildingEast = -76.9365;
 
-    // The demo's Room 101 in WGS84: the corner of the hall the pair stands in. The hall has no wall
-    // there — it is one big room — but the demo map places both cameras in this room, so both lie
-    // inside it, and the walker's loop does too.
+    // The demo's Room 101 in WGS84: the corner of the hall the hall pair stands in. The hall has no
+    // wall there — it is one big room — but the demo map places both cameras in this room, so both
+    // lie inside it, and so does the indoor part of the walker's route.
     public const double Room101South = 38.99238;
     public const double Room101West = -76.93855;
     public const double Room101North = 38.99250;
@@ -39,6 +41,15 @@ public static class MarylandWorld
     public const float InteriorHeight = 3.6f;
 
     private const float WallThickness = 0.4f;
+
+    // The doorway in the north wall, on the walker's way out of the building and back: the only
+    // opening between the hall and the ground the road pair watches. The wall splits around it and
+    // a lintel spans the top, so the opening is genuinely empty geometry — a wall panel there
+    // would stop both the person's route and the cameras' lines of sight.
+    public const float DoorX = -50f;
+    public const float DoorWidth = 1.8f;
+    public const float DoorHeight = 2.2f;
+
     private const string FloorColor = "#8f959d";
     private const string WallColor = "#c8ccd2";
     private const string RoofColor = "#6f747c";
@@ -64,13 +75,15 @@ public static class MarylandWorld
             38.992484, -76.938372, 2.8f, 235, 65, 0),
         // The second pair works as one too, on the road north of the building: the master stands
         // on a pole outside the north wall looking across the ring road, and the slave north of
-        // the road looking south-east along the same stretch. The car is 7.4% of the master's
-        // picture height across the whole frame (the detector needs 5%), so its own analytics
-        // drive the slave.
+        // the road looking south. The slave sees both the lane and the doorway the person walks
+        // out of, so it can turn after the car and after a person on the ground between. The car
+        // is 7.4% of the master's picture height across the whole frame (the detector needs 5%),
+        // so its own analytics drive the slave; the master is an overview: the whole stretch of
+        // road is in its picture, and the person never comes closer than about 12 m to it.
         new("master2", "Building master 2", CameraKind.Fixed,
-            38.992884, -76.937858, 6f, 0, 60, -12),
+            38.992884, -76.938447, 6f, 0, 60, -12),
         new("ptz2", "Campus slave 2 (PTZ)", CameraKind.Ptz,
-            38.993333, -76.938320, 6f, 113, 60, 0),
+            38.993468, -76.938447, 6f, 180, 60, 0),
     ];
 
     // The demo camera that is not placed on a wall: it rides the car.
@@ -94,7 +107,7 @@ public static class MarylandWorld
         // cameras see grass grow through the floor.
         Plate(world, "building-floor", cx, -0.25f, cz, width, 0.3f, depth, FloorColor);
         Plate(world, "building-roof", cx, InteriorHeight, cz, width, 0.35f, depth, RoofColor);
-        Plate(world, "building-wall-n", cx, 0, northZ, width + WallThickness, InteriorHeight, WallThickness, WallColor);
+        NorthWall(world, westX - WallThickness / 2, northZ, eastX + WallThickness / 2);
         Plate(world, "building-wall-s", cx, 0, southZ, width + WallThickness, InteriorHeight, WallThickness, WallColor);
         Plate(world, "building-wall-w", westX, 0, cz, WallThickness, InteriorHeight, depth - WallThickness, WallColor);
         Plate(world, "building-wall-e", eastX, 0, cz, WallThickness, InteriorHeight, depth - WallThickness, WallColor);
@@ -118,12 +131,19 @@ public static class MarylandWorld
             Id = "v1", Route = [.. ring], Speed = 8, Return = RouteReturn.Loop,
             Color = "#2f6fde", Color2 = "#f0f0ea", Plate = "M777MM",
         });
-        // The person the pair works on: the master sees them, boxes them in its metadata track, and
-        // the slave aims where those boxes say. The loop lies between the two cameras.
+        // The person both pairs work on: the hall master sees them inside Room 101 and boxes them,
+        // and the hall slave aims where those boxes say. The route then leaves the room through the
+        // hall and the doorway, walks north toward the ring road — where the road master picks them
+        // up and its slave turns after them — and comes back through the same doorway. The closing
+        // segment of the loop runs along the doorway's line, so the person never crosses a wall.
         world.Walkers.Add(new WalkerModel
         {
             Id = "w1", Speed = 1.0f, Return = RouteReturn.Loop, Height = 1.75f,
-            Route = [new(-59, -18), new(-54, -18), new(-54, -13), new(-59, -13)],
+            Route =
+            [
+                new(-50, -13), new(-54, -13), new(-54, -18), new(-59, -18), new(-59, -13),
+                new(-50, -13), new(-50, -56), new(-50, -72), new(-52, -82), new(-50, -90),
+            ],
         });
         Plate(world, "parking", 80, 0, 142, 90, 0.06f, 24, "#5f6165");
 
@@ -133,6 +153,19 @@ public static class MarylandWorld
         AddCameras(world);
         AddDevices(world);
         return world;
+    }
+
+    // The north wall in three plates: either side of the doorway, and the lintel over it. The
+    // person walks out through the gap, and the cameras' lines of sight pass through it too.
+    private static void NorthWall(WorldModel world, float westEdge, float northZ, float eastEdge)
+    {
+        float doorWest = DoorX - DoorWidth / 2, doorEast = DoorX + DoorWidth / 2;
+        Plate(world, "building-wall-n-w", (westEdge + doorWest) / 2, 0, northZ,
+            doorWest - westEdge, InteriorHeight, WallThickness, WallColor);
+        Plate(world, "building-wall-n-e", (doorEast + eastEdge) / 2, 0, northZ,
+            eastEdge - doorEast, InteriorHeight, WallThickness, WallColor);
+        Plate(world, "building-wall-n-lintel", DoorX, DoorHeight, northZ, DoorWidth,
+            InteriorHeight - DoorHeight, WallThickness, WallColor);
     }
 
     private static void AddCameras(WorldModel world)

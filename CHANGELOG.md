@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **A doorway in the Maryland world, and a person who walks out of it.** The building's north wall
+  has a real opening (two plates and a lintel), and the walker's route leaves Room 101 through the
+  hall and the doorway, walks north toward the ring road, and comes back in. The road pair moved
+  with it: the master stands outside the north wall looking over the road and the doorway, and the
+  slave north of the road looks south, so it can turn after a person on the ground as well as after
+  the car. `data/worlds/maryland.json` is rebuilt from the builder.
 - **A digital input's logical state follows the Device IO spec.** A camera that supports
   `SetDigitalInputConfigurations` — OnvifSim does — reports `true` for the active state and `false`
   for the idle one, and `IdleState` names the circuit condition the input rests in. Changing that

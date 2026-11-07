@@ -77,7 +77,8 @@ public class GeoLocationOnvifTests(MarylandFactory factory) : IClassFixture<Mary
         var original = Assert.Single(await camera.GetGeoLocationAsync());
         var world = World;
         var from = GeoOf(world, PoseOf(world, "master2"));
-        // About ten metres north-east, inside the hall and at the camera's own height.
+        // About ten metres north-east, out on the ground north of the building and at the camera's
+        // own height.
         var to = new OnvifGeoLocation(from.Latitude + 0.0001, from.Longitude + 0.0001, from.Elevation);
 
         try
