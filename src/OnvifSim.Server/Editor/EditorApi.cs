@@ -57,12 +57,14 @@ public static class EditorApi
     // file. The editor shows it under the terrain and bakes it again on request.
     private static void MapGroundMap(WebApplication app)
     {
-        app.MapGet("/api/maps/{name}", (string name, TerrainMaps maps) =>
+        app.MapGet("/api/maps/{name}", (string name, TerrainMaps maps, HttpContext http) =>
         {
             var path = maps.PictureFile(name);
-            return path is null
-                ? Results.NotFound(new { error = $"No map '{name}' is cached." })
-                : Results.File(path, "image/png");
+            if (path is null) return Results.NotFound(new { error = $"No map '{name}' is cached." });
+            // The picture is this machine's cache and is baked again in place under the same name: a
+            // browser must ask for it again rather than keep the one it already has.
+            http.Response.Headers.CacheControl = "no-cache";
+            return Results.File(path, "image/png");
         });
 
         app.MapGet("/api/maps/{name}/meta", (string name, TerrainMaps maps) =>

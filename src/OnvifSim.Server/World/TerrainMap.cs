@@ -76,11 +76,8 @@ public sealed class TerrainMaps
     {
         var name = world.Terrain.Map;
         if (string.IsNullOrWhiteSpace(name) || world.Terrain.ShowMap == false) return null;
-        if (world.Terrain.MapBounds is null)
-        {
-            ReportOnce(name, "the world names a ground map but not the bounds it covers; it is not drawn.");
-            return null;
-        }
+        // Where the picture belongs is the world's own extent, so a world that holds no bounds — or
+        // holds the ones of the extent before it moved — is still read for the one it has.
         var wanted = Wanted(world);
         var loaded = _loaded;
         if (loaded is not null && loaded.Name == name && SameBounds(loaded.Meta, wanted)) return loaded.Texture;
@@ -185,10 +182,10 @@ public sealed class TerrainMaps
 
     private string MetaPath(string name) => Path.Combine(_directory, name + ".json");
 
-    private static Bounds Wanted(WorldModel world) =>
-        world.Terrain.MapBounds is { } b
-            ? new Bounds(b.South, b.West, b.North, b.East)
-            : throw new InvalidOperationException("A ground map needs terrain.mapBounds, or it cannot be placed.");
+    // The rectangle the picture is read for: the world's own extent, worked out from where the world
+    // stands — not the bounds the world happens to hold. Those are the record of the last picture
+    // baked for it, and a world that moved holds the old one until a bake succeeds.
+    private static Bounds Wanted(WorldModel world) => BoundsFor(world.Geo, world.Terrain.Size);
 
     private static Bounds BoundsFor(GeoModel geo, float size)
     {

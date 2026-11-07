@@ -32,6 +32,11 @@ export function TerrainView({ terrain }: { terrain: Terrain }) {
   const fits = Boolean(terrain.mapBounds && live && sameBounds(live, terrain.mapBounds));
   const mapName = terrain.map && terrain.showMap !== false && fits ? terrain.map : null;
   const [map, setMap] = useState<Texture | null>(null);
+  // A baked picture is written in place under the same name, so the request carries the extent it
+  // was read for: a world that moved asks for the new picture, not the one the browser already has.
+  const stamp = terrain.mapBounds
+    ? `${terrain.mapBounds.south},${terrain.mapBounds.west},${terrain.mapBounds.north},${terrain.mapBounds.east}`
+    : '';
   useEffect(() => {
     if (!mapName) {
       setMap(null);
@@ -39,7 +44,7 @@ export function TerrainView({ terrain }: { terrain: Terrain }) {
     }
     let live = true;
     new TextureLoader().load(
-      `/api/maps/${encodeURIComponent(mapName)}`,
+      `/api/maps/${encodeURIComponent(mapName)}?v=${encodeURIComponent(stamp)}`,
       (texture) => {
         if (!live) return;
         texture.colorSpace = SRGBColorSpace;
@@ -57,7 +62,7 @@ export function TerrainView({ terrain }: { terrain: Terrain }) {
     return () => {
       live = false;
     };
-  }, [mapName]);
+  }, [mapName, stamp]);
 
   function dab(x: number, z: number) {
     const current = stroke.current;
