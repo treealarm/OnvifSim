@@ -16,12 +16,17 @@
   taken back to WGS84 and then to a tile, so an anchor, a true north and any terrain size come out
   right; a map missing, mismatched or broken is not drawn, and the world stays valid. The editor
   bakes it, shows it and switches it off.
-- **Real objects out of OpenStreetMap.** The editor's Map → Pick from OSM tool asks Overpass what lies
-  under a click — `nwr` for buildings, parking and water (multipolygons included), `way` for roads,
-  `node` for trees — outlines the candidate and builds a prism, a road or a tree from it. A click on
-  an object asks about the object's own place, not the ground behind its roof; the panel says the
-  question is out until the answer arrives, and a query that has not answered in 60 s says so instead
-  of failing silently. Buildings with a courtyard are refused with a message.
+- **Real objects out of OpenStreetMap.** The editor's Map → Pick from OSM tool reads the world's
+  whole extent from Overpass once — `nwr` for buildings, parking and water (multipolygons included),
+  `way` for roads, `node` for trees — and keeps it on this machine beside the ground map's cache
+  (`osm/<world>.json`), so every click answers at once instead of waiting on a public server that
+  takes tens of seconds. A click on an object asks about the object's own place, not the ground behind
+  its roof; the footprint that holds the click comes before the road or tree beside it; the picked
+  object is outlined before it is built. Buildings with a courtyard are refused with a message.
+- **The real world as one mode.** A single **OpenStreetMap** switch in the Map palette turns the open
+  map on and reads whatever is missing — the picture under the ground and the objects a click can
+  build — both kept on this machine. Switched off, the ground is plain and the camera frames show
+  grass; what was read stays cached for the next time.
 - **The Maryland world is the real campus.** The building is Biomolecular Sciences (OSM way
   24303349): its 20-corner footprint at 11.78 m, with a doorway on the north wall. The yard is Lot T,
   the parking lot the person crosses; the car drives the real ring of Regents, Paint Branch and

@@ -58,7 +58,7 @@ builder.Services.AddSingleton(sp =>
     // and a public Overpass at a busy hour answers in tens of seconds, not in one.
     var http = new HttpClient { Timeout = TimeSpan.FromSeconds(90) };
     http.DefaultRequestHeaders.UserAgent.ParseAdd($"OnvifSim/{CameraIdentity.FirmwareVersion} (+https://treealarm.dev)");
-    return new OsmService(options.OsmEndpoint, http, sp.GetRequiredService<ILogger<OsmService>>());
+    return new OsmService(options.OsmEndpoint, options.DataDirectory, http, sp.GetRequiredService<ILogger<OsmService>>());
 });
 builder.Services.AddSingleton<SceneState>();
 builder.Services.AddSingleton(TimeProvider.System);

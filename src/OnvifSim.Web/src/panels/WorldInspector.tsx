@@ -1,12 +1,12 @@
-import { useState } from 'react';
-import { api, type OsmCandidate } from '../api';
+import type { OsmCandidate } from '../api';
 import { defaultLampColor, lampLit, wiresToLamp, type Environment, type Geo, type Lamp, type World } from '../model';
 import {
+  bakeGroundMap,
   buildOsmCandidate,
   cancelOsmPick,
+  fetchOsmArea,
   pickOsmCandidate,
   removeLamp,
-  showError,
   updateEnvironment,
   updateGeo,
   updateLamp,
@@ -23,37 +23,17 @@ export function WorldInspector({ world }: { world: World }) {
   const geo = world.geo;
   const changeGeo = (patch: Partial<Geo>) => updateGeo({ ...geo, ...patch });
   const terrain = world.terrain;
-  const activeWorld = useEditor((s) => s.activeWorld);
   const osm = useEditor((s) => s.osm);
-  const osmLooking = useEditor((s) => s.osmLooking);
-  const [baking, setBaking] = useState(false);
+  const osmFetching = useEditor((s) => s.osmFetching);
+  const baking = useEditor((s) => s.mapBaking);
   const mapName = terrain.map ?? null;
-
-  // Baking fetches the picture for this world's extent and tells the world where it lies. The world
-  // is written afterwards: what is on disk is a cache, what the world holds is where it belongs.
-  async function bake() {
-    setBaking(true);
-    try {
-      const name = mapName ?? `${mapSlug(activeWorld)}-ground`;
-      const meta = await api.bakeMap(name);
-      updateTerrain({
-        ...terrain,
-        map: name,
-        mapBounds: { south: meta.south, west: meta.west, north: meta.north, east: meta.east },
-        mapAttribution: meta.attribution,
-        showMap: true,
-      });
-    } catch (error) {
-      showError(error);
-    } finally {
-      setBaking(false);
-    }
-  }
 
   return (
     <>
       <h2>World</h2>
-      {(osm || osmLooking) && <OsmPickCard candidates={osm?.candidates ?? null} picked={osm?.picked ?? 0} />}
+      {(osm || osmFetching) && (
+        <OsmPickCard candidates={osm?.candidates ?? null} picked={osm?.picked ?? 0} fetching={osmFetching} />
+      )}
       <p className="muted">
         Pick something from the toolbar and click the ground to place it; click an object or a camera, or a row in
         Contents, to edit it.
@@ -110,7 +90,7 @@ export function WorldInspector({ world }: { world: World }) {
               world file. It is not drawn if the world's origin or size has moved since it was fetched.
             </p>
             <div className="field">
-              <button type="button" disabled={baking} onClick={() => void bake()}>
+              <button type="button" disabled={baking} onClick={() => void bakeGroundMap()}>
                 {baking ? 'Fetching…' : 'Bake it again'}
               </button>
               <button
@@ -124,7 +104,7 @@ export function WorldInspector({ world }: { world: World }) {
         ) : (
           <>
             <div className="field">
-              <button type="button" disabled={baking} onClick={() => void bake()}>
+              <button type="button" disabled={baking} onClick={() => void bakeGroundMap()}>
                 {baking ? 'Fetching…' : 'Bake ground map'}
               </button>
             </div>
@@ -148,12 +128,18 @@ export function WorldInspector({ world }: { world: World }) {
 
 // What lies under the click, in the real world: each candidate can be looked at before it is built,
 // and a courtyard is refused here rather than built as a lid over it.
-function OsmPickCard({ candidates, picked }: { candidates: OsmCandidate[] | null; picked: number }) {
+function OsmPickCard(
+  { candidates, picked, fetching }: { candidates: OsmCandidate[] | null; picked: number; fetching: boolean },
+) {
   const candidate = candidates?.[picked];
   if (!candidates) {
     return (
       <Section title="From OpenStreetMap">
-        <p className="muted">Looking under the point… a public Overpass server takes a while at a busy hour.</p>
+        <p className="muted">
+          {fetching
+            ? 'Reading the real world around this world — one request for its whole extent. A public Overpass server takes a while at a busy hour; every click after this is instant.'
+            : 'Looking under the point…'}
+        </p>
       </Section>
     );
   }
@@ -181,7 +167,12 @@ function OsmPickCard({ candidates, picked }: { candidates: OsmCandidate[] | null
             Cancel
           </button>
         </div>
-        <p className="muted">Data © OpenStreetMap contributors.</p>
+        <p className="muted">
+          Data © OpenStreetMap contributors.{' '}
+          <button type="button" onClick={() => void fetchOsmArea()}>
+            Read the surroundings again
+          </button>
+        </p>
       </div>
     </Section>
   );
@@ -196,15 +187,6 @@ function candidateLabel(candidate: OsmCandidate): string {
   const width = Math.round(Math.max(...xs) - Math.min(...xs));
   const depth = Math.round(Math.max(...zs) - Math.min(...zs));
   return `${name} · ${candidate.kind} ${width}×${depth} m, ${Math.round(candidate.height * 10) / 10} m high`;
-}
-
-// A map's name has to be safe on a filesystem: letters, digits and dashes, as the server asks.
-function mapSlug(world: string | null): string {
-  return (world ?? 'world')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 24) || 'world';
 }
 
 // The lamp picked in the viewport or in Contents: its card, with the devices it is wired to.

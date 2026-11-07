@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { api, ApiError, type OsmCandidate } from './api';
+import { api, ApiError, type OsmArea, type OsmCandidate } from './api';
 import {
   cameraIoOf,
   decodeWorld,
@@ -77,11 +77,15 @@ interface EditorState {
   brushStrength: number;
   // Where the viewport is asked to fly to, and how far back to stand from it.
   focus: FocusRequest | null;
-  // What the last click asked OpenStreetMap, while the pick tool is active; and whether that question
-  // is still on its way — the provider takes seconds, sometimes a minute, and a click with no visible
-  // answer reads as a click that did nothing.
+  // What the last click asked OpenStreetMap, while the pick tool is active.
   osm: OsmPick | null;
-  osmLooking: boolean;
+  // The real world around this world, as this machine keeps it: read once for the whole extent, so a
+  // click after that costs nothing. Empty until the first click or a fetch.
+  osmArea: OsmArea | null;
+  // Whether that one reading is on its way — the provider takes seconds, sometimes a minute.
+  osmFetching: boolean;
+  // Whether the picture under the ground is being read from the tile provider.
+  mapBaking: boolean;
   // The point of the selected road or route being dragged over the ground.
   draggedPoint: number | null;
   error: string | null;
@@ -108,7 +112,9 @@ export const useEditor = create<EditorState>()(() => ({
   brushStrength: 0.5,
   focus: null,
   osm: null,
-  osmLooking: false,
+  osmArea: null,
+  osmFetching: false,
+  mapBaking: false,
   draggedPoint: null,
   error: null,
   undoSteps: 0,
@@ -858,19 +864,121 @@ export function movePoint(selection: Selection, index: number, point: GroundPoin
 // ---- The real world under a click ----
 
 export function startOsmPick() {
-  set({ tool: { kind: 'osm' }, toolGroup: 'map', osm: null, osmLooking: false });
+  set({ tool: { kind: 'osm' }, toolGroup: 'map', osm: null });
 }
 
-// Asks the server what of the real world lies under a point of this one, and offers it. The answer
-// takes a while, so the panel says the question is out before the answer arrives.
+// Asks what of the real world lies under a point of this one, and offers it. The world's own objects
+// are read once — one request for its whole extent — and every click after that answers at once out
+// of this machine; the panel says so while the reading is under way.
 export async function pickFromOsm(x: number, z: number) {
-  set({ osm: null, osmLooking: true });
+  set({ osm: null });
   try {
-    const { candidates } = await api.osmPick(x, z);
-    set({ osm: candidates.length > 0 ? { candidates, picked: 0 } : null, osmLooking: false });
+    let area = useEditor.getState().osmArea ?? (await api.osmArea()).area;
+    if (!area) {
+      set({ osmFetching: true });
+      area = (await api.fetchOsmArea()).area;
+      set({ osmArea: area, osmFetching: false });
+    } else {
+      set({ osmArea: area });
+    }
+    const { candidates } = await pickWithFreshArea(x, z);
+    set({ osm: candidates.length > 0 ? { candidates, picked: 0 } : null });
     if (candidates.length === 0) showError('Nothing from OpenStreetMap lies under that point.');
   } catch (error) {
-    set({ osmLooking: false });
+    set({ osmFetching: false });
+    showError(error);
+  }
+}
+
+// A pick answers out of the kept reading; if the world moved under us since it was read (the anchor
+// or the size changed), the server refuses and the reading is taken again before the click is asked.
+async function pickWithFreshArea(x: number, z: number) {
+  try {
+    return await api.osmPick(x, z);
+  } catch (error) {
+    if (!(error instanceof ApiError) || error.status !== 409) throw error;
+    set({ osmFetching: true });
+    const area = (await api.fetchOsmArea()).area;
+    set({ osmArea: area, osmFetching: false });
+    return api.osmPick(x, z);
+  }
+}
+
+// The picture under the ground: fetched for this world's extent and kept on this machine, then named
+// by the world. The world is written afterwards: what is on disk is a cache, what the world holds is
+// where it belongs.
+export async function bakeGroundMap(): Promise<string | null> {
+  const { world, activeWorld } = useEditor.getState();
+  if (!world) return null;
+  set({ mapBaking: true });
+  try {
+    const name = world.terrain.map ?? `${mapSlug(activeWorld)}-ground`;
+    const meta = await api.bakeMap(name);
+    updateTerrain({
+      ...world.terrain,
+      map: name,
+      mapBounds: { south: meta.south, west: meta.west, north: meta.north, east: meta.east },
+      mapAttribution: meta.attribution,
+      showMap: true,
+    });
+    return name;
+  } catch (error) {
+    showError(error);
+    return null;
+  } finally {
+    set({ mapBaking: false });
+  }
+}
+
+// The real world as one mode: the picture under the ground and the objects a click can build, both
+// kept on this machine. Switching it on reads whatever is missing; switching it off leaves plain
+// ground, and keeps what was read for the next time.
+export async function enableRealWorld() {
+  const { world } = useEditor.getState();
+  if (!world) return;
+  if (!world.terrain.map) {
+    if ((await bakeGroundMap()) === null) return;
+  } else if (world.terrain.showMap === false) {
+    updateTerrain({ ...world.terrain, showMap: true });
+  }
+  // What this machine already keeps for the world is enough: only a world it has never seen is read.
+  if (!useEditor.getState().osmArea) {
+    try {
+      const kept = (await api.osmArea()).area;
+      set({ osmArea: kept });
+      if (!kept) await fetchOsmArea();
+    } catch (error) {
+      showError(error);
+    }
+  }
+}
+
+export function disableRealWorld() {
+  const { world } = useEditor.getState();
+  if (world) updateTerrain({ ...world.terrain, showMap: false });
+}
+
+// A world's name as a file name, for the caches kept beside it: the ground map's picture and the
+// objects of the real world are named after the world they belong to.
+export function mapSlug(world: string | null): string {
+  return (
+    (world ?? 'world')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+      .slice(0, 24) || 'world'
+  );
+}
+
+// Reads the world's extent from the provider again, for a world whose surroundings have changed on
+// the real map since it was fetched.
+export async function fetchOsmArea() {
+  set({ osmFetching: true });
+  try {
+    const { area } = await api.fetchOsmArea();
+    set({ osmArea: area, osmFetching: false });
+  } catch (error) {
+    set({ osmFetching: false });
     showError(error);
   }
 }
@@ -881,7 +989,7 @@ export function pickOsmCandidate(index: number) {
 }
 
 export function cancelOsmPick() {
-  set({ tool: { kind: 'select' }, toolGroup: 'select', osm: null, osmLooking: false });
+  set({ tool: { kind: 'select' }, toolGroup: 'select', osm: null });
 }
 
 // The picked object becomes one of this world: a prism of its footprint, a road along its line, a tree

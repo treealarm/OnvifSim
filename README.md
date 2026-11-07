@@ -192,15 +192,25 @@ anchor, its true north and any terrain size come out right.
 
 ### Building from the real world
 
-The editor's **Map → Pick from OSM** tool asks OpenStreetMap (through Overpass, `ONVIFSIM_OSM_URL`,
-default `https://overpass-api.de/api/interpreter`) what lies under a click and offers what of it this
-simulator can build: a building or a parking lot as a prism of its footprint, a road as a road, a tree
-as a tree. A click on an object asks about the object's own place, a click on the ground about the
-point under it. The clicked object is outlined before it is built, and the OSM element it came from is
-kept on the object (`sourceOsm`). Buildings drawn with a courtyard are refused with a message: a prism
-has no holes yet. A public Overpass answers in anything from a second to most of a minute, so the
-panel says the question is out until the answer comes, and a query that has not answered in 60 s is
-refused with a message naming `ONVIFSIM_OSM_URL`. Data © OpenStreetMap contributors.
+The editor's **Map → Pick from OSM** tool reads the real world around a world **once per world**:
+one Overpass query (`ONVIFSIM_OSM_URL`, default `https://overpass-api.de/api/interpreter`) for the
+world's own extent, kept on this machine beside the ground map (`osm/<world>.json`, a cache like the
+map's — never part of a world file). After that every click answers at once out of that reading. A
+public Overpass answers in anything from a second to most of a minute, so the panel says the reading
+is under way; a query that has not answered in 60 s is refused with a message naming
+`ONVIFSIM_OSM_URL`, and a world whose anchor or size has moved since is read again.
+
+The Map palette's **OpenStreetMap** switch is the mode: on, the picture under the ground is drawn and
+whatever of the two caches is missing is read; off, the ground is plain — in the editor and in every
+camera's picture — and what was read stays on the machine. `terrain.showMap` is that switch in the
+world file.
+
+A click offers what of the real world this simulator can build: a building or a parking lot as a
+prism of its footprint, a road as a road, a tree as a tree. A click on an object asks about the
+object's own place, a click on the ground about the point under it, and the footprint that holds the
+point comes before anything that merely passes near it. The picked object is outlined before it is
+built, and the OSM element it came from is kept on the object (`sourceOsm`). Buildings drawn with a
+courtyard are refused with a message: a prism has no holes yet. Data © OpenStreetMap contributors.
 
 - **Switch** by choosing a world in the header's list. Edits in the outgoing world are saved first,
   and the new world starts with an empty undo history.

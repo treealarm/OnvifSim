@@ -45,6 +45,18 @@ export interface OsmCandidate {
   hasHoles: boolean;
 }
 
+// Everything of the real world inside one world's own extent, read from OpenStreetMap once and kept
+// on this machine. The rectangle is what it was read from: a moved anchor or a resized terrain makes
+// it stale.
+export interface OsmArea {
+  south: number;
+  west: number;
+  north: number;
+  east: number;
+  fetchedAt: string;
+  count: number;
+}
+
 // The server's editor API (Editor/EditorApi.cs and WorldLibraryApi.cs). Every call throws ApiError with
 // the server's reason when the change is refused; code is set where the client branches on it.
 export class ApiError extends Error {
@@ -114,9 +126,13 @@ export const api = {
   mapUrl: (name: string) => `/api/maps/${encodeURIComponent(name)}`,
   bakeMap: (name: string) => send('POST', '/api/terrain/map/bake', { name }).then((r) => r.json() as Promise<MapMeta>),
 
-  // What of the real world lies under a point of this one, nearest first.
+  // What of the real world lies under a point of this one, nearest first, out of what the world keeps.
   osmPick: (x: number, z: number) =>
     send('POST', '/api/osm/pick', { x, z }).then((r) => r.json() as Promise<{ candidates: OsmCandidate[] }>),
+
+  // The real world around this world: what is already kept, and a reading of the whole extent.
+  osmArea: () => send('GET', '/api/osm/area').then((r) => r.json() as Promise<{ area: OsmArea | null }>),
+  fetchOsmArea: () => send('POST', '/api/osm/area').then((r) => r.json() as Promise<{ area: OsmArea | null }>),
 
   // Velocities are fractions of the top speed, -1..1; a move lasts a second unless renewed.
   ptzMove: (id: string, velocity: Partial<PtzPosition>) => send('POST', `/api/cameras/${encodeURIComponent(id)}/ptz/move`, velocity),

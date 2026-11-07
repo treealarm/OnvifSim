@@ -93,15 +93,19 @@ public static class EditorApi
     // A bake may name the map itself, so a world without one yet can be given its first picture.
     public sealed record BakeRequest(string? Name);
 
-    // What of the real world lies under a point of this one: the objects the editor offers to build.
+    // The real world around a world: read once for its whole extent, then read from this machine.
     private static void MapOsm(WebApplication app)
     {
-        app.MapPost("/api/osm/pick", async (OsmPick request, OsmService osm, WorldStore store, CancellationToken cancellationToken) =>
+        // What is kept for this world already, if it still matches the world's extent.
+        app.MapGet("/api/osm/area", (OsmService osm, WorldStore store) =>
+            Results.Json(new { area = Summary(osm.Cached(store.Current, store.ActiveName)) }));
+
+        // One request for the whole extent; after it a click costs nothing.
+        app.MapPost("/api/osm/area", async (OsmService osm, WorldStore store, CancellationToken cancellationToken) =>
         {
             try
             {
-                var candidates = await osm.PickAsync(store.Current, request.X, request.Z, cancellationToken);
-                return Results.Json(new { candidates });
+                return Results.Json(new { area = Summary(await osm.DownloadAsync(store.Current, store.ActiveName, cancellationToken)) });
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
@@ -116,7 +120,21 @@ public static class EditorApi
                 return Results.Json(new { error = ex.Message }, statusCode: StatusCodes.Status502BadGateway);
             }
         });
+
+        // What of the real world lies under a point of this one, out of what was kept.
+        app.MapPost("/api/osm/pick", (OsmPick request, OsmService osm, WorldStore store) =>
+        {
+            var area = osm.Cached(store.Current, store.ActiveName);
+            if (area is null)
+                return Results.Json(new { error = "This world has no objects of the real world yet." },
+                    statusCode: StatusCodes.Status409Conflict);
+            return Results.Json(new { candidates = OsmService.Pick(area, request.X, request.Z) });
+        });
     }
+
+    private static object? Summary(OsmService.Area? area) => area is null
+        ? null
+        : new { area.South, area.West, area.North, area.East, area.FetchedAt, Count = area.Objects.Count };
 
     // A click on the ground, in the world's own metres.
     public sealed record OsmPick(float X, float Z);

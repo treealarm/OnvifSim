@@ -1,6 +1,8 @@
 import { LinksDialog } from './LinksDialog';
 import {
   cancelDrawing,
+  disableRealWorld,
+  enableRealWorld,
   finishDrawing,
   redo,
   setTool,
@@ -61,6 +63,29 @@ function sameTool(a: Tool, b: Tool): boolean {
 }
 
 // Pressing the active tool again goes back to selecting.
+// The real world as one mode: the OpenStreetMap picture under the ground and the objects a click can
+// build, both read once and kept on this machine. Off is plain ground, and what was read stays.
+function RealWorldSwitch() {
+  const terrain = useEditor((s) => s.world?.terrain);
+  const osmFetching = useEditor((s) => s.osmFetching);
+  const mapBaking = useEditor((s) => s.mapBaking);
+  if (!terrain) return null;
+  const on = Boolean(terrain.map) && terrain.showMap !== false;
+  const busy = osmFetching || mapBaking;
+  return (
+    <label className="check" title="The real map under the ground and the objects a click can build; both are kept on this machine.">
+      <input
+        type="checkbox"
+        checked={on}
+        disabled={busy}
+        onChange={(event) => void (event.target.checked ? enableRealWorld() : disableRealWorld())}
+      />
+      OpenStreetMap
+      {busy && <span className="hint">reading…</span>}
+    </label>
+  );
+}
+
 function ToolButton({ current, value, label }: { current: Tool; value: Tool; label: string }) {
   const active = sameTool(current, value);
   return (
@@ -145,6 +170,9 @@ export function Toolbar() {
         {palette === 'map' && (
           <div className="group" role="group" aria-label="Real objects">
             <ToolButton current={tool} value={{ kind: 'osm' }} label="Pick from OSM" />
+            {/* The ground map belongs to this palette as much as the pick does: it is the real world
+                under the world. Its own switch lives here, not only at the bottom of the panel. */}
+            <RealWorldSwitch />
             {tool.kind === 'osm' && (
               <span className="hint">Click an object or the ground where the real one is; what lies under the click is offered in the panel.</span>
             )}
