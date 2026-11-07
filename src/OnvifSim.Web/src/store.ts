@@ -84,8 +84,11 @@ interface EditorState {
   osmArea: OsmArea | null;
   // Whether that one reading is on its way — the provider takes seconds, sometimes a minute.
   osmFetching: boolean;
-  // Whether the picture under the ground is being read from the tile provider.
+  // Whether the picture under the ground is being read from the tile provider, and whether the last
+  // reading failed — a picture that no longer fits is still shown while one is on its way, and hidden
+  // only when none is coming.
   mapBaking: boolean;
+  mapFailed: boolean;
   // The point of the selected road or route being dragged over the ground.
   draggedPoint: number | null;
   error: string | null;
@@ -115,6 +118,7 @@ export const useEditor = create<EditorState>()(() => ({
   osmArea: null,
   osmFetching: false,
   mapBaking: false,
+  mapFailed: false,
   draggedPoint: null,
   error: null,
   undoSteps: 0,
@@ -935,8 +939,10 @@ export async function bakeGroundMap(): Promise<string | null> {
       mapAttribution: meta.attribution,
       showMap: true,
     });
+    set({ mapFailed: false });
     return name;
   } catch (error) {
+    set({ mapFailed: true });
     showError(error);
     return null;
   } finally {

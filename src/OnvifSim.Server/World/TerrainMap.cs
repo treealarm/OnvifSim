@@ -34,6 +34,9 @@ public sealed class TerrainMaps
     private sealed record Loaded(string Name, Texture Texture, Meta Meta);
 
     private readonly string _directory;
+    // Tiles are the provider's picture of fixed squares of the Earth and do not change between
+    // bakes: kept beside the maps, a second bake of an overlapping extent costs no requests.
+    private readonly string _tileDirectory;
     private readonly string? _tileUrl;
     private readonly HttpClient? _http;
     private readonly ILogger? _log;
@@ -57,6 +60,7 @@ public sealed class TerrainMaps
     public TerrainMaps(string dataDirectory, string? tileUrlTemplate, HttpClient? http = null, ILogger? log = null)
     {
         _directory = Path.Combine(dataDirectory, "maps");
+        _tileDirectory = Path.Combine(dataDirectory, "tiles");
         _tileUrl = string.IsNullOrWhiteSpace(tileUrlTemplate) ? null : tileUrlTemplate;
         _http = http;
         _log = log;
@@ -115,7 +119,9 @@ public sealed class TerrainMaps
         var rgba = new byte[PictureSide * PictureSide * 4];
         var geo = world.Geo;
         float half = world.Terrain.Size / 2;
-        for (int py = 0; py < PictureSide; py++)
+        // A row of the picture is a row of independent samples, and four million of them one after
+        // another is seconds of a click's waiting: the rows are done in parallel.
+        Parallel.For(0, PictureSide, py =>
         {
             float z = -half + (py + 0.5f) / PictureSide * world.Terrain.Size;
             for (int px = 0; px < PictureSide; px++)
@@ -130,7 +136,7 @@ public sealed class TerrainMaps
                 rgba[o + 2] = b;
                 rgba[o + 3] = 255;
             }
-        }
+        });
 
         Directory.CreateDirectory(_directory);
         await using (var stream = File.Create(PicturePath(name)))
@@ -353,6 +359,14 @@ public sealed class TerrainMaps
 
     private async Task<byte[]> FetchTileAsync((int X, int Y) tile, int zoom, CancellationToken cancellationToken)
     {
+        var cached = Path.Combine(_tileDirectory, zoom.ToString(CultureInfo.InvariantCulture),
+            tile.X.ToString(CultureInfo.InvariantCulture), tile.Y.ToString(CultureInfo.InvariantCulture) + ".png");
+        if (File.Exists(cached))
+        {
+            try { return await File.ReadAllBytesAsync(cached, cancellationToken); }
+            catch (IOException) { /* unreadable: ask the provider */ }
+        }
+
         var url = _tileUrl!
             .Replace("{s}", "a", StringComparison.Ordinal)
             .Replace("{z}", zoom.ToString(CultureInfo.InvariantCulture), StringComparison.Ordinal)
@@ -365,7 +379,17 @@ public sealed class TerrainMaps
         // A throttling or captive-portal page is not a tile.
         if (type is not null && !type.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
             throw new HttpRequestException($"{url}: answered {type}");
-        return await response.Content.ReadAsByteArrayAsync(cancellationToken);
+        var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(cached)!);
+            // Written whole: a half-written tile read back later would be a hole in the map.
+            var writing = cached + ".tmp";
+            await File.WriteAllBytesAsync(writing, bytes, cancellationToken);
+            File.Move(writing, cached, overwrite: true);
+        }
+        catch (IOException) { /* the cache is a convenience, not the point */ }
+        return bytes;
     }
 
     private static void SampleMosaic(Dictionary<(int X, int Y), byte[]> tiles, double gx, double gy,

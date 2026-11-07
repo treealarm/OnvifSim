@@ -26,6 +26,7 @@ export function WorldInspector({ world }: { world: World }) {
   const osm = useEditor((s) => s.osm);
   const osmFetching = useEditor((s) => s.osmFetching);
   const baking = useEditor((s) => s.mapBaking);
+  const mapFailed = useEditor((s) => s.mapFailed);
   const mapName = terrain.map ?? null;
   // A picture fetched for another anchor, another size or another north is not this world's any
   // more: it is hidden, as the server hides it, until someone bakes it again.
@@ -97,7 +98,9 @@ export function WorldInspector({ world }: { world: World }) {
               <p className="muted">
                 {baking
                   ? 'Reading the picture for the new extent…'
-                  : 'The picture was fetched for a different extent and is hidden: bake it again to bring it back.'}
+                  : mapFailed
+                    ? 'The picture could not be read for the new extent: bake it again.'
+                    : 'The picture belongs to the extent the world had before; it is read again for the new one.'}
               </p>
             )}
             <div className="field">

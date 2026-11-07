@@ -28,9 +28,14 @@ export function TerrainView({ terrain }: { terrain: Terrain }) {
   // turned the world's north, and it no longer lies where it says it does. Drawn only while it does,
   // as the server draws it only while it does.
   const geo = useEditor((s) => s.world?.geo);
+  const mapFailed = useEditor((s) => s.mapFailed);
   const live = geo ? terrainBounds(geo, terrain.size) : null;
   const fits = Boolean(terrain.mapBounds && live && sameBounds(live, terrain.mapBounds));
-  const mapName = terrain.map && terrain.showMap !== false && fits ? terrain.map : null;
+  // A picture that no longer fits is still the old world's, and the new one is seconds away: showing
+  // it until then reads better than a flash of bare grass. It goes only when nothing is coming — a
+  // bake that failed, or no picture at all.
+  const usable = fits || !mapFailed;
+  const mapName = terrain.map && terrain.showMap !== false && usable ? terrain.map : null;
   const [map, setMap] = useState<Texture | null>(null);
   // A baked picture is written in place under the same name, so the request carries the extent it
   // was read for: a world that moved asks for the new picture, not the one the browser already has.
