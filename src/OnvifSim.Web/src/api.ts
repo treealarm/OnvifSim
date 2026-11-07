@@ -5,6 +5,7 @@ import {
   type CameraModel,
   type Environment,
   type Geo,
+  type GroundPoint,
   type Lamp,
   type PtzPosition,
   type PtzSettings,
@@ -19,6 +20,30 @@ import {
 // What PUT takes: anything left out gets the server's default.
 export type ObjectDraft = Partial<WorldObject> & Pick<WorldObject, 'id'>;
 export type CameraDraft = Omit<Partial<CameraModel>, 'ptz'> & Pick<CameraModel, 'id'> & { ptz?: Partial<PtzSettings> | null };
+
+// What the ground map cache says it covers, and the credit it needs.
+export interface MapMeta {
+  south: number;
+  west: number;
+  north: number;
+  east: number;
+  zoom: number;
+  attribution: string;
+  fetchedAt: string;
+}
+
+// One real object under a click, as the server reads it out of OpenStreetMap: a footprint, a line or
+// a point, ready to become something in this world.
+export interface OsmCandidate {
+  osmType: string;
+  osmId: number;
+  kind: string;
+  name: string;
+  points: GroundPoint[];
+  height: number;
+  width: number;
+  hasHoles: boolean;
+}
 
 // The server's editor API (Editor/EditorApi.cs and WorldLibraryApi.cs). Every call throws ApiError with
 // the server's reason when the change is refused; code is set where the client branches on it.
@@ -83,6 +108,15 @@ export const api = {
   putTerrain: (terrain: Terrain) => send('PUT', '/api/terrain', encodeTerrain(terrain)),
   putEnvironment: (environment: Environment) => send('PUT', '/api/environment', environment),
   putGeo: (geo: Geo) => send('PUT', '/api/geo', geo),
+
+  // The picture of the ground under the world: a local cache on the server, fetched once per world,
+  // and what it covers. Baking asks the tile provider for it again.
+  mapUrl: (name: string) => `/api/maps/${encodeURIComponent(name)}`,
+  bakeMap: (name: string) => send('POST', '/api/terrain/map/bake', { name }).then((r) => r.json() as Promise<MapMeta>),
+
+  // What of the real world lies under a point of this one, nearest first.
+  osmPick: (x: number, z: number) =>
+    send('POST', '/api/osm/pick', { x, z }).then((r) => r.json() as Promise<{ candidates: OsmCandidate[] }>),
 
   // Velocities are fractions of the top speed, -1..1; a move lasts a second unless renewed.
   ptzMove: (id: string, velocity: Partial<PtzPosition>) => send('POST', `/api/cameras/${encodeURIComponent(id)}/ptz/move`, velocity),

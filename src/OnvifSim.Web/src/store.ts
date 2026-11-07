@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { api, ApiError } from './api';
+import { api, ApiError, type OsmCandidate } from './api';
 import {
   cameraIoOf,
   decodeWorld,
@@ -31,7 +31,7 @@ export type Placeable = ObjectType | 'camera.fixed' | 'camera.ptz' | 'lamp';
 export type BrushKind = 'raise' | 'lower' | 'smooth' | 'flatten';
 export type Drawable = 'road' | 'walker' | 'vehicle' | 'building';
 // Which tool palette the toolbar shows. Choosing a palette does not change the active tool.
-export type ToolGroup = 'select' | 'add' | 'draw' | 'terrain';
+export type ToolGroup = 'select' | 'add' | 'draw' | 'map' | 'terrain';
 // Drawing a road or a walker's route point by point; extending adds the points to the end of an
 // existing one instead of making a new one.
 export interface DrawTool {
@@ -40,7 +40,12 @@ export interface DrawTool {
   points: GroundPoint[];
   extending?: string;
 }
-export type Tool = { kind: 'select' } | { kind: 'place'; what: Placeable } | { kind: 'brush'; brush: BrushKind } | DrawTool;
+// What the real world offers under a click: the objects found there and the one being looked at.
+export interface OsmPick {
+  candidates: OsmCandidate[];
+  picked: number;
+}
+export type Tool = { kind: 'select' } | { kind: 'place'; what: Placeable } | { kind: 'brush'; brush: BrushKind } | { kind: 'osm' } | DrawTool;
 // A flight of the viewport to a point: at makes every press a new request, even for the same point.
 export interface FocusRequest {
   point: [number, number, number];
@@ -72,6 +77,8 @@ interface EditorState {
   brushStrength: number;
   // Where the viewport is asked to fly to, and how far back to stand from it.
   focus: FocusRequest | null;
+  // What the last click asked OpenStreetMap, while the pick tool is active.
+  osm: OsmPick | null;
   // The point of the selected road or route being dragged over the ground.
   draggedPoint: number | null;
   error: string | null;
@@ -97,6 +104,7 @@ export const useEditor = create<EditorState>()(() => ({
   brushRadius: 12,
   brushStrength: 0.5,
   focus: null,
+  osm: null,
   draggedPoint: null,
   error: null,
   undoSteps: 0,
@@ -119,6 +127,8 @@ export function toolGroupOf(tool: Tool): ToolGroup {
       return 'add';
     case 'draw':
       return 'draw';
+    case 'osm':
+      return 'map';
     case 'brush':
       return 'terrain';
   }
@@ -839,6 +849,99 @@ export function movePoint(selection: Selection, index: number, point: GroundPoin
     const vehicle = world.vehicles.find((v) => v.id === selection.id);
     if (vehicle) updateVehicle({ ...vehicle, route: replace(vehicle.route) });
   }
+}
+
+// ---- The real world under a click ----
+
+export function startOsmPick() {
+  set({ tool: { kind: 'osm' }, toolGroup: 'map', osm: null });
+}
+
+// Asks the server what of the real world lies under a point of this one, and offers it.
+export async function pickFromOsm(x: number, z: number) {
+  try {
+    const { candidates } = await api.osmPick(x, z);
+    set({ osm: candidates.length > 0 ? { candidates, picked: 0 } : null });
+    if (candidates.length === 0) showError('Nothing from OpenStreetMap lies under that point.');
+  } catch (error) {
+    showError(error);
+  }
+}
+
+export function pickOsmCandidate(index: number) {
+  const osm = useEditor.getState().osm;
+  if (osm) set({ osm: { ...osm, picked: index } });
+}
+
+export function cancelOsmPick() {
+  set({ tool: { kind: 'select' }, toolGroup: 'select', osm: null });
+}
+
+// The picked object becomes one of this world: a prism of its footprint, a road along its line, a tree
+// where it stands. Its source OSM element is kept with it, so importing the same object again is a
+// second copy nobody wants rather than a silent one.
+export async function buildOsmCandidate() {
+  const { world, osm } = useEditor.getState();
+  const candidate = osm?.candidates[osm.picked];
+  if (!world || !candidate) return;
+  if (candidate.hasHoles) {
+    showError('This one is drawn with a courtyard, which a footprint of this world cannot hold; import its parts separately.');
+    return;
+  }
+  const source = `${candidate.osmType}/${candidate.osmId}`;
+  try {
+    if (candidate.kind === 'highway') {
+      const id = nextId('r', world.roads.map((r) => r.id));
+      await api.putRoad({ id, points: candidate.points, width: Math.round((candidate.width || 7) * 100) / 100 });
+      remember({ kind: 'road', id, value: null }, false);
+      select({ kind: 'road', id });
+    } else if (candidate.kind === 'tree') {
+      const id = uniqueId(slug(candidate.name) || `osm-${candidate.osmId}`, world.objects.map((o) => o.id));
+      await api.putObject({
+        id,
+        type: 'tree.oak',
+        position: { x: candidate.points[0].x, y: 0, z: candidate.points[0].z },
+        scale: defaultScale['tree.oak'],
+        seed: randomSeed(),
+        sourceOsm: source,
+      });
+      remember({ kind: 'object', id, value: null }, false);
+      select({ kind: 'object', id });
+    } else {
+      const ring = normalizeOutline(candidate.points);
+      if (ring.length < 3) {
+        showError('That outline has no inside to build.');
+        return;
+      }
+      const cx = ring.reduce((sum, p) => sum + p.x, 0) / ring.length;
+      const cz = ring.reduce((sum, p) => sum + p.z, 0) / ring.length;
+      const id = uniqueId(slug(candidate.name) || `osm-${candidate.osmId}`, world.objects.map((o) => o.id));
+      await api.putObject({
+        id,
+        type: 'prism',
+        position: { x: cx, y: 0, z: cz },
+        scale: { x: 1, y: candidate.height, z: 1 },
+        points: ring.map((p) => ({ x: p.x - cx, z: p.z - cz })),
+        seed: randomSeed(),
+        sourceOsm: source,
+      });
+      remember({ kind: 'object', id, value: null }, false);
+      select({ kind: 'object', id });
+    }
+    set({ osm: null });
+  } catch (error) {
+    showError(error);
+  }
+}
+
+// A name fit for an id: what the object is called where it came from, or its OSM number.
+function slug(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 32);
+}
+
+function uniqueId(base: string, taken: string[]): string {
+  if (!taken.includes(base)) return base;
+  for (let n = 2; ; n++) if (!taken.includes(`${base}-${n}`)) return `${base}-${n}`;
 }
 
 function randomSeed(): number {

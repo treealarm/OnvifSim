@@ -1,8 +1,8 @@
 import { useThree, type ThreeEvent } from '@react-three/fiber';
-import { useEffect, useMemo, useRef } from 'react';
-import { BufferAttribute, BufferGeometry, Color, type Mesh } from 'three';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { BufferAttribute, BufferGeometry, Color, SRGBColorSpace, TextureLoader, type Mesh, type Texture } from 'three';
 import { heightAt, type Terrain } from '../model';
-import { addDrawingPoint, finishDrawing, movePoint, place, select, updateTerrain, useEditor } from '../store';
+import { addDrawingPoint, finishDrawing, movePoint, pickFromOsm, place, select, updateTerrain, useEditor } from '../store';
 import { applyBrush, type BrushDab } from './brush';
 
 interface Stroke {
@@ -21,6 +21,34 @@ export function TerrainView({ terrain }: { terrain: Terrain }) {
   const ring = useRef<Mesh>(null);
   const tool = useEditor((s) => s.tool);
   const radius = useEditor((s) => s.brushRadius);
+
+  // The ground map, when the world names one and it is switched on: the picture the server cached for
+  // this world, drawn as it is (light on a map only makes it harder to read).
+  const mapName = terrain.map && terrain.showMap !== false ? terrain.map : null;
+  const [map, setMap] = useState<Texture | null>(null);
+  useEffect(() => {
+    if (!mapName) {
+      setMap(null);
+      return;
+    }
+    let live = true;
+    new TextureLoader().load(
+      `/api/maps/${encodeURIComponent(mapName)}`,
+      (texture) => {
+        if (!live) return;
+        texture.colorSpace = SRGBColorSpace;
+        texture.anisotropy = 4;
+        setMap(texture);
+      },
+      undefined,
+      () => {
+        if (live) setMap(null);
+      },
+    );
+    return () => {
+      live = false;
+    };
+  }, [mapName]);
 
   function dab(x: number, z: number) {
     const current = stroke.current;
@@ -61,6 +89,7 @@ export function TerrainView({ terrain }: { terrain: Terrain }) {
     if (e.delta > 4) return;
     if (tool.kind === 'place') void place(tool.what, e.point.x, e.point.z);
     else if (tool.kind === 'draw') addDrawingPoint({ x: round(e.point.x), z: round(e.point.z) });
+    else if (tool.kind === 'osm') void pickFromOsm(e.point.x, e.point.z);
     else if (tool.kind === 'select') select(null);
   }
 
@@ -82,7 +111,7 @@ export function TerrainView({ terrain }: { terrain: Terrain }) {
         onClick={onClick}
         onDoubleClick={onDoubleClick}
       >
-        <meshLambertMaterial vertexColors />
+        {map ? <meshBasicMaterial map={map} /> : <meshLambertMaterial vertexColors />}
       </mesh>
       {tool.kind === 'brush' && (
         <mesh ref={ring} rotation-x={-Math.PI / 2} raycast={() => null}>
@@ -133,6 +162,16 @@ function terrainGeometry(terrain: Terrain): BufferGeometry {
   const geometry = new BufferGeometry();
   geometry.setAttribute('position', new BufferAttribute(positions, 3));
   geometry.setAttribute('color', new BufferAttribute(new Float32Array(row * row * 3), 3));
+  // The picture is placed across the world's whole extent, as SceneBuilder.TerrainChunk places it:
+  // east to west across, north to south down.
+  const uvs = new Float32Array(row * row * 2);
+  for (let iz = 0; iz <= resolution; iz++)
+    for (let ix = 0; ix <= resolution; ix++) {
+      const i = (iz * row + ix) * 2;
+      uvs[i] = (ix * cell) / size;
+      uvs[i + 1] = (iz * cell) / size;
+    }
+  geometry.setAttribute('uv', new BufferAttribute(uvs, 2));
   geometry.setIndex(new BufferAttribute(indices, 1));
   setHeights(geometry, terrain.heights, terrain.color);
   return geometry;

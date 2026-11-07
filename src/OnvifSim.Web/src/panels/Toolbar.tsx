@@ -20,6 +20,7 @@ const groups: { group: ToolGroup; label: string }[] = [
   { group: 'select', label: 'Select' },
   { group: 'add', label: 'Add' },
   { group: 'draw', label: 'Draw' },
+  { group: 'map', label: 'Map' },
   { group: 'terrain', label: 'Terrain' },
 ];
 
@@ -139,6 +140,14 @@ export function Toolbar() {
             {placeables.map((p) => (
               <ToolButton current={tool} key={p.what} value={{ kind: 'place', what: p.what }} label={p.label} />
             ))}
+          </div>
+        )}
+        {palette === 'map' && (
+          <div className="group" role="group" aria-label="Real objects">
+            <ToolButton current={tool} value={{ kind: 'osm' }} label="Pick from OSM" />
+            {tool.kind === 'osm' && (
+              <span className="hint">Click the ground where the real object is; what lies under the click is offered in the panel.</span>
+            )}
           </div>
         )}
         {palette === 'draw' && (

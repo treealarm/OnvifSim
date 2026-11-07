@@ -16,6 +16,22 @@ export interface Terrain {
   color: string;
   // The surface pattern: absent or "grass" for the patches and the rock, "none" for one flat colour.
   texture?: string | null;
+  // A raster map drawn under the world, named as the cache on the server names it. The picture itself
+  // is not part of the world: it is fetched once and kept in the server's data directory.
+  map?: string | null;
+  // Where that map's edges lie, so a moved anchor or another terrain size shows up as a map that no
+  // longer fits instead of one drawn in the wrong place.
+  mapBounds?: MapBounds | null;
+  mapAttribution?: string | null;
+  // Absent means shown: a map that is named and fits is meant to be seen.
+  showMap?: boolean | null;
+}
+
+export interface MapBounds {
+  south: number;
+  west: number;
+  north: number;
+  east: number;
 }
 
 // Where the world sits on the Earth. North is the true bearing of the world's -Z direction, degrees
@@ -394,7 +410,19 @@ export function encodeTerrain(terrain: Terrain) {
   const bytes = new Uint8Array(terrain.heights.buffer, terrain.heights.byteOffset, terrain.heights.byteLength);
   let binary = '';
   for (const b of bytes) binary += String.fromCharCode(b);
-  return { size: terrain.size, resolution: terrain.resolution, heights: btoa(binary), color: terrain.color };
+  // Every field goes back, not only the ones a brush touches: the whole terrain is written on each
+  // stroke, so anything left out here would be wiped by painting the ground.
+  return {
+    size: terrain.size,
+    resolution: terrain.resolution,
+    heights: btoa(binary),
+    color: terrain.color,
+    texture: terrain.texture ?? null,
+    map: terrain.map ?? null,
+    mapBounds: terrain.mapBounds ?? null,
+    mapAttribution: terrain.mapAttribution ?? null,
+    showMap: terrain.showMap ?? null,
+  };
 }
 
 // Height of the ground under (x, z), bilinear over the cell, clamped to the edge: as Terrain.cs does.

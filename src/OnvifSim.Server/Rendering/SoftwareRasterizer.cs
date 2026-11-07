@@ -4,18 +4,29 @@ using System.Runtime.CompilerServices;
 namespace OnvifSim.Rendering;
 
 // CPU renderer for the low-poly world: sky gradient, z-buffer, Gouraud colours (lighting is baked into
-// the scene), per-vertex distance fog, perspective-correct interpolation, and lines drawn after all
-// triangles where nothing stands in front of them. No native dependencies, and the output is
-// bit-for-bit deterministic for a given scene and pose.
+// the scene), per-vertex distance fog, perspective-correct interpolation, a picture where a chunk
+// carries one, and lines drawn after all triangles where nothing stands in front of them. No native
+// dependencies, and the output is bit-for-bit deterministic for a given scene and pose.
 public sealed class SoftwareRasterizer : ICameraRenderer
 {
+    // One vertex after the view-projection: where it lands, the colour fog has been mixed into, its
+    // place in the chunk's picture, and how far fog has taken it (for a textured chunk, which cannot
+    // bake fog into a colour nobody reads).
+    private struct Vertex
+    {
+        public Vector4 Clip;
+        public Vector3 Color;
+        public Vector2 Uv;
+        public float Fog;
+    }
+
     private float[] _depth = [];
-    private Vector4[] _clip = [];
-    private Vector3[] _color = [];
+    private Vertex[] _vertices = [];
+    // The colour fog takes a pixel to: the sky at the horizon.
+    private Vector3 _fogColor;
 
     // Clipped polygon scratch (a triangle cut by the near plane has at most 4 corners).
-    private readonly Vector4[] _polyPos = new Vector4[4];
-    private readonly Vector3[] _polyCol = new Vector3[4];
+    private readonly Vertex[] _polygon = new Vertex[4];
 
     public void Render(RenderScene scene, IReadOnlyList<RenderScene.Chunk> moving, in CameraPose pose, Frame frame)
     {
@@ -23,11 +34,7 @@ public sealed class SoftwareRasterizer : ICameraRenderer
         if (_depth.Length != w * h) _depth = new float[w * h];
         Array.Fill(_depth, 1f);
         int maxVertices = Math.Max(scene.MaxChunkVertices, moving.Count == 0 ? 0 : moving.Max(c => c.Positions.Length));
-        if (_clip.Length < maxVertices)
-        {
-            _clip = new Vector4[maxVertices];
-            _color = new Vector3[maxVertices];
-        }
+        if (_vertices.Length < maxVertices) _vertices = new Vertex[maxVertices];
 
         var (fwd, right, up) = pose.Basis();
         float aspect = (float)w / h;
@@ -42,18 +49,25 @@ public sealed class SoftwareRasterizer : ICameraRenderer
         var frustum = new ViewFrustum(pose, aspect, far);
 
         var fog = scene.SkyHorizon;
+        _fogColor = fog;
         float fogStart = scene.FogStart, fogInv = 1 / (scene.FogEnd - scene.FogStart);
 
         void Transform(RenderScene.Chunk chunk)
         {
             var pos = chunk.Positions;
             var col = chunk.Colors;
+            var uv = chunk.Uvs;
             for (int i = 0; i < pos.Length; i++)
             {
                 var p = Vector4.Transform(new Vector4(pos[i], 1), viewProj);
-                _clip[i] = p;
                 float f = Math.Clamp((p.W - fogStart) * fogInv, 0, 1);
-                _color[i] = Vector3.Lerp(col[i], fog, f);
+                _vertices[i] = new Vertex
+                {
+                    Clip = p,
+                    Color = Vector3.Lerp(col[i], fog, f),
+                    Uv = uv is null ? default : uv[i],
+                    Fog = f,
+                };
             }
         }
 
@@ -64,7 +78,7 @@ public sealed class SoftwareRasterizer : ICameraRenderer
             Transform(chunk);
             var idx = chunk.Indices;
             for (int t = 0; t < idx.Length; t += 3)
-                DrawTriangle(frame, idx[t], idx[t + 1], idx[t + 2]);
+                DrawTriangle(frame, idx[t], idx[t + 1], idx[t + 2], chunk.Texture);
         }
         // Lines last, so a triangle drawn after one cannot cover it from behind.
         foreach (var chunk in chunks)
@@ -81,10 +95,10 @@ public sealed class SoftwareRasterizer : ICameraRenderer
     // what is drawn and hiding nothing itself.
     private void DrawLine(Frame frame, int i0, int i1, float alpha)
     {
-        var a = _clip[i0];
-        var b = _clip[i1];
-        var ca = _color[i0];
-        var cb = _color[i1];
+        var a = _vertices[i0].Clip;
+        var b = _vertices[i1].Clip;
+        var ca = _vertices[i0].Color;
+        var cb = _vertices[i1].Color;
         if (a.Z < 0 && b.Z < 0) return;
         if ((a.X > a.W && b.X > b.W) || (a.X < -a.W && b.X < -b.W) || (a.Y > a.W && b.Y > b.W) || (a.Y < -a.W && b.Y < -b.W))
             return;
@@ -172,11 +186,11 @@ public sealed class SoftwareRasterizer : ICameraRenderer
         }
     }
 
-    private void DrawTriangle(Frame frame, int i0, int i1, int i2)
+    private void DrawTriangle(Frame frame, int i0, int i1, int i2, Texture? texture)
     {
-        var a = _clip[i0];
-        var b = _clip[i1];
-        var c = _clip[i2];
+        var a = _vertices[i0].Clip;
+        var b = _vertices[i1].Clip;
+        var c = _vertices[i2].Clip;
         // Trivially outside one clip plane: skip.
         if ((a.X > a.W && b.X > b.W && c.X > c.W) || (a.X < -a.W && b.X < -b.W && c.X < -c.W) ||
             (a.Y > a.W && b.Y > b.W && c.Y > c.W) || (a.Y < -a.W && b.Y < -b.W && c.Y < -c.W) ||
@@ -185,42 +199,44 @@ public sealed class SoftwareRasterizer : ICameraRenderer
 
         if (a.Z >= 0 && b.Z >= 0 && c.Z >= 0)
         {
-            Rasterize(frame, a, _color[i0], b, _color[i1], c, _color[i2]);
+            Rasterize(frame, _vertices[i0], _vertices[i1], _vertices[i2], texture);
             return;
         }
 
-        // Crosses the near plane (clip z = 0): cut it and draw the remaining polygon as a fan.
+        // Crosses the near plane (clip z = 0): cut it and draw the remaining polygon as a fan. Every
+        // field is interpolated here, so a textured triangle keeps its place in the picture.
         int n = 0;
         Span<int> ids = [i0, i1, i2];
         for (int k = 0; k < 3; k++)
         {
-            var p = _clip[ids[k]];
-            var q = _clip[ids[(k + 1) % 3]];
-            if (p.Z >= 0)
+            var p = _vertices[ids[k]];
+            var q = _vertices[ids[(k + 1) % 3]];
+            if (p.Clip.Z >= 0) _polygon[n++] = p;
+            if ((p.Clip.Z >= 0) != (q.Clip.Z >= 0))
             {
-                _polyPos[n] = p;
-                _polyCol[n++] = _color[ids[k]];
-            }
-            if ((p.Z >= 0) != (q.Z >= 0))
-            {
-                float t = p.Z / (p.Z - q.Z);
-                _polyPos[n] = Vector4.Lerp(p, q, t);
-                _polyCol[n++] = Vector3.Lerp(_color[ids[k]], _color[ids[(k + 1) % 3]], t);
+                float t = p.Clip.Z / (p.Clip.Z - q.Clip.Z);
+                _polygon[n++] = new Vertex
+                {
+                    Clip = Vector4.Lerp(p.Clip, q.Clip, t),
+                    Color = Vector3.Lerp(p.Color, q.Color, t),
+                    Uv = Vector2.Lerp(p.Uv, q.Uv, t),
+                    Fog = p.Fog + (q.Fog - p.Fog) * t,
+                };
             }
         }
         for (int k = 1; k + 1 < n; k++)
-            Rasterize(frame, _polyPos[0], _polyCol[0], _polyPos[k], _polyCol[k], _polyPos[k + 1], _polyCol[k + 1]);
+            Rasterize(frame, _polygon[0], _polygon[k], _polygon[k + 1], texture);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private void Rasterize(Frame frame, Vector4 a, Vector3 ca, Vector4 b, Vector3 cb, Vector4 c, Vector3 cc)
+    private void Rasterize(Frame frame, in Vertex va, in Vertex vb, in Vertex vc, Texture? texture)
     {
         int w = frame.Width, h = frame.Height;
-        // To screen space (y down) with 1/w kept for perspective-correct colour.
-        float wa = 1 / a.W, wb = 1 / b.W, wc = 1 / c.W;
-        float ax = (a.X * wa + 1) * 0.5f * w, ay = (1 - a.Y * wa) * 0.5f * h, az = a.Z * wa;
-        float bx = (b.X * wb + 1) * 0.5f * w, by = (1 - b.Y * wb) * 0.5f * h, bz = b.Z * wb;
-        float cx = (c.X * wc + 1) * 0.5f * w, cy = (1 - c.Y * wc) * 0.5f * h, cz = c.Z * wc;
+        // To screen space (y down) with 1/w kept for perspective-correct interpolation.
+        float wa = 1 / va.Clip.W, wb = 1 / vb.Clip.W, wc = 1 / vc.Clip.W;
+        float ax = (va.Clip.X * wa + 1) * 0.5f * w, ay = (1 - va.Clip.Y * wa) * 0.5f * h, az = va.Clip.Z * wa;
+        float bx = (vb.Clip.X * wb + 1) * 0.5f * w, by = (1 - vb.Clip.Y * wb) * 0.5f * h, bz = vb.Clip.Z * wb;
+        float cx = (vc.Clip.X * wc + 1) * 0.5f * w, cy = (1 - vc.Clip.Y * wc) * 0.5f * h, cz = vc.Clip.Z * wc;
 
         // Front faces are counter-clockwise in NDC, which is clockwise (negative area) with y down.
         float area = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
@@ -236,9 +252,15 @@ public sealed class SoftwareRasterizer : ICameraRenderer
         if (minX > maxX || minY > maxY) return;
 
         // Colour over w, interpolated linearly in screen space, then divided by interpolated 1/w.
-        var pa = ca * wa;
-        var pb = cb * wb;
-        var pc = cc * wc;
+        var pa = va.Color * wa;
+        var pb = vb.Color * wb;
+        var pc = vc.Color * wc;
+        // A picture is sampled the same way: u/w and v/w, and the fog factor, which a textured chunk
+        // cannot bake into a colour.
+        var uwa = va.Uv * wa;
+        var uwb = vb.Uv * wb;
+        var uwc = vc.Uv * wc;
+        float fwa = va.Fog * wa, fwb = vb.Fog * wb, fwc = vc.Fog * wc;
 
         // Edge functions, normalised so each is the barycentric weight of the opposite vertex.
         // e0 belongs to a (edge b->c), e1 to b (edge c->a), e2 to c (edge a->b).
@@ -252,6 +274,41 @@ public sealed class SoftwareRasterizer : ICameraRenderer
 
         var depth = _depth;
         var px = frame.Rgba;
+        if (texture is null)
+        {
+            for (int y = minY; y <= maxY; y++)
+            {
+                float e0 = e0row, e1 = e1row, e2 = e2row;
+                int row = y * w;
+                for (int x = minX; x <= maxX; x++)
+                {
+                    if (e0 >= 0 && e1 >= 0 && e2 >= 0)
+                    {
+                        float z = e0 * az + e1 * bz + e2 * cz;
+                        int i = row + x;
+                        if (z < depth[i] && z >= 0)
+                        {
+                            depth[i] = z;
+                            float iw = 1 / (e0 * wa + e1 * wb + e2 * wc);
+                            var col = (pa * e0 + pb * e1 + pc * e2) * (iw * 255);
+                            int o = i * 4;
+                            px[o] = (byte)Math.Min(255f, col.X);
+                            px[o + 1] = (byte)Math.Min(255f, col.Y);
+                            px[o + 2] = (byte)Math.Min(255f, col.Z);
+                        }
+                    }
+                    e0 += e0dx;
+                    e1 += e1dx;
+                    e2 += e2dx;
+                }
+                e0row += e0dy;
+                e1row += e1dy;
+                e2row += e2dy;
+            }
+            return;
+        }
+
+        var fogColor = _fogColor;
         for (int y = minY; y <= maxY; y++)
         {
             float e0 = e0row, e1 = e1row, e2 = e2row;
@@ -266,11 +323,13 @@ public sealed class SoftwareRasterizer : ICameraRenderer
                     {
                         depth[i] = z;
                         float iw = 1 / (e0 * wa + e1 * wb + e2 * wc);
-                        var col = (pa * e0 + pb * e1 + pc * e2) * (iw * 255);
+                        var uv = (uwa * e0 + uwb * e1 + uwc * e2) * iw;
+                        texture.Sample(uv.X, uv.Y, out float r, out float g, out float b);
+                        float f = (fwa * e0 + fwb * e1 + fwc * e2) * iw;
                         int o = i * 4;
-                        px[o] = (byte)Math.Min(255f, col.X);
-                        px[o + 1] = (byte)Math.Min(255f, col.Y);
-                        px[o + 2] = (byte)Math.Min(255f, col.Z);
+                        px[o] = (byte)Math.Clamp((r + (fogColor.X - r) * f) * 255, 0, 255);
+                        px[o + 1] = (byte)Math.Clamp((g + (fogColor.Y - g) * f) * 255, 0, 255);
+                        px[o + 2] = (byte)Math.Clamp((b + (fogColor.Z - b) * f) * 255, 0, 255);
                     }
                 }
                 e0 += e0dx;

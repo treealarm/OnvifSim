@@ -2,23 +2,36 @@ using System.Numerics;
 
 namespace OnvifSim.Geometry;
 
-// An indexed triangle list with per-vertex normal and colour, counter-clockwise front faces
-// (three.js convention). Used both for rendering and for the glTF the editor loads.
+// An indexed triangle list with per-vertex normal, colour and (for geometry drawn with a picture) the
+// place in that picture, counter-clockwise front faces (three.js convention). Used both for rendering
+// and for the meshes the editor loads.
 public sealed class Mesh
 {
     public List<Vector3> Positions { get; } = [];
     public List<Vector3> Normals { get; } = [];
     public List<Vector3> Colors { get; } = [];
+    public List<Vector2> Uvs { get; } = [];
     public List<int> Indices { get; } = [];
 
     public int VertexCount => Positions.Count;
     public int TriangleCount => Indices.Count / 3;
+    // Whether any vertex carries a place in a picture; a mesh is textured as a whole or not at all.
+    public bool HasUvs => Uvs.Count == Positions.Count && Uvs.Count > 0;
 
     public int AddVertex(Vector3 position, Vector3 normal, Vector3 color)
     {
         Positions.Add(position);
         Normals.Add(normal);
         Colors.Add(color);
+        return Positions.Count - 1;
+    }
+
+    public int AddVertex(Vector3 position, Vector3 normal, Vector3 color, Vector2 uv)
+    {
+        Positions.Add(position);
+        Normals.Add(normal);
+        Colors.Add(color);
+        Uvs.Add(uv);
         return Positions.Count - 1;
     }
 
@@ -53,6 +66,7 @@ public sealed class Mesh
             Positions.Add(Vector3.Transform(other.Positions[i], transform));
             Normals.Add(Vector3.Normalize(Vector3.TransformNormal(other.Normals[i], transform)));
             Colors.Add(other.Colors[i]);
+            if (other.HasUvs) Uvs.Add(other.Uvs[i]);
         }
         foreach (int idx in other.Indices)
             Indices.Add(idx + offset);

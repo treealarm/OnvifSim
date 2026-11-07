@@ -1,4 +1,5 @@
 using System.Numerics;
+using OnvifSim.Rendering;
 using OnvifSim.World;
 
 namespace OnvifSim.Geometry;
@@ -11,19 +12,25 @@ public sealed class SceneChunk
     public required Mesh Mesh { get; init; }
     public Vector3 Center { get; init; }
     public float Radius { get; init; }
+    // A picture the mesh's vertices are placed in (the ground map under the terrain), drawn as it is:
+    // lighting a map would only make it harder to read.
+    public Texture? Texture { get; init; }
 }
 
 public static class SceneBuilder
 {
     private const int TerrainChunkCells = 16;
 
-    public static List<SceneChunk> Build(WorldModel world)
+    // groundMap, when given, is drawn under the terrain: every terrain vertex carries its place in the
+    // picture, and arcs from the world's extent to the picture's edges.
+    public static List<SceneChunk> Build(WorldModel world, Texture? groundMap = null)
     {
         var terrain = new Terrain(world.Terrain);
         var chunks = new List<SceneChunk>();
         for (int cz = 0; cz < terrain.Resolution; cz += TerrainChunkCells)
             for (int cx = 0; cx < terrain.Resolution; cx += TerrainChunkCells)
-                chunks.Add(Chunk($"terrain_{cx}_{cz}", TerrainChunk(terrain, world.Terrain.Color, world.Terrain.Texture, cx, cz)));
+                chunks.Add(Chunk($"terrain_{cx}_{cz}", TerrainChunk(terrain, world.Terrain.Color, world.Terrain.Texture, cx, cz, groundMap),
+                    groundMap));
 
         foreach (var obj in world.Objects)
         {
@@ -163,16 +170,16 @@ public static class SceneBuilder
         else mesh.AddTriangle(a, c, b);
     }
 
-    private static SceneChunk Chunk(string name, Mesh mesh)
+    private static SceneChunk Chunk(string name, Mesh mesh, Texture? texture = null)
     {
         var (c, r) = mesh.BoundingSphere();
-        return new SceneChunk { Name = name, Mesh = mesh, Center = c, Radius = r };
+        return new SceneChunk { Name = name, Mesh = mesh, Center = c, Radius = r, Texture = texture };
     }
 
     private static readonly Vector3 Grass = ColorUtil.Rgb(92, 128, 60);
     private static readonly Vector3 Rock = ColorUtil.Rgb(118, 112, 104);
 
-    private static Mesh TerrainChunk(Terrain t, string? color, string? texture, int cx0, int cz0)
+    private static Mesh TerrainChunk(Terrain t, string? color, string? texture, int cx0, int cz0, Texture? groundMap = null)
     {
         var m = new Mesh();
         var grass = ColorUtil.Parse(color, Grass);
@@ -182,21 +189,33 @@ public static class SceneBuilder
         var dryGrass = Vector3.Min(grass * new Vector3(1.39f, 1.06f, 1.23f), Vector3.One);
         int cx1 = Math.Min(cx0 + TerrainChunkCells, t.Resolution), cz1 = Math.Min(cz0 + TerrainChunkCells, t.Resolution);
         int stride = cx1 - cx0 + 1;
+        // A ground map is placed in the world's own extent, edge to edge: U runs west to east and V
+        // north to south, so the picture's top row is the world's north.
+        float size = t.Size, half = size / 2;
+        Vector2 UvAt(int ix, int iz) =>
+            new((t.VertexX(ix) + half) / size, (t.VertexZ(iz) + half) / size);
         for (int iz = cz0; iz <= cz1; iz++)
             for (int ix = cx0; ix <= cx1; ix++)
             {
                 var n = t.NormalAt(ix, iz);
+                var position = new Vector3(t.VertexX(ix), t[ix, iz], t.VertexZ(iz));
+                if (groundMap is not null)
+                {
+                    // The picture is the ground's colour; the vertex colour stays the fallback under it.
+                    m.AddVertex(position, n, grass, UvAt(ix, iz));
+                    continue;
+                }
                 // Steep slopes turn to rock; a cheap hash breaks up the grass so distance is readable.
                 // A terrain told to be smooth is one flat colour, lit by its own shape.
                 if (!textured)
                 {
-                    m.AddVertex(new(t.VertexX(ix), t[ix, iz], t.VertexZ(iz)), n, grass);
+                    m.AddVertex(position, n, grass);
                     continue;
                 }
                 float noise = ColorUtil.Hash(ix, iz);
                 var patch = Vector3.Lerp(grass, dryGrass, noise * 0.6f);
                 float rockiness = Math.Clamp((0.92f - n.Y) * 6, 0, 1);
-                m.AddVertex(new(t.VertexX(ix), t[ix, iz], t.VertexZ(iz)), n, Vector3.Lerp(patch, Rock, rockiness));
+                m.AddVertex(position, n, Vector3.Lerp(patch, Rock, rockiness));
             }
         for (int iz = 0; iz < cz1 - cz0; iz++)
             for (int ix = 0; ix < cx1 - cx0; ix++)

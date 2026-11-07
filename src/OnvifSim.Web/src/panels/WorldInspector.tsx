@@ -1,5 +1,18 @@
+import { useState } from 'react';
+import { api, type OsmCandidate } from '../api';
 import { defaultLampColor, lampLit, wiresToLamp, type Environment, type Geo, type Lamp, type World } from '../model';
-import { removeLamp, updateEnvironment, updateGeo, updateLamp, updateTerrain, useEditor } from '../store';
+import {
+  buildOsmCandidate,
+  cancelOsmPick,
+  pickOsmCandidate,
+  removeLamp,
+  showError,
+  updateEnvironment,
+  updateGeo,
+  updateLamp,
+  updateTerrain,
+  useEditor,
+} from '../store';
 import { BlurTextField, CheckboxField, ColorField, NumberField, Section, SelectField } from './fields';
 import { InspectorTitle } from './FindButton';
 
@@ -9,9 +22,37 @@ export function WorldInspector({ world }: { world: World }) {
   const change = (patch: Partial<Environment>) => updateEnvironment({ ...environment, ...patch });
   const geo = world.geo;
   const changeGeo = (patch: Partial<Geo>) => updateGeo({ ...geo, ...patch });
+  const terrain = world.terrain;
+  const activeWorld = useEditor((s) => s.activeWorld);
+  const osm = useEditor((s) => s.osm);
+  const [baking, setBaking] = useState(false);
+  const mapName = terrain.map ?? null;
+
+  // Baking fetches the picture for this world's extent and tells the world where it lies. The world
+  // is written afterwards: what is on disk is a cache, what the world holds is where it belongs.
+  async function bake() {
+    setBaking(true);
+    try {
+      const name = mapName ?? `${mapSlug(activeWorld)}-ground`;
+      const meta = await api.bakeMap(name);
+      updateTerrain({
+        ...terrain,
+        map: name,
+        mapBounds: { south: meta.south, west: meta.west, north: meta.north, east: meta.east },
+        mapAttribution: meta.attribution,
+        showMap: true,
+      });
+    } catch (error) {
+      showError(error);
+    } finally {
+      setBaking(false);
+    }
+  }
+
   return (
     <>
       <h2>World</h2>
+      {osm && <OsmPickCard candidates={osm.candidates} picked={osm.picked} />}
       <p className="muted">
         Pick something from the toolbar and click the ground to place it; click an object or a camera, or a row in
         Contents, to edit it.
@@ -55,6 +96,45 @@ export function WorldInspector({ world }: { world: World }) {
         />
         <p className="muted">Textured, steep slopes turn to rock and lighter patches break up the colour; smooth is one flat colour.</p>
       </Section>
+      <Section title="Ground map">
+        {mapName ? (
+          <>
+            <CheckboxField
+              label="Map under the ground"
+              checked={terrain.showMap !== false}
+              onChange={(showMap) => updateTerrain({ ...terrain, showMap })}
+            />
+            <p className="muted">
+              “{mapName}” is a picture cached on this machine and fetched for this world's own extent — never part of a
+              world file. It is not drawn if the world's origin or size has moved since it was fetched.
+            </p>
+            <div className="field">
+              <button type="button" disabled={baking} onClick={() => void bake()}>
+                {baking ? 'Fetching…' : 'Bake it again'}
+              </button>
+              <button
+                type="button"
+                onClick={() => updateTerrain({ ...terrain, map: null, mapBounds: null, mapAttribution: null, showMap: null })}
+              >
+                Forget the map
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="field">
+              <button type="button" disabled={baking} onClick={() => void bake()}>
+                {baking ? 'Fetching…' : 'Bake ground map'}
+              </button>
+            </div>
+            <p className="muted">
+              Fetches a raster map for this world's extent from the tile provider and keeps it on this machine; the
+              internet is needed once.
+            </p>
+          </>
+        )}
+        {terrain.mapAttribution && <p className="muted">{terrain.mapAttribution}</p>}
+      </Section>
       {/* A lamp is a thing of the world, like a camera: it is placed from the palette and edited in
           its own card, not in the world's settings. */}
       <p className="muted">
@@ -63,6 +143,60 @@ export function WorldInspector({ world }: { world: World }) {
       </p>
     </>
   );
+}
+
+// What lies under the click, in the real world: each candidate can be looked at before it is built,
+// and a courtyard is refused here rather than built as a lid over it.
+function OsmPickCard({ candidates, picked }: { candidates: OsmCandidate[]; picked: number }) {
+  const candidate = candidates[picked];
+  return (
+    <Section title="From OpenStreetMap">
+      <div className="io-card">
+        {candidates.map((item, index) => (
+          <button
+            key={`${item.osmType}/${item.osmId}`}
+            type="button"
+            aria-pressed={index === picked}
+            onClick={() => pickOsmCandidate(index)}
+          >
+            {candidateLabel(item)}
+          </button>
+        ))}
+        {candidate?.hasHoles && (
+          <p className="muted">This one is drawn with a courtyard, which a footprint of this world cannot hold; its parts import one at a time.</p>
+        )}
+        <div className="field">
+          <button type="button" onClick={() => void buildOsmCandidate()}>
+            Build in world
+          </button>
+          <button type="button" onClick={cancelOsmPick}>
+            Cancel
+          </button>
+        </div>
+        <p className="muted">Data © OpenStreetMap contributors.</p>
+      </div>
+    </Section>
+  );
+}
+
+function candidateLabel(candidate: OsmCandidate): string {
+  const name = candidate.name || `${candidate.osmType} ${candidate.osmId}`;
+  if (candidate.kind === 'tree') return `${name} · tree`;
+  if (candidate.kind === 'highway') return `${name} · road ${Math.round(candidate.width * 10) / 10} m wide`;
+  const xs = candidate.points.map((p) => p.x);
+  const zs = candidate.points.map((p) => p.z);
+  const width = Math.round(Math.max(...xs) - Math.min(...xs));
+  const depth = Math.round(Math.max(...zs) - Math.min(...zs));
+  return `${name} · ${candidate.kind} ${width}×${depth} m, ${Math.round(candidate.height * 10) / 10} m high`;
+}
+
+// A map's name has to be safe on a filesystem: letters, digits and dashes, as the server asks.
+function mapSlug(world: string | null): string {
+  return (world ?? 'world')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 24) || 'world';
 }
 
 // The lamp picked in the viewport or in Contents: its card, with the devices it is wired to.

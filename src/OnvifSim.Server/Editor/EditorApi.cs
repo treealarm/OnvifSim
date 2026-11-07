@@ -33,6 +33,8 @@ public static class EditorApi
     public static void MapEditorApi(this WebApplication app)
     {
         MapWorld(app);
+        MapGroundMap(app);
+        MapOsm(app);
         WorldLibraryApi.MapWorldLibrary(app);
         MapCameraStreams(app);
         MapDeviceIo(app);
@@ -51,9 +53,68 @@ public static class EditorApi
             TypedResults.ServerSentEvents(Events(store, ptz, onvif, rtsp, rtspEndpoints, feeds, recordings, lifetime.ApplicationStopping)));
     }
 
-    private static void MapWorld(WebApplication app)
+    // The picture of the ground under the world: a local cache, fetched once, never part of the world
+    // file. The editor shows it under the terrain and bakes it again on request.
+    private static void MapGroundMap(WebApplication app)
     {
-        app.MapGet("/api/world", (WorldStore store) => Results.Json(store.Current, WorldStore.Json));
+        app.MapGet("/api/maps/{name}", (string name, TerrainMaps maps) =>
+        {
+            var path = maps.PictureFile(name);
+            return path is null
+                ? Results.NotFound(new { error = $"No map '{name}' is cached." })
+                : Results.File(path, "image/png");
+        });
+
+        app.MapGet("/api/maps/{name}/meta", (string name, TerrainMaps maps) =>
+        {
+            var meta = maps.ReadMeta(name);
+            return meta is null ? Results.NotFound() : Results.Json(meta);
+        });
+
+        app.MapPost("/api/terrain/map/bake", async (BakeRequest? request, TerrainMaps maps, WorldStore store, CancellationToken cancellationToken) =>
+        {
+            var world = store.Current;
+            // A world that names no map gets one under the editor's name; the world is told about it
+            // afterwards, when the editor writes the terrain back.
+            var name = string.IsNullOrWhiteSpace(request?.Name) ? world.Terrain.Map : request!.Name;
+            if (string.IsNullOrWhiteSpace(name))
+                return Results.BadRequest(new { error = "The world names no ground map (terrain.map)." });
+            try
+            {
+                return Results.Json(await maps.BakeAsync(world, name, cancellationToken));
+            }
+            catch (Exception ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+    }
+
+    // A bake may name the map itself, so a world without one yet can be given its first picture.
+    public sealed record BakeRequest(string? Name);
+
+    // What of the real world lies under a point of this one: the objects the editor offers to build.
+    private static void MapOsm(WebApplication app)
+    {
+        app.MapPost("/api/osm/pick", async (OsmPick request, OsmService osm, WorldStore store, CancellationToken cancellationToken) =>
+        {
+            try
+            {
+                var candidates = await osm.PickAsync(store.Current, request.X, request.Z, cancellationToken);
+                return Results.Json(new { candidates });
+            }
+            catch (Exception ex)
+            {
+                return Results.Json(new { error = ex.Message }, statusCode: StatusCodes.Status502BadGateway);
+            }
+        });
+    }
+
+    // A click on the ground, in the world's own metres.
+    public sealed record OsmPick(float X, float Z);
+
+    private static void MapWorld(WebApplication app)
+    {        app.MapGet("/api/world", (WorldStore store) => Results.Json(store.Current, WorldStore.Json));
 
         app.MapPut("/api/world", (WorldModel world, WorldStore store, SimOptions options) =>
         {

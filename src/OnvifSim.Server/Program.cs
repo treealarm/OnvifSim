@@ -30,6 +30,20 @@ builder.WebHost.ConfigureKestrel(k => k.ListenAnyIP(options.WebPort));
 builder.Logging.AddFilter("Microsoft.AspNetCore", LogLevel.Warning);
 builder.Services.AddSingleton(options);
 builder.Services.AddSingleton(store);
+// The two things the world asks the internet for: a raster map under the terrain, and real objects
+// when someone picks them in the editor. Both identify themselves, and both are optional.
+builder.Services.AddSingleton(sp =>
+{
+    var http = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
+    http.DefaultRequestHeaders.UserAgent.ParseAdd($"OnvifSim/{CameraIdentity.FirmwareVersion} (+https://treealarm.dev)");
+    return new TerrainMaps(options.DataDirectory, options.MapTiles, http, sp.GetRequiredService<ILogger<TerrainMaps>>());
+});
+builder.Services.AddSingleton(sp =>
+{
+    var http = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
+    http.DefaultRequestHeaders.UserAgent.ParseAdd($"OnvifSim/{CameraIdentity.FirmwareVersion} (+https://treealarm.dev)");
+    return new OsmService(options.OsmEndpoint, http, sp.GetRequiredService<ILogger<OsmService>>());
+});
 builder.Services.AddSingleton<SceneState>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<PtzSimulator>();

@@ -25,6 +25,10 @@ public sealed class SimOptions
     // Open the editor in the browser once started. Only where a desktop can show one: see Browser.
     public bool OpenBrowser { get; init; } = true;
     public bool Bench { get; init; }
+    // The raster map provider under a world (any {z}/{x}/{y} tile service, not necessarily OSM), and
+    // the Overpass endpoint the editor's OSM import asks. Empty turns that feature off.
+    public string? MapTiles { get; init; } = OnvifSim.World.TerrainMaps.DefaultTileUrl;
+    public string? OsmEndpoint { get; init; } = OnvifSim.World.OsmService.DefaultEndpoint;
 
     public static SimOptions Parse(string[] args)
     {
@@ -36,6 +40,8 @@ public sealed class SimOptions
         string? advertiseHost = Environment.GetEnvironmentVariable("ONVIFSIM_ADVERTISE_HOST");
         int discoveryPort = PortFromEnvironment("ONVIFSIM_DISCOVERY_PORT", 3702);
         string? ffmpeg = Environment.GetEnvironmentVariable("ONVIFSIM_FFMPEG");
+        string mapTiles = Environment.GetEnvironmentVariable("ONVIFSIM_MAP_TILE_URL") ?? OnvifSim.World.TerrainMaps.DefaultTileUrl;
+        string osm = Environment.GetEnvironmentVariable("ONVIFSIM_OSM_URL") ?? OnvifSim.World.OsmService.DefaultEndpoint;
         bool bench = false, noBrowser = false;
         for (int i = 0; i < args.Length; i++)
         {
@@ -73,6 +79,8 @@ public sealed class SimOptions
             OnvifBasePort = onvifBasePort, AdvertiseHost = advertiseHost,
             DiscoveryPort = discoveryPort, Ffmpeg = string.IsNullOrEmpty(ffmpeg) ? null : ffmpeg,
             OpenBrowser = !noBrowser, Bench = bench,
+            MapTiles = string.IsNullOrWhiteSpace(mapTiles) ? null : mapTiles,
+            OsmEndpoint = string.IsNullOrWhiteSpace(osm) ? null : osm,
         };
     }
 

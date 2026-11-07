@@ -7,6 +7,7 @@ import { useEditor } from '../store';
 import { CameraGizmo } from './CameraGizmo';
 import { DeviceIoView } from './DeviceIoView';
 import { ObjectsView } from './ObjectsView';
+import { OsmView } from './OsmView';
 import { RoutesView } from './RoutesView';
 import { TerrainView } from './TerrainView';
 
@@ -32,6 +33,7 @@ export function Viewport({ world }: { world: World }) {
       <TerrainView terrain={world.terrain} />
       <ObjectsView objects={world.objects} terrain={world.terrain} />
       <RoutesView roads={world.roads} walkers={world.walkers} vehicles={world.vehicles} terrain={world.terrain} />
+      <OsmView terrain={world.terrain} />
       <DeviceIoView world={world} />
       {world.cameras.map((camera, index) => (
         <CameraGizmo

@@ -14,6 +14,13 @@ public sealed class RenderScene
         public required Vector3[] Positions { get; init; }
         public required Vector3[] Colors { get; init; }
         public required int[] Indices { get; init; }
+        // Where each vertex lies in the picture drawn on the chunk, when it is drawn with one.
+        public Vector2[]? Uvs { get; init; }
+        // The picture itself: a map under the terrain, not a pattern made of colours.
+        public Texture? Texture { get; init; }
+        // Geometry already coloured as it must be drawn is not lit; light would only make a map harder
+        // to read.
+        public bool Unlit { get; init; }
         // Pairs of vertices joined by a one-pixel line, drawn after every triangle where nothing hides it,
         // blended in by LineAlpha, and hiding nothing itself.
         public int[] Lines { get; init; } = [];
@@ -34,7 +41,7 @@ public sealed class RenderScene
     public bool ShowFrustums { get; init; }
     public float FrustumLength { get; init; }
 
-    public static RenderScene Build(WorldModel world) => Build(world, SceneBuilder.Build(world));
+    public static RenderScene Build(WorldModel world, Texture? groundMap = null) => Build(world, SceneBuilder.Build(world, groundMap));
 
     public static RenderScene Build(WorldModel world, IReadOnlyList<SceneChunk> chunks)
     {
@@ -81,8 +88,14 @@ public sealed class RenderScene
         var sunLight = new Vector3(1.0f, 0.95f, 0.85f) * 0.75f;
         var m = chunk.Mesh;
         var colors = new Vector3[m.VertexCount];
+        bool unlit = chunk.Texture is not null;
         for (int i = 0; i < colors.Length; i++)
         {
+            if (unlit)
+            {
+                colors[i] = m.Colors[i];
+                continue;
+            }
             var n = m.Normals[i];
             // Hemisphere ambient plus Lambert sun.
             var ambient = Vector3.Lerp(groundLight, skyLight, n.Y * 0.5f + 0.5f) * 0.55f;
@@ -92,6 +105,7 @@ public sealed class RenderScene
         return new Chunk
         {
             Positions = [.. m.Positions], Colors = colors, Indices = [.. m.Indices],
+            Uvs = m.HasUvs ? [.. m.Uvs] : null, Texture = chunk.Texture, Unlit = unlit,
             Center = chunk.Center, Radius = chunk.Radius,
         };
     }

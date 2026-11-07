@@ -8,12 +8,21 @@ public sealed class SceneState
 {
     public sealed record Snapshot(WorldModel World, RenderScene Scene);
 
+    private readonly WorldStore _store;
+    private readonly TerrainMaps? _maps;
     private volatile Snapshot _current;
 
-    public SceneState(WorldStore store)
+    // maps is what draws a picture under the terrain; a host without one (tests, a bench) renders
+    // the world as it always did.
+    public SceneState(WorldStore store, TerrainMaps? maps = null)
     {
+        _store = store;
+        _maps = maps;
         _current = Build(store.Current);
         store.Changed += w => _current = Build(w);
+        // A ground map arrives after its world does: the world is worth drawing without it, and worth
+        // drawing again once the picture is there.
+        if (maps is not null) maps.Changed += () => _current = Build(_store.Current);
     }
 
     public Snapshot Current => _current;
@@ -21,5 +30,5 @@ public sealed class SceneState
     public CameraModel? FindCamera(string id) =>
         _current.World.Cameras.FirstOrDefault(c => string.Equals(c.Id, id, StringComparison.OrdinalIgnoreCase));
 
-    private static Snapshot Build(WorldModel world) => new(world, RenderScene.Build(world));
+    private Snapshot Build(WorldModel world) => new(world, RenderScene.Build(world, _maps?.Get(world)));
 }
