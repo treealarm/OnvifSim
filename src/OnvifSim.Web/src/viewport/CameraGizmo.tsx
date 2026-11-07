@@ -14,7 +14,7 @@ import {
   type Vehicle,
 } from '../model';
 import { select, updateCamera, useEditor } from '../store';
-import { castCorners } from './footprint';
+import { castFootprint, FOOTPRINT_COLUMNS, FOOTPRINT_ROWS, type Footprint } from './footprint';
 import { Label } from './Label';
 import { lookOf, yawDegrees } from './orientation';
 
@@ -37,7 +37,7 @@ interface CameraGizmoProps {
 // rotate gizmo sets the heading; the prism is drawn in world space, where the things it meets are.
 export function CameraGizmo({ camera, head, terrain, environment, vehicles, viewColor, selected }: CameraGizmoProps) {
   const [group, setGroup] = useState<Object3D | null>(null);
-  const [corners, setCorners] = useState<Vector3[] | null>(null);
+  const [footprint, setFootprint] = useState<Footprint | null>(null);
   const drawn = useRef('');
   const scene = useThree((s) => s.scene);
   const gizmo = useEditor((s) => s.gizmo);
@@ -84,11 +84,12 @@ export function CameraGizmo({ camera, head, terrain, environment, vehicles, view
       if (object.userData.occluder) occluders.push(object);
     });
     const aspect = camera.video.width / camera.video.height;
-    let stamp = `${eye.x.toFixed(1)},${eye.y.toFixed(1)},${eye.z.toFixed(1)},${pan.toFixed(1)},${tilt.toFixed(1)},${hFov.toFixed(1)},${aspect}`;
+    let stamp = `${eye.x.toFixed(1)},${eye.y.toFixed(1)},${eye.z.toFixed(1)},${pan.toFixed(1)},${tilt.toFixed(1)},${hFov.toFixed(1)},${aspect},`
+      + `${environment.fogEnd},${environment.frustumLength}`;
     for (const occluder of occluders) stamp += '|' + occluder.matrixWorld.elements.map((value) => value.toFixed(2)).join(',');
     if (stamp === drawn.current) return;
     drawn.current = stamp;
-    setCorners(castCorners(eye, lookOf(camera, pan, tilt).picture, hFov, aspect, occluders,
+    setFootprint(castFootprint(eye, lookOf(camera, pan, tilt).picture, hFov, aspect, occluders,
       environment.fogEnd, environment.frustumLength));
   });
 
@@ -125,7 +126,7 @@ export function CameraGizmo({ camera, head, terrain, environment, vehicles, view
         </mesh>
         <Label text={camera.name || camera.id} position={[0, 1.2, 0]} onClick={onClick} />
       </group>
-      {!mountedVehicle && corners && <FootprintPrism eye={eye} corners={corners} color={viewColor} selected={selected} />}
+      {!mountedVehicle && footprint && <FootprintPrism eye={eye} footprint={footprint} color={viewColor} selected={selected} />}
       {!mountedVehicle && selected && group && (
         <TransformControls
           object={group}
@@ -141,17 +142,49 @@ export function CameraGizmo({ camera, head, terrain, environment, vehicles, view
   );
 }
 
-// Where a camera looks, as the prism its eye and the four corners of its picture make: four edges down
-// to their first meeting with the world and the rim along it, and nothing inside — a grid over every
-// view is only a thicket of lines once several cameras look across each other.
-function FootprintPrism({ eye, corners, color, selected }: { eye: Vector3; corners: Vector3[]; color: string; selected: boolean }) {
+// Where a camera looks, as the prism its eye and its picture make: the four edges down to the picture's
+// corners, the rim where the picture meets the world, and the grid of rays inside it wherever they land
+// on something. That last part is the point — the patch of ground (or wall) the camera covers — because
+// a rim alone, on a camera looking at the horizon, floats in the air with no floor under it. Rays that
+// land on nothing are left out of the interior: a grid of lines into the sky hides what it is drawn on.
+function FootprintPrism({ eye, footprint, color, selected }: {
+  eye: Vector3; footprint: Footprint; color: string; selected: boolean
+}) {
   const at = (p: Vector3): [number, number, number] => [p.x, p.y + wireLift, p.z];
-  const rim = [...corners, corners[0]].map(at);
-  const rays = corners.flatMap((corner) => [[eye.x, eye.y, eye.z] as [number, number, number], at(corner)]);
+  const columns = FOOTPRINT_COLUMNS, rows = FOOTPRINT_ROWS;
+  const point = (i: number, j: number) => footprint.points[i * rows + j];
+  const hit = (i: number, j: number) => footprint.hit[i * rows + j];
+  const V = (i: number, j: number) => at(point(i, j));
+
+  // The rim, anticlockwise as seen in the picture: the top row, the right column, the bottom row
+  // backwards, the left column upwards.
+  const rim: [number, number, number][] = [];
+  for (let i = 0; i < columns; i++) rim.push(V(i, 0));
+  for (let j = 1; j < rows; j++) rim.push(V(columns - 1, j));
+  for (let i = columns - 2; i >= 0; i--) rim.push(V(i, rows - 1));
+  for (let j = rows - 2; j >= 1; j--) rim.push(V(0, j));
+
+  const rays = [[0, 0], [columns - 1, 0], [columns - 1, rows - 1], [0, rows - 1]]
+    .flatMap(([i, j]) => [[eye.x, eye.y, eye.z] as [number, number, number], V(i, j)]);
+
+  // Lines across the picture, kept to those whose two ends both landed on something: down a column,
+  // and along a row.
+  const grid: [number, number, number][] = [];
+  for (let i = 0; i < columns; i++)
+    for (let j = 0; j < rows - 1; j++)
+      if (hit(i, j) && hit(i, j + 1)) grid.push(...[V(i, j), V(i, j + 1)]);
+  for (let i = 0; i < columns - 1; i++)
+    for (let j = 0; j < rows; j++)
+      if (hit(i, j) && hit(i + 1, j)) grid.push(...[V(i, j), V(i + 1, j)]);
+
+  const width = selected ? 2.2 : 1;
   return (
     <>
-      <Line points={rim} color={color} lineWidth={selected ? 2.2 : 1} transparent opacity={selected ? 0.95 : 0.55} />
-      <Line points={rays} segments color={color} lineWidth={selected ? 2.2 : 1} transparent opacity={selected ? 0.95 : 0.55} />
+      <Line points={[...rim, rim[0]]} color={color} lineWidth={width} transparent opacity={selected ? 0.95 : 0.55} />
+      <Line points={rays} segments color={color} lineWidth={width} transparent opacity={selected ? 0.95 : 0.55} />
+      {grid.length > 0 && (
+        <Line points={grid} segments color={color} lineWidth={width} transparent opacity={selected ? 0.85 : 0.4} />
+      )}
     </>
   );
 }
