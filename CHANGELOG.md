@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **The demo's landmarks stand in the world.** The Maryland world marks the ten calibration
+  landmarks of ta_vms's demo — five for the hall pair, five for the yard pair, the points the demo's
+  map puts a landmark on — with a half-metre block of the landmark's own colour (`lm-hall-l1` …
+  `lm-road-l5`). A landmark on the map and the thing a camera's picture shows are one point, which
+  is what an operator aims and calibrates a camera by; a made-up world has to be told, since it has
+  no corners and hatches of its own. The blocks are as small as the bench world's, so a person
+  walking over one is still a person.
 - **A prism: any footprint extruded to a height.** A world object of type `prism` takes a ring of
   points and draws walls, a roof and a floor from both sides — a building of any shape is one object
   rather than a box. `openings` cut a wall into panels and the band above them, which is how a doorway

@@ -1039,6 +1039,196 @@
       ]
     },
     {
+      "id": "lm-hall-l1",
+      "type": "box",
+      "position": {
+        "x": -10.6,
+        "y": 0,
+        "z": -71.6
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 0.5,
+        "y": 0.5,
+        "z": 0.5
+      },
+      "color": "#e53935",
+      "color2": null,
+      "seed": 0,
+      "texture": "none"
+    },
+    {
+      "id": "lm-hall-l2",
+      "type": "box",
+      "position": {
+        "x": -6.4,
+        "y": 0,
+        "z": -71.6
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 0.5,
+        "y": 0.5,
+        "z": 0.5
+      },
+      "color": "#fdd835",
+      "color2": null,
+      "seed": 0,
+      "texture": "none"
+    },
+    {
+      "id": "lm-hall-l3",
+      "type": "box",
+      "position": {
+        "x": -10.6,
+        "y": 0,
+        "z": -67.9
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 0.5,
+        "y": 0.5,
+        "z": 0.5
+      },
+      "color": "#1e88e5",
+      "color2": null,
+      "seed": 0,
+      "texture": "none"
+    },
+    {
+      "id": "lm-hall-l4",
+      "type": "box",
+      "position": {
+        "x": -6.4,
+        "y": 0,
+        "z": -67.9
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 0.5,
+        "y": 0.5,
+        "z": 0.5
+      },
+      "color": "#f5f5f5",
+      "color2": null,
+      "seed": 0,
+      "texture": "none"
+    },
+    {
+      "id": "lm-hall-l5",
+      "type": "box",
+      "position": {
+        "x": -8.5,
+        "y": 0,
+        "z": -69.8
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 0.5,
+        "y": 0.5,
+        "z": 0.5
+      },
+      "color": "#8e24aa",
+      "color2": null,
+      "seed": 0,
+      "texture": "none"
+    },
+    {
+      "id": "lm-road-l1",
+      "type": "box",
+      "position": {
+        "x": -8,
+        "y": 0,
+        "z": -84
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 0.5,
+        "y": 0.5,
+        "z": 0.5
+      },
+      "color": "#e53935",
+      "color2": null,
+      "seed": 0,
+      "texture": "none"
+    },
+    {
+      "id": "lm-road-l2",
+      "type": "box",
+      "position": {
+        "x": -11,
+        "y": 0,
+        "z": -91
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 0.5,
+        "y": 0.5,
+        "z": 0.5
+      },
+      "color": "#fdd835",
+      "color2": null,
+      "seed": 0,
+      "texture": "none"
+    },
+    {
+      "id": "lm-road-l3",
+      "type": "box",
+      "position": {
+        "x": -4,
+        "y": 0,
+        "z": -92
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 0.5,
+        "y": 0.5,
+        "z": 0.5
+      },
+      "color": "#1e88e5",
+      "color2": null,
+      "seed": 0,
+      "texture": "none"
+    },
+    {
+      "id": "lm-road-l4",
+      "type": "box",
+      "position": {
+        "x": -8,
+        "y": 0,
+        "z": -98
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 0.5,
+        "y": 0.5,
+        "z": 0.5
+      },
+      "color": "#f5f5f5",
+      "color2": null,
+      "seed": 0,
+      "texture": "none"
+    },
+    {
+      "id": "lm-road-l5",
+      "type": "box",
+      "position": {
+        "x": 2,
+        "y": 0,
+        "z": -100
+      },
+      "rotationY": 0,
+      "scale": {
+        "x": 0.5,
+        "y": 0.5,
+        "z": 0.5
+      },
+      "color": "#8e24aa",
+      "color2": null,
+      "seed": 0,
+      "texture": "none"
+    },
+    {
       "id": "tree-1",
       "type": "tree.pine",
       "position": {

@@ -94,6 +94,39 @@ public static class MarylandWorld
     public const string VehicleCameraId = "vehicle";
     public const float VehicleCameraHeight = 1.55f;
 
+    // ── The demo's landmarks ──────────────────────────────────────────────────
+
+    // The calibration landmarks of the demo's two pairs: the points ta_vms's demo map puts a
+    // landmark on, in world metres (X east, Z south). ta_vms mirrors them in
+    // tests/onvifsim/world.py (MARYLAND_HALL_LANDMARKS and MARYLAND_ROAD_LANDMARKS), so a landmark
+    // on the map and the thing a camera's picture shows are one point. Each is marked here by a
+    // block of its own colour: the demo is a laboratory, and an operator aiming or calibrating a
+    // camera has to have something to find. A real landmark is a corner, a pole or a hatch — a
+    // made-up world has to be told.
+    public sealed record DemoLandmark(string Pair, string Id, float X, float Z, string Color);
+
+    public static readonly DemoLandmark[] Landmarks =
+    [
+        // In Room 101, round the square the person walks, where the master at (-8, -57) and the
+        // slave at (-1.7, -63.7) both see them.
+        new("hall", "L1", -10.6f, -71.6f, "#e53935"),
+        new("hall", "L2", -6.4f, -71.6f, "#fdd835"),
+        new("hall", "L3", -10.6f, -67.9f, "#1e88e5"),
+        new("hall", "L4", -6.4f, -67.9f, "#f5f5f5"),
+        new("hall", "L5", -8.5f, -69.8f, "#8e24aa"),
+        // Out in Lot T, on the ground the person walks out over, so the pair outside is calibrated
+        // on that ground and not on a corner of it.
+        new("road", "L1", -8.0f, -84.0f, "#e53935"),
+        new("road", "L2", -11.0f, -91.0f, "#fdd835"),
+        new("road", "L3", -4.0f, -92.0f, "#1e88e5"),
+        new("road", "L4", -8.0f, -98.0f, "#f5f5f5"),
+        new("road", "L5", 2.0f, -100.0f, "#8e24aa"),
+    ];
+
+    // Half a metre, like the bench world's yard landmarks: small enough that a person walking over
+    // one is still a person, and bright enough to pick out in a picture.
+    public const float LandmarkSize = 0.5f;
+
     // ── The block and its neighbours ──────────────────────────────────────────
 
     // The ring the car drives: the centre line of the block's roads, closed, ~780 m round. Regents
@@ -259,6 +292,7 @@ public static class MarylandWorld
         });
 
         Ground(world);
+        AddLandmarks(world);
         AddTrees(world);
 
         AddCameras(world);
@@ -292,6 +326,17 @@ public static class MarylandWorld
             var (id, height, outline) = Neighbours[i];
             AddPrism(world, id, Normalized(outline), height, WallColor, RoofColor, null, seed: 10 + i);
         }
+    }
+
+    // A block of each landmark's own colour, standing on the ground of the point the calibration
+    // aims at. Smooth, not grained: a landmark is read as a colour, and a pattern would only make it
+    // harder to pick out.
+    private static void AddLandmarks(WorldModel world)
+    {
+        foreach (var landmark in Landmarks)
+            Add(world, $"lm-{landmark.Pair}-{landmark.Id.ToLowerInvariant()}", "box",
+                landmark.X, 0, landmark.Z, LandmarkSize, LandmarkSize, LandmarkSize,
+                color: landmark.Color, texture: "none");
     }
 
     private static void AddTrees(WorldModel world)
@@ -425,11 +470,12 @@ public static class MarylandWorld
     // A fixed seed per object: a tree's crown is drawn from it, so it must not change between two
     // builds of the world file.
     private static void Add(WorldModel world, string id, string type, float x, float y, float z,
-        float sx, float sy, float sz, string? color = null, string? color2 = null, int seed = 0) =>
+        float sx, float sy, float sz, string? color = null, string? color2 = null, int seed = 0,
+        string? texture = null) =>
         world.Objects.Add(new WorldObject
         {
             Id = id, Type = type, Position = new(x, y, z), Scale = new(sx, sy, sz),
-            Color = color, Color2 = color2, Seed = seed,
+            Color = color, Color2 = color2, Seed = seed, Texture = texture,
         });
 
     private static void Plate(WorldModel world, string id, float x, float y, float z,

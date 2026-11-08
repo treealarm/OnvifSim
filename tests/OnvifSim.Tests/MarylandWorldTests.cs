@@ -197,6 +197,33 @@ public class MarylandWorldTests
         Assert.Equal(MarylandWorld.NorthWallZ, centre.Z, 1);
     }
 
+    // The demo's landmarks are marked in the world: one block per point, of the landmark's own
+    // colour, standing on the ground the calibration aims at. ta_vms puts a landmark on that same
+    // point (DemoWorlds.cs, mirrored in tests/onvifsim/world.py), so a camera's picture and the map
+    // show one place rather than two.
+    [Fact]
+    public void TheDemoLandmarksAreMarkedInTheWorld()
+    {
+        var world = World();
+        Assert.Equal(10, MarylandWorld.Landmarks.Length);
+        Assert.Equal(["hall", "road"], MarylandWorld.Landmarks.Select(landmark => landmark.Pair).Distinct());
+        foreach (var landmark in MarylandWorld.Landmarks)
+        {
+            var marker = world.Objects.Single(
+                o => o.Id == $"lm-{landmark.Pair}-{landmark.Id.ToLowerInvariant()}");
+            Assert.Equal("box", marker.Type);
+            Assert.Equal(landmark.X, marker.Position.X, 3);
+            Assert.Equal(0, marker.Position.Y, 3);
+            Assert.Equal(landmark.Z, marker.Position.Z, 3);
+            Assert.Equal(landmark.Color, marker.Color);
+            Assert.Equal(MarylandWorld.LandmarkSize, marker.Scale.X, 3);
+            Assert.Equal(MarylandWorld.LandmarkSize, marker.Scale.Y, 3);
+            Assert.Equal(MarylandWorld.LandmarkSize, marker.Scale.Z, 3);
+            // No pattern on it: the colour is what identifies the landmark in the picture.
+            Assert.Equal("none", marker.Texture);
+        }
+    }
+
     private static bool InsideRoom101(WorldModel world, float x, float z)
     {
         var geo = WorldGeo.ToGeo(world, new Vec3(x, 0, z));
