@@ -307,14 +307,14 @@ jobs:
 
             The cameras look at a 3D world you build in the browser (terrain, trees, houses, roads, people walking their routes), so a PTZ camera really turns when told to (AbsoluteMove, RelativeMove, ContinuousMove, presets, home) and a person walks from one camera's view into the next. Every edit is live; the world is one JSON file. See the [README](https://github.com/treealarm/OnvifSim#readme) for the full feature list.
 
-            ### What's new in 0.4.0
-            - **Relay outputs, digital inputs and lamps**: a camera carries ONVIF relay outputs and digital inputs, and a wire joins a relay of one camera to an input or a lamp of any other. A closed contact pulls its input to 0; a closed relay lights the lamps it drives. The **Wiring** window pairs relays with what they drive, and a relay's coil and contact are reported apart.
-            - **ONVIF DeviceIO**: `GetRelayOutputs`, `SetRelayOutputState` and `SetRelayOutputSettings` on the Device service, `GetDigitalInputs` and the rest on the DeviceIO service, and `Initialized`/`Changed` property events on `Device/Trigger/Relay` and `Device/Trigger/DigitalInput`.
-            - **A world with a place on Earth**: a geographic anchor in the world file, ONVIF `GetGeoLocation`/`SetGeoLocation`, and a camera mounted on a moving car reporting the car's position and heading.
-            - **View prisms**: each camera's view is drawn as a prism in a colour of its own, cast against the scene, so its base lies on the ground, a floor or a wall it actually meets.
-            - **Lamps, Cutaway and offices**: lamps are objects of the world lit by relays; Cutaway clips buildings above 2.5 m so a room can be edited from above, and clicks pass through cut-away faces; offices join the palette.
-            - **Maryland demo world**: a fixed master and a PTZ camera facing each other across one hall, a person walking between them, a ring road with a car and a camera mounted on it, and relays wired to a lamp and a sensor.
-            - **Changed**: the default village's road carries a moving car as well as its walkers; the inspector's **Find** flies the editor to what is being edited.
+            ### What's new in 0.5.0
+            - **A ground map from OpenStreetMap**: a raster map drawn under the terrain, read once per world from any `{z}/{x}/{y}` tile provider and kept on this machine, laid out by the world's anchor and true north so its streets fall where the objects stand.
+            - **Real objects out of OSM**: the editor reads the world's whole extent from Overpass once, and a click on the map builds the building, the parking lot, the water, the road or the tree it landed on, the footprint that holds the click before the road or tree beside it. One **OpenStreetMap** switch in the Map palette is the mode: the ground picture and the objects a click can build, both cached for the next time.
+            - **Prisms**: any footprint extruded into walls, a roof and a floor seen from both sides, with doorways and openings cut into a wall and a tiled top — a building of any shape is one object rather than a box.
+            - **Textured surfaces**: a box, a road, the terrain and the new **floor** object each carry a pattern drawn from their own colours, so a wall reads as a wall; `texture` chooses it per object, road and terrain, and a world can be made flat-coloured.
+            - **A view grid**: each camera's view is cast as rays across its picture and drawn where they land, so the patch it covers shows on the ground or on an object even where part of its picture looks over the horizon.
+            - **The Maryland demo is the real campus**: Biomolecular Sciences and Lot T from OpenStreetMap, the real ring road under the car, the campus map underfoot, a real doorway a walker leaves Room 101 through, both camera pairs following that person — and the ten calibration landmarks of the demo standing in the world as coloured blocks.
+            - **Device IO on the spec**: a digital input's logical state and `IdleState` as the Device IO specification has them, `DelayTimes` as the schema's `tt:FloatList`, and the specification's fault subcodes.
 
             ### Downloads
             - **OnvifSim-win-x64.msi**: Windows x64 installer (Program Files, Start menu entry that starts the simulator and opens the editor).

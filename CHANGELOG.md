@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.5.0 (2026-11-12)
 
 - **The demo's landmarks stand in the world.** The Maryland world marks the ten calibration
   landmarks of ta_vms's demo — five for the hall pair, five for the yard pair, the points the demo's
