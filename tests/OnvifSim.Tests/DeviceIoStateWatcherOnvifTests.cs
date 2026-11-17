@@ -42,13 +42,13 @@ public class DeviceIoStateWatcherOnvifTests(MarylandFactory factory) : IClassFix
     {
         await using var watcher = await WatchAsync("master");
 
-        // The master has three relays and a sensor of its own; the sensor is wired to one of them.
-        foreach (var token in new[] { "lamp", "peer", "loop" })
+        // The master has four relays and a sensor of its own; two of the relays are wired to it.
+        foreach (var token in new[] { "lamp", "peer", "loop", "button" })
         {
             var relay = await WaitForAsync(watcher, DeviceIoKind.Relay, token,
                 state => state.PropertyOperation == "Initialized");
             Assert.False(relay.LogicalState);
-            // All three are normally open, so an energised-none relay has an open contact.
+            // All four are normally open, so an energised-none relay has an open contact.
             Assert.False(relay.ContactClosed);
         }
 

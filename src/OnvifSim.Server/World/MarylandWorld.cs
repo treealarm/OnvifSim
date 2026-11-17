@@ -76,17 +76,17 @@ public static class MarylandWorld
         // holds the whole of the person's walk indoors. The slave stands in the room's south-east
         // corner, its back to the wall, and looks across the room: at 4.5–11 m from the person it
         // follows they cross its view slowly enough for a command every two seconds to hold them.
-        new("master", "Main room master", CameraKind.Fixed,
+        new("master", "cam1", CameraKind.Fixed,
             38.9928120, -76.9378925, 2.8f, 0f, 45, -8f),
-        new("ptz", "Main room slave (PTZ)", CameraKind.Ptz,
+        new("ptz", "cam2", CameraKind.Ptz,
             38.9928722, -76.9378196, 2.8f, 310f, 65, 0),
         // The second pair works in the parking lot: the master stands on a pole north-west of the
         // doorway, looking back along the line the person crosses, and its boxes are what aim the
         // slave. The person is 7.4–11.5 % of the master's picture height over the whole walk (the
         // detector needs 5 %); the slave sees them at 12–32 m.
-        new("master2", "Building master 2", CameraKind.Fixed,
+        new("master2", "cam3", CameraKind.Fixed,
             38.9933061, -76.9381467, 6f, 125f, 55, -9.5f),
-        new("ptz2", "Campus slave 2 (PTZ)", CameraKind.Ptz,
+        new("ptz2", "cam4", CameraKind.Ptz,
             38.9931085, -76.9380312, 5.5f, 88f, 60, 0),
     ];
 
@@ -378,24 +378,26 @@ public static class MarylandWorld
         // picture moves with the car.
         world.Cameras.Add(new CameraModel
         {
-            Id = VehicleCameraId, Name = "Vehicle camera", Kind = CameraKind.Fixed,
+            Id = VehicleCameraId, Name = "cam5", Kind = CameraKind.Fixed,
             MountedOnVehicleId = "v1", Position = new Vec3(0, VehicleCameraHeight, -0.6f),
             Heading = 0, Pitch = -5, HFov = 70,
             Users = [new UserModel { Username = "admin", Password = "admin" }],
         });
     }
 
-    // The master's three relays show every kind of link a relay can have: one lights a lamp standing
-    // by the racks, one drives the slave camera's sensor, and one drives a sensor of the master itself.
+    // The master's four relays show every kind of link a relay can have: one lights a lamp standing
+    // by the racks, one drives the slave camera's sensor, and two drive a sensor of the master
+    // itself — so the demo can show that either of them raises the same alarm.
     private static void AddDevices(WorldModel world)
     {
         var master = world.Cameras.Single(c => c.Id == "master");
-        master.RelayOutputs.Add(new RelayOutputModel { Token = "lamp", Name = "Hall lamp relay" });
-        master.RelayOutputs.Add(new RelayOutputModel { Token = "peer", Name = "Slave sensor relay" });
-        master.RelayOutputs.Add(new RelayOutputModel { Token = "loop", Name = "Own sensor relay" });
-        master.DigitalInputs.Add(new DigitalInputModel { Token = "input", Name = "Master sensor" });
+        master.RelayOutputs.Add(new RelayOutputModel { Token = "lamp", Name = "relay1" });
+        master.RelayOutputs.Add(new RelayOutputModel { Token = "peer", Name = "relay2" });
+        master.RelayOutputs.Add(new RelayOutputModel { Token = "loop", Name = "relay3" });
+        master.RelayOutputs.Add(new RelayOutputModel { Token = "button", Name = "relay4" });
+        master.DigitalInputs.Add(new DigitalInputModel { Token = "input", Name = "sensor1" });
         var ptz = world.Cameras.Single(c => c.Id == "ptz");
-        ptz.DigitalInputs.Add(new DigitalInputModel { Token = "input", Name = "Slave sensor" });
+        ptz.DigitalInputs.Add(new DigitalInputModel { Token = "input", Name = "sensor2" });
         world.Lamps.Add(new LampModel
         {
             Id = "alert", Name = "Hall alert lamp", Position = new Vec3(-13.4f, 0, -68f),
@@ -409,6 +411,12 @@ public static class MarylandWorld
         world.Wires.Add(new WireModel
         {
             RelayCameraId = master.Id, RelayToken = "loop",
+            InputCameraId = master.Id, InputToken = "input",
+        });
+        // A second relay into the same sensor: the input closes while either contact does.
+        world.Wires.Add(new WireModel
+        {
+            RelayCameraId = master.Id, RelayToken = "button",
             InputCameraId = master.Id, InputToken = "input",
         });
     }
