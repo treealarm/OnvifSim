@@ -366,20 +366,22 @@ public class MarylandWorldTests
     {
         var world = World();
         var master = world.Cameras.Single(c => c.Id == "master");
-        Assert.Equal(["lamp", "peer", "loop"], master.RelayOutputs.Select(r => r.Token));
+        Assert.Equal(["lamp", "peer", "loop", "button"], master.RelayOutputs.Select(r => r.Token));
         Assert.Equal("input", Assert.Single(master.DigitalInputs).Token);
         Assert.Equal("input", Assert.Single(world.Cameras.Single(c => c.Id == "ptz").DigitalInputs).Token);
 
-        // One relay lights the lamp in the hall, one drives another camera's sensor, one a sensor of
-        // the master itself: every kind of sink the editor can wire.
+        // One relay lights the lamp in the hall, one drives another camera's sensor, and two a sensor
+        // of the master itself — the same input, so either of them closes it: every kind of sink the
+        // editor can wire, and a sensor that two relays can reach.
         var lamp = Assert.Single(world.Lamps);
         Assert.Equal("alert", lamp.Id);
         Assert.False(lamp.NormallyClosed);
         Assert.Contains(world.Wires, wire => wire.RelayToken == "lamp" && wire.LampId == "alert");
         Assert.Contains(world.Wires, wire =>
             wire.RelayToken == "peer" && wire.InputCameraId == "ptz" && wire.InputToken == "input");
-        Assert.Contains(world.Wires, wire =>
-            wire.RelayToken == "loop" && wire.InputCameraId == "master" && wire.InputToken == "input");
+        foreach (var token in new[] { "loop", "button" })
+            Assert.Contains(world.Wires, wire =>
+                wire.RelayToken == token && wire.InputCameraId == "master" && wire.InputToken == "input");
         Assert.All(world.Wires, wire => Assert.Equal("master", wire.RelayCameraId));
 
         // A device on the car would move the wire, and every camera that sees it, every frame.

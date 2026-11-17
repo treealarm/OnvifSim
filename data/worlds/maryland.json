@@ -1823,7 +1823,7 @@
   "cameras": [
     {
       "id": "master",
-      "name": "Main room master",
+      "name": "cam1",
       "kind": "fixed",
       "position": {
         "x": -8.003184,
@@ -1863,7 +1863,7 @@
       "relayOutputs": [
         {
           "token": "lamp",
-          "name": "Hall lamp relay",
+          "name": "relay1",
           "mode": "bistable",
           "delaySeconds": 5,
           "idleState": "open",
@@ -1871,7 +1871,7 @@
         },
         {
           "token": "peer",
-          "name": "Slave sensor relay",
+          "name": "relay2",
           "mode": "bistable",
           "delaySeconds": 5,
           "idleState": "open",
@@ -1879,7 +1879,15 @@
         },
         {
           "token": "loop",
-          "name": "Own sensor relay",
+          "name": "relay3",
+          "mode": "bistable",
+          "delaySeconds": 5,
+          "idleState": "open",
+          "active": false
+        },
+        {
+          "token": "button",
+          "name": "relay4",
           "mode": "bistable",
           "delaySeconds": 5,
           "idleState": "open",
@@ -1889,7 +1897,7 @@
       "digitalInputs": [
         {
           "token": "input",
-          "name": "Master sensor",
+          "name": "sensor1",
           "idleState": "open"
         }
       ],
@@ -1905,7 +1913,7 @@
     },
     {
       "id": "ptz",
-      "name": "Main room slave (PTZ)",
+      "name": "cam2",
       "kind": "ptz",
       "position": {
         "x": -1.6958097,
@@ -1967,7 +1975,7 @@
       "digitalInputs": [
         {
           "token": "input",
-          "name": "Slave sensor",
+          "name": "sensor2",
           "idleState": "open"
         }
       ],
@@ -1983,7 +1991,7 @@
     },
     {
       "id": "master2",
-      "name": "Building master 2",
+      "name": "cam3",
       "kind": "fixed",
       "position": {
         "x": -29.996798,
@@ -2034,7 +2042,7 @@
     },
     {
       "id": "ptz2",
-      "name": "Campus slave 2 (PTZ)",
+      "name": "cam4",
       "kind": "ptz",
       "position": {
         "x": -20.003633,
@@ -2106,7 +2114,7 @@
     },
     {
       "id": "vehicle",
-      "name": "Vehicle camera",
+      "name": "cam5",
       "kind": "fixed",
       "mountedOnVehicleId": "v1",
       "position": {
@@ -2184,6 +2192,12 @@
     {
       "relayCameraId": "master",
       "relayToken": "loop",
+      "inputCameraId": "master",
+      "inputToken": "input"
+    },
+    {
+      "relayCameraId": "master",
+      "relayToken": "button",
       "inputCameraId": "master",
       "inputToken": "input"
     }
