@@ -28,16 +28,23 @@ public sealed class OsmService
     private const int MaxResponseBytes = 32 * 1024 * 1024;
 
     // What the editor can build from one OSM element. A footprint for what stands on the ground, a
-    // line for a road, one point for a tree.
+    // line for a road, one point for a tree. A footprint's Holes are its courtyards, each stored the
+    // other way round from the outline (see Polygon.NormalizeHole).
     public sealed record Candidate(
         string OsmType, long OsmId, string Kind, string Name,
-        IReadOnlyList<GroundPoint> Points, float Height, float Width, bool HasHoles);
+        IReadOnlyList<GroundPoint> Points, float Height, float Width,
+        IReadOnlyList<IReadOnlyList<GroundPoint>> Holes);
 
     // Everything of the real world inside one world's extent, in that world's own metres: the WGS84
-    // rectangle it was read from (so a moved anchor or a resized terrain is noticed) and when.
+    // rectangle it was read from (so a moved anchor or a resized terrain is noticed) and when. The
+    // Version is the shape of this record: a reading in an older shape is thrown away and read again,
+    // because it does not know a courtyard's rings.
     public sealed record Area(
-        double South, double West, double North, double East,
-        DateTimeOffset FetchedAt, IReadOnlyList<Candidate> Objects);
+        int Version, double South, double West, double North, double East,
+        DateTimeOffset FetchedAt, IReadOnlyList<Candidate> Objects)
+    {
+        public const int SchemaVersion = 2;
+    }
 
     private readonly string? _endpoint;
     private readonly string _dataDirectory;
@@ -75,7 +82,7 @@ public sealed class OsmService
             _log?.LogWarning("osm: {File} is unreadable: {Message}", AreaFile(name), ex.Message);
             return null;
         }
-        if (area is null) return null;
+        if (area is null || area.Version != Area.SchemaVersion) return null;
         var bounds = TerrainMaps.BoundsOf(world.Geo, world.Terrain.Size);
         // Half a metre of slack: the bounds come from the same formula both times.
         bool same = Math.Abs(bounds.South - area.South) < 5e-7 && Math.Abs(bounds.North - area.North) < 5e-7
@@ -94,8 +101,8 @@ public sealed class OsmService
 
         var bounds = TerrainMaps.BoundsOf(world.Geo, world.Terrain.Size);
         var elements = await QueryAsync(Query(bounds.South, bounds.West, bounds.North, bounds.East), cancellationToken);
-        var area = new Area(bounds.South, bounds.West, bounds.North, bounds.East, DateTimeOffset.UtcNow,
-            CandidatesOf(world, elements));
+        var area = new Area(Area.SchemaVersion, bounds.South, bounds.West, bounds.North, bounds.East,
+            DateTimeOffset.UtcNow, CandidatesOf(world, elements));
 
         var file = AreaFile(name);
         Directory.CreateDirectory(Path.GetDirectoryName(file)!);
@@ -111,11 +118,12 @@ public sealed class OsmService
     {
         var box = string.Create(CultureInfo.InvariantCulture, $"({south:0.######},{west:0.######},{north:0.######},{east:0.######})");
         // nwr reaches relations too, which is how a building drawn as a multipolygon arrives; a tree
-        // is a node. Everything in one request.
+        // is a node. Everything in one request. "body" is what prints a relation's members, and a
+        // courtyard is an inner member: "tags geom" answers a relation with no members at all.
         return $"[out:json][timeout:{QueryTimeoutS}];(" +
                $"nwr{box}[building];nwr{box}[amenity=parking];nwr{box}[natural=water];" +
                $"way{box}[highway];node{box}[natural=tree];" +
-               ");out tags geom;";
+               ");out body geom;";
     }
 
     private async Task<List<Element>> QueryAsync(string query, CancellationToken cancellationToken)
@@ -173,15 +181,15 @@ public sealed class OsmService
                 foreach (var tag in tagObject.EnumerateObject())
                     tags[tag.Name] = tag.Value.GetString() ?? "";
 
-            var rings = new List<List<(double Lat, double Lon)>>();
-            var holes = false;
+            var outers = new List<List<(double Lat, double Lon)>>();
+            var inners = new List<List<(double Lat, double Lon)>>();
             if (element.TryGetProperty("geometry", out var geometry))
             {
                 var ring = ReadGeometry(geometry);
-                if (ring.Count > 0) rings.Add(ring);
+                if (ring.Count > 0) outers.Add(ring);
             }
             // A multipolygon relation carries its rings as members: an outer ring is a part of the
-            // object, an inner ring is a hole in it.
+            // object, an inner ring — a courtyard — is a hole in it.
             if (element.TryGetProperty("members", out var members))
                 foreach (var member in members.EnumerateArray())
                 {
@@ -189,13 +197,13 @@ public sealed class OsmService
                     if (!member.TryGetProperty("geometry", out var memberGeometry)) continue;
                     var ring = ReadGeometry(memberGeometry);
                     if (ring.Count == 0) continue;
-                    if (string.Equals(role, "inner", StringComparison.Ordinal)) { holes = true; continue; }
-                    rings.Add(ring);
+                    if (string.Equals(role, "inner", StringComparison.Ordinal)) inners.Add(ring);
+                    else outers.Add(ring);
                 }
-            if (rings.Count > 0)
-                elements.Add(new Element(type, id, tags, rings, holes));
+            if (outers.Count > 0)
+                elements.Add(new Element(type, id, tags, outers, inners));
             else if (element.TryGetProperty("lat", out var lat) && element.TryGetProperty("lon", out var lon))
-                elements.Add(new Element(type, id, tags, [[(lat.GetDouble(), lon.GetDouble())]], false));
+                elements.Add(new Element(type, id, tags, [[(lat.GetDouble(), lon.GetDouble())]], []));
         }
         return elements;
     }
@@ -212,20 +220,21 @@ public sealed class OsmService
     }
 
     // What of these elements this simulator can build, in the world's own metres. Everything the
-    // world's extent holds: picking afterwards is a walk over this list, not another request.
-    private static List<Candidate> CandidatesOf(WorldModel world, List<Element> elements)
+    // world's extent holds: picking afterwards is a walk over this list, not another request. A
+    // footprint whose courtyard cannot be built honestly is left out rather than offered without it:
+    // a lid over a courtyard is worse than a missing building.
+    private List<Candidate> CandidatesOf(WorldModel world, List<Element> elements)
     {
         var found = new List<Candidate>();
         foreach (var element in elements)
         {
             var kind = KindOf(element.Tags);
-            if (kind is null || element.Rings.Count == 0) continue;
-            var points = element.Rings[0].Select(p => WorldGeo.ToWorld(world, p.Lat, p.Lon, world.Geo.Elevation))
-                .Select(p => new GroundPoint(p.X, p.Z)).ToList();
+            if (kind is null || element.Outers.Count == 0) continue;
+            var points = ToWorld(world, element.Outers[0]);
 
             if (kind == "tree")
             {
-                found.Add(new Candidate(element.Type, element.Id, "tree", string.Empty, [points[0]], 12, 0, false));
+                found.Add(new Candidate(element.Type, element.Id, "tree", string.Empty, [points[0]], 12, 0, []));
                 continue;
             }
 
@@ -233,17 +242,44 @@ public sealed class OsmService
             {
                 if (points.Count < 2) continue;
                 found.Add(new Candidate(element.Type, element.Id, "highway", NameOf(element.Tags), points, 0,
-                    RoadWidth(element.Tags), false));
+                    RoadWidth(element.Tags), []));
                 continue;
             }
 
             var ring = Polygon.Normalize(points);
             if (ring.Count < 3 || !Polygon.IsSimple(ring) || MathF.Abs(Polygon.SignedArea(ring)) < Polygon.MinAreaM2) continue;
+
+            var holes = new List<IReadOnlyList<GroundPoint>>();
+            bool buildable = true;
+            foreach (var inner in element.Inners)
+            {
+                var hole = Polygon.NormalizeHole(ToWorld(world, inner));
+                if (hole.Count < 3 || !Polygon.IsSimple(hole) ||
+                    MathF.Abs(Polygon.SignedArea(hole)) < Polygon.MinAreaM2 ||
+                    !Polygon.HoleFits(ring, hole) ||
+                    holes.Any(other => Polygon.RingsCross(other, hole) ||
+                                       Polygon.Contains(other, hole[0]) || Polygon.Contains(hole, other[0])))
+                {
+                    _log?.LogWarning("osm: {Type}/{Id} has a courtyard this world cannot hold; it is not offered",
+                        element.Type, element.Id);
+                    buildable = false;
+                    break;
+                }
+                holes.Add(hole);
+            }
+            if (!buildable) continue;
+            float net = MathF.Abs(Polygon.SignedArea(ring)) - holes.Sum(h => MathF.Abs(Polygon.SignedArea(h)));
+            if (net < Polygon.MinAreaM2) continue;
+
             float height = kind == "building" ? BuildingHeight(element.Tags) : 0.05f;
-            found.Add(new Candidate(element.Type, element.Id, kind, NameOf(element.Tags), ring, height, 0, element.HasHoles));
+            found.Add(new Candidate(element.Type, element.Id, kind, NameOf(element.Tags), ring, height, 0, holes));
         }
         return found;
     }
+
+    private static List<GroundPoint> ToWorld(WorldModel world, List<(double Lat, double Lon)> ring) =>
+        ring.Select(p => WorldGeo.ToWorld(world, p.Lat, p.Lon, world.Geo.Elevation))
+            .Select(p => new GroundPoint(p.X, p.Z)).ToList();
 
     // What lies under a point of the world, nearest first: the footprint that holds the point comes
     // before anything beside it, then a road within its own width and a tree within a few metres. A
@@ -364,5 +400,5 @@ public sealed class OsmService
 
     private sealed record Element(
         string Type, long Id, Dictionary<string, string> Tags,
-        List<List<(double Lat, double Lon)>> Rings, bool HasHoles);
+        List<List<(double Lat, double Lon)>> Outers, List<List<(double Lat, double Lon)>> Inners);
 }

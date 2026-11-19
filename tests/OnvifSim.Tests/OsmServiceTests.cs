@@ -1,5 +1,7 @@
 using System.Net;
 using System.Text;
+using System.Text.Json;
+using OnvifSim.Geometry;
 using OnvifSim.World;
 
 namespace OnvifSim.Tests;
@@ -32,8 +34,25 @@ public class OsmServiceTests
     ]}
     """;
 
-    private sealed class StubOverpass : HttpMessageHandler
+    // A courtyard that cannot be built: its inner ring lies outside the footprint. Offering the
+    // footprint without it would be a lid over a courtyard, so it is not offered at all.
+    private const string BrokenCourtyard = """
+    {"elements":[
+      {"type":"relation","id":15,"tags":{"building":"yes","name":"Broken"},"members":[
+        {"type":"way","ref":3,"role":"outer","geometry":[
+          {"lat":38.99235,"lon":-76.93785},{"lat":38.99235,"lon":-76.93775},
+          {"lat":38.99225,"lon":-76.93775},{"lat":38.99225,"lon":-76.93785},
+          {"lat":38.99235,"lon":-76.93785}]},
+        {"type":"way","ref":4,"role":"inner","geometry":[
+          {"lat":38.99280,"lon":-76.93782},{"lat":38.99280,"lon":-76.93778},
+          {"lat":38.99276,"lon":-76.93778},{"lat":38.99276,"lon":-76.93782},
+          {"lat":38.99280,"lon":-76.93782}]}]}
+    ]}
+    """;
+
+    private sealed class StubOverpass(string? answer = null) : HttpMessageHandler
     {
+        private readonly string _answer = answer ?? Answer;
         public string? LastQuery { get; private set; }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -42,7 +61,7 @@ public class OsmServiceTests
             LastQuery = Uri.UnescapeDataString(body.Replace('+', ' '));
             return new HttpResponseMessage(HttpStatusCode.OK)
             {
-                Content = new StringContent(Answer, Encoding.UTF8, "application/json"),
+                Content = new StringContent(_answer, Encoding.UTF8, "application/json"),
             };
         }
     }
@@ -62,10 +81,11 @@ public class OsmServiceTests
 
     // One world, one download: the answer is kept beside the ground map's cache, under the world's
     // own name, and never reaches the world file.
-    private static async Task<(OsmService Service, OsmService.Area Area, StubOverpass Stub, string Data)> Download()
+    private static async Task<(OsmService Service, OsmService.Area Area, StubOverpass Stub, string Data)> Download(
+        string? answer = null)
     {
         var data = Scratch();
-        var stub = new StubOverpass();
+        var stub = new StubOverpass(answer);
         var service = new OsmService("https://osm.test/api/interpreter", data, new HttpClient(stub));
         var area = await service.DownloadAsync(World(), "maryland");
         return (service, area, stub, data);
@@ -81,7 +101,9 @@ public class OsmServiceTests
             Assert.Contains("nwr(38.9905", stub.LastQuery);
             Assert.Contains(")[building]", stub.LastQuery);
             Assert.Contains("node(", stub.LastQuery);
-            Assert.Contains("out tags geom;", stub.LastQuery);
+            // "body" is what prints a relation's members: without it a courtyard never arrives.
+            Assert.Contains("out body geom;", stub.LastQuery);
+            Assert.Equal(OsmService.Area.SchemaVersion, area.Version);
             Assert.True(area.Objects.Count >= 4);
             Assert.True(File.Exists(service.AreaFile("maryland")), "the objects are not kept on this machine");
             Assert.Contains(Path.Combine("osm", "maryland.json"), service.AreaFile("maryland"));
@@ -105,7 +127,7 @@ public class OsmServiceTests
             Assert.Equal("Hall", building.Name);
             Assert.Equal(11.78f, building.Height, 2);
             Assert.Equal(4, building.Points.Count);
-            Assert.False(building.HasHoles);
+            Assert.Empty(building.Holes);
         }
         finally
         {
@@ -113,10 +135,10 @@ public class OsmServiceTests
         }
     }
 
-    // A courtyard is a hole: the prism cannot draw one, so the candidate says so and the editor
-    // refuses it with a message instead of building a lid over the courtyard.
+    // A courtyard is a hole in the footprint: the candidate carries its ring, stored the other way
+    // round from the outline, and the editor builds the building around it instead of a lid over it.
     [Fact]
-    public async Task ABuildingWithACourtyard_SaysItHasHoles()
+    public async Task ABuildingWithACourtyard_IsOfferedWithItsHole()
     {
         var (_, area, _, data) = await Download();
         try
@@ -124,8 +146,46 @@ public class OsmServiceTests
             var within = OsmService.Pick(area, -5f, -1f);
             var court = within.Single(c => c.OsmId == 12);
             Assert.Equal("relation", court.OsmType);
-            Assert.True(court.HasHoles);
-            Assert.Equal(4, court.Points.Count); // the outer ring only
+            Assert.Equal(4, court.Points.Count); // the outline
+            var hole = Assert.Single(court.Holes);
+            Assert.Equal(4, hole.Count);
+            Assert.True(Polygon.SignedArea(hole) > 0, "the hole is not stored the other way round");
+            Assert.True(Polygon.HoleFits(court.Points, hole));
+        }
+        finally
+        {
+            Directory.Delete(data, recursive: true);
+        }
+    }
+
+    // A footprint whose courtyard cannot be built is not offered at all: a prism without the hole
+    // would be a roof over the courtyard, which is worse than saying nothing about it.
+    [Fact]
+    public async Task ABuildingWhoseCourtyardCannotBeBuilt_IsNotOffered()
+    {
+        var (_, area, _, data) = await Download(BrokenCourtyard);
+        try
+        {
+            Assert.DoesNotContain(area.Objects, c => c.OsmId == 15);
+        }
+        finally
+        {
+            Directory.Delete(data, recursive: true);
+        }
+    }
+
+    // A reading in an older shape knows nothing of a courtyard's rings: it is thrown away and the
+    // extent is read again rather than answering clicks from it.
+    [Fact]
+    public async Task AnAreaReadByAnOlderSchema_IsReadAgain()
+    {
+        var (service, area, _, data) = await Download();
+        try
+        {
+            File.WriteAllText(service.AreaFile("maryland"),
+                JsonSerializer.Serialize(area with { Version = 1 }, WorldStore.Json));
+
+            Assert.Null(service.Cached(World(), "maryland"));
         }
         finally
         {
