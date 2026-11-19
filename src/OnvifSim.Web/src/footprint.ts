@@ -67,6 +67,104 @@ function sameRing(a: GroundPoint[], b: GroundPoint[]): boolean {
   return a.length === b.length && a.every((p, i) => distance(p, b[i]) <= 1e-4);
 }
 
+// ---- A courtyard drawn onto a footprint ----
+
+// The smallest courtyard, and the smallest material left around one, may cover this much: the
+// server's Polygon.MinAreaM2.
+const minAreaM2 = 1;
+// Two edges this close in metres touch: the server's OnSegment tolerance.
+const touchTolerance = 1e-4;
+
+export type CourtyardCheck = { hole: GroundPoint[] } | { error: string };
+
+// The clicked ring as one of the object's courtyards, or why it cannot be one. The same rule
+// WorldValidation.CheckHoles applies on the server: normalized into the courtyard's direction, a
+// simple ring, wholly inside the outline and clear of its walls, clear of the courtyards already
+// there, and leaving material around them. The server still checks the world it is sent; this is
+// what lets a ring be refused at once, before the object is touched.
+export function courtyardFits(outline: GroundPoint[], holes: GroundPoint[][], ring: GroundPoint[]): CourtyardCheck {
+  const hole = normalizeHole(ring);
+  if (hole.length < 3) return { error: 'A courtyard needs at least three points.' };
+  if (!ringIsSimple(hole)) return { error: 'That courtyard crosses itself, so it has no inside.' };
+  if (Math.abs(signedArea(hole)) < minAreaM2) return { error: `That courtyard covers less than ${minAreaM2} m².` };
+  if (!holeFits(outline, hole)) return { error: 'That courtyard is not inside the outline, or touches it.' };
+  for (let other = 0; other < holes.length; other++) {
+    if (ringsCross(hole, holes[other])) return { error: `That courtyard crosses courtyard ${other + 1}.` };
+    if (ringContains(holes[other], hole[0])) return { error: `That courtyard lies inside courtyard ${other + 1}.` };
+  }
+  const left = Math.abs(signedArea(outline))
+    - holes.reduce((sum, other) => sum + Math.abs(signedArea(other)), 0)
+    - Math.abs(signedArea(hole));
+  if (left < minAreaM2) return { error: `The footprint leaves less than ${minAreaM2} m² around its courtyards.` };
+  return { hole };
+}
+
+// A hole as stored: inside the outline, its edges touching neither the walls nor crossing them.
+function holeFits(outline: GroundPoint[], hole: GroundPoint[]): boolean {
+  return outline.length >= 3 && hole.length >= 3 && !ringsCross(outline, hole)
+    && hole.every((point) => ringContains(outline, point));
+}
+
+// Whether a point lies inside a ring, by counting the crossings of a ray to the east; a point on an
+// edge counts as inside, as Polygon.Contains does.
+function ringContains(ring: GroundPoint[], point: GroundPoint): boolean {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const a = ring[i], b = ring[j];
+    if (onSegment(a, b, point, touchTolerance)) return true;
+    if ((a.z > point.z) !== (b.z > point.z)
+      && point.x < ((b.x - a.x) * (point.z - a.z)) / (b.z - a.z) + a.x) inside = !inside;
+  }
+  return inside;
+}
+
+// Whether any two edges of the two rings touch or cross.
+function ringsCross(a: GroundPoint[], b: GroundPoint[]): boolean {
+  if (a.length < 3 || b.length < 3) return false;
+  for (let i = 0; i < a.length; i++)
+    for (let j = 0; j < b.length; j++)
+      if (segmentsCross(a[i], a[(i + 1) % a.length], b[j], b[(j + 1) % b.length])) return true;
+  return false;
+}
+
+// Whether no two edges of one ring cross; a ring that does has no inside.
+function ringIsSimple(ring: GroundPoint[]): boolean {
+  const n = ring.length;
+  if (n < 3) return false;
+  for (let i = 0; i < n; i++)
+    for (let j = i + 1; j < n; j++) {
+      // Neighbouring edges share a vertex; that is not a crossing.
+      if (j === (i + 1) % n || (j + 1) % n === i) continue;
+      if (segmentsCross(ring[i], ring[(i + 1) % n], ring[j], ring[(j + 1) % n])) return false;
+    }
+  return true;
+}
+
+function signedArea(ring: GroundPoint[]): number {
+  let sum = 0;
+  for (let i = 0; i < ring.length; i++) {
+    const a = ring[i], b = ring[(i + 1) % ring.length];
+    sum += a.x * b.z - b.x * a.z;
+  }
+  return sum / 2;
+}
+
+// Two edges touch or cross: they straddle each other, or one end lies on the other.
+function segmentsCross(a0: GroundPoint, a1: GroundPoint, b0: GroundPoint, b1: GroundPoint): boolean {
+  const d1 = cross(b0, b1, a0), d2 = cross(b0, b1, a1);
+  const d3 = cross(a0, a1, b0), d4 = cross(a0, a1, b1);
+  if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0))) return true;
+  return (Math.abs(d1) <= touchTolerance && onSegment(b0, b1, a0, touchTolerance))
+    || (Math.abs(d2) <= touchTolerance && onSegment(b0, b1, a1, touchTolerance))
+    || (Math.abs(d3) <= touchTolerance && onSegment(a0, a1, b0, touchTolerance))
+    || (Math.abs(d4) <= touchTolerance && onSegment(a0, a1, b1, touchTolerance));
+}
+
+// Twice the signed area of the triangle a, b, c, as Polygon.Cross computes it.
+function cross(a: GroundPoint, b: GroundPoint, c: GroundPoint): number {
+  return (b.x - a.x) * (c.z - a.z) - (b.z - a.z) * (c.x - a.x);
+}
+
 // A place in the object's own metres as a place in the world: its rotation (degrees clockwise seen
 // from above, the negative of the three.js group's rotation.y) and its position.
 export function toWorldPoint(obj: Pick<WorldObject, 'position' | 'rotationY'>, point: GroundPoint): GroundPoint {
@@ -225,13 +323,13 @@ function edgeLength(ring: GroundPoint[], edge: number): number {
   return distance(ring[edge], ring[(edge + 1) % ring.length]);
 }
 
-function onSegment(a: GroundPoint, b: GroundPoint, point: GroundPoint): boolean {
+function onSegment(a: GroundPoint, b: GroundPoint, point: GroundPoint, tolerance = epsilon): boolean {
   const dx = b.x - a.x, dz = b.z - a.z;
   const length = Math.hypot(dx, dz);
-  if (length < epsilon) return distance(a, point) <= epsilon;
+  if (length < epsilon) return distance(a, point) <= tolerance;
   const t = ((point.x - a.x) * dx + (point.z - a.z) * dz) / (length * length);
-  if (t < -epsilon || t > 1 + epsilon) return false;
-  return Math.hypot(point.x - (a.x + dx * t), point.z - (a.z + dz * t)) <= epsilon;
+  if (t < -tolerance || t > 1 + tolerance) return false;
+  return Math.hypot(point.x - (a.x + dx * t), point.z - (a.z + dz * t)) <= tolerance;
 }
 
 function findPoint(ring: GroundPoint[], point: GroundPoint): number {

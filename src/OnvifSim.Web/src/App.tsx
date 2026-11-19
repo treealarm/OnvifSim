@@ -7,7 +7,7 @@ import { RoadInspector, VehicleInspector, WalkerInspector } from './panels/Route
 import { Toolbar } from './panels/Toolbar';
 import { LampInspector, WorldInspector } from './panels/WorldInspector';
 import { WorldMenu } from './panels/WorldMenu';
-import { cancelDrawing, connect, finishDrawing, redo, removeSelected, select, undo, useEditor } from './store';
+import { cancelDrawing, connect, finishCourtyard, finishDrawing, redo, removeSelected, select, undo, useEditor } from './store';
 import { Viewport } from './viewport/Viewport';
 
 export function App() {
@@ -89,8 +89,8 @@ function Inspector() {
 }
 
 // Ctrl+Z undoes, Ctrl+Shift+Z and Ctrl+Y redo, Delete removes the selection, Escape drops it (or the
-// road or route being drawn), Enter finishes the drawing, G and R switch the gizmo. Not while typing in
-// a field, where the keys belong to the field.
+// road, route or courtyard being drawn), Enter finishes the drawing, G and R switch the gizmo. Not
+// while typing in a field, where the keys belong to the field.
 function onShortcut(e: KeyboardEvent) {
   if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement || e.target instanceof HTMLTextAreaElement) return;
   const key = e.key.toLowerCase();
@@ -100,9 +100,12 @@ function onShortcut(e: KeyboardEvent) {
     else return;
     e.preventDefault();
   } else if (e.key === 'Delete') removeSelected();
-  else if (e.key === 'Enter') void finishDrawing();
-  else if (e.key === 'Escape') {
-    if (useEditor.getState().tool.kind === 'draw') cancelDrawing();
+  else if (e.key === 'Enter') {
+    if (useEditor.getState().tool.kind === 'courtyard') finishCourtyard();
+    else void finishDrawing();
+  } else if (e.key === 'Escape') {
+    const tool = useEditor.getState().tool;
+    if (tool.kind === 'draw' || tool.kind === 'courtyard') cancelDrawing();
     else select(null);
   }
   else if (key === 'g') useEditor.setState({ gizmo: 'move' });

@@ -1,12 +1,14 @@
 import { create } from 'zustand';
 import { api, ApiError, type OsmArea, type OsmCandidate } from './api';
 import {
+  courtyardFits,
   footprintOf,
   insertOnEdge,
   normalizeRings,
   remapOpenings,
   ringOf,
   sameFootprint,
+  toLocalPoint,
   withPoint,
   type Footprint,
   type RingIndex,
@@ -53,12 +55,25 @@ export interface DrawTool {
   points: GroundPoint[];
   extending?: string;
 }
+// Drawing a courtyard into a selected building: points clicked over its roof, in world metres; the
+// object's own metres are what they become when the ring is finished.
+export interface CourtyardTool {
+  kind: 'courtyard';
+  objectId: string;
+  points: GroundPoint[];
+}
 // What the real world offers under a click: the objects found there and the one being looked at.
 export interface OsmPick {
   candidates: OsmCandidate[];
   picked: number;
 }
-export type Tool = { kind: 'select' } | { kind: 'place'; what: Placeable } | { kind: 'brush'; brush: BrushKind } | { kind: 'osm' } | DrawTool;
+export type Tool =
+  | { kind: 'select' }
+  | { kind: 'place'; what: Placeable }
+  | { kind: 'brush'; brush: BrushKind }
+  | { kind: 'osm' }
+  | DrawTool
+  | CourtyardTool;
 // A flight of the viewport to a point: at makes every press a new request, even for the same point.
 export interface FocusRequest {
   point: [number, number, number];
@@ -174,6 +189,8 @@ export function toolGroupOf(tool: Tool): ToolGroup {
     case 'place':
       return 'add';
     case 'draw':
+      return 'draw';
+    case 'courtyard':
       return 'draw';
     case 'osm':
       return 'map';
@@ -781,6 +798,7 @@ export function addDrawingPoint(point: GroundPoint) {
   set({ tool: { ...tool, points: [...tool.points, point] } });
 }
 
+// Drops a road, a route or a courtyard being drawn; nothing has been written yet.
 export function cancelDrawing() {
   set({ tool: { kind: 'select' }, toolGroup: 'select' });
 }
@@ -844,6 +862,50 @@ export async function finishDrawing() {
   } catch (error) {
     showError(error);
   }
+}
+
+// ---- Drawing a courtyard into a building ----
+
+// The courtyard tool belongs to one drawn building: it is the outline that says where a courtyard can
+// lie, and the card that offers the button is the building's own.
+export function startCourtyard(objectId: string) {
+  const obj = useEditor.getState().world?.objects.find((o) => o.id === objectId);
+  if (!obj || obj.type !== 'prism' || (obj.points?.length ?? 0) < 3) {
+    showError('A courtyard belongs to a building whose outline has been drawn.');
+    return;
+  }
+  set({ tool: { kind: 'courtyard', objectId, points: [] }, toolGroup: 'draw' });
+}
+
+export function addCourtyardPoint(point: GroundPoint) {
+  const { tool } = useEditor.getState();
+  if (tool.kind !== 'courtyard') return;
+  const last = tool.points.at(-1);
+  // The two clicks of a double click land on one spot; one point is enough.
+  if (last && Math.hypot(last.x - point.x, last.z - point.z) < 0.5) return;
+  set({ tool: { ...tool, points: [...tool.points, point] } });
+}
+
+// The clicked ring becomes one of the building's courtyards, or its points stay in hand with the
+// reason written: a ring that does not fit is never a silent repair. The ring is checked before the
+// object is touched, against the outline and the courtyards it already has.
+export function finishCourtyard() {
+  const { tool, world } = useEditor.getState();
+  if (tool.kind !== 'courtyard') return;
+  const obj = world?.objects.find((o) => o.id === tool.objectId);
+  if (!obj || obj.type !== 'prism') {
+    set({ tool: { kind: 'select' }, toolGroup: 'select' });
+    showError('That building is gone, so its courtyard was not kept.');
+    return;
+  }
+  const ring = tool.points.map((point) => toLocalPoint(obj, point));
+  const checked = courtyardFits(obj.points ?? [], obj.holes ?? [], ring);
+  if ('error' in checked) {
+    showError(checked.error);
+    return;
+  }
+  set({ tool: { kind: 'select' }, toolGroup: 'select' });
+  updateObject({ ...obj, holes: [...(obj.holes ?? []), checked.hole] });
 }
 
 // Moves one point of the selected road or route, as its handle is dragged over the ground.

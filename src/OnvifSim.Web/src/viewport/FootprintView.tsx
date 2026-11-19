@@ -3,18 +3,30 @@ import { useThree, type ThreeEvent } from '@react-three/fiber';
 import { useEffect } from 'react';
 import { footprintOf, ringOf, toWorldPoint, withPoint, type RingIndex } from '../footprint';
 import { heightAt, type GroundPoint, type Terrain, type WorldObject } from '../model';
-import { beginEdgeInsert, beginVertexDrag, cancelVertexDrag, finishVertexDrag, useEditor } from '../store';
+import {
+  addCourtyardPoint, beginEdgeInsert, beginVertexDrag, cancelVertexDrag, finishCourtyard, finishVertexDrag, useEditor,
+} from '../store';
 
 // The vertices of the selected building and the outline as it is being edited. A sphere on a corner
 // drags it over the ground; a cube on the middle of an edge adds a corner there and drags it at once.
 // The object itself does not move until the pointer is released — the bright line is the shape being
 // drawn, and the mesh catches up in one edit.
+//
+// A courtyard is drawn the same selection away from the world: a click lands on the roof plane, not on
+// the ground behind the building, so the ring follows the eye from any angle.
 export function FootprintView({ obj, terrain }: { obj: WorldObject; terrain: Terrain }) {
   const controls = useThree((s) => s.controls);
   const drag = useEditor((s) => s.draggedVertex);
+  const tool = useEditor((s) => s.tool);
   const active = drag?.objectId === obj.id ? drag : null;
   const frame = active ? withPoint(active.working, active.ring, active.index, active.point) : footprintOf(obj);
   const rings: RingIndex[] = [-1, ...frame.holes.map((_, hole) => hole)];
+  const drawing = tool.kind === 'courtyard' && tool.objectId === obj.id ? tool : null;
+  const outline = frame.points;
+  // The drawing surface is the building's roof: flat, at the height of what the editor shows there.
+  const roof = heightAt(terrain, obj.position.x, obj.position.z) + obj.position.y + obj.scale.y;
+  const radius = Math.max(1, ...outline.map((p) => Math.hypot(p.x, p.z)));
+  const planeSide = 2 * radius + 4;
 
   useEffect(() => {
     if (!active) return;
@@ -89,6 +101,47 @@ export function FootprintView({ obj, terrain }: { obj: WorldObject; terrain: Ter
           </mesh>
         ));
       })}
+      {drawing && outline.length >= 3 && (
+        <group position={[obj.position.x, roof, obj.position.z]} rotation-y={(-obj.rotationY * Math.PI) / 180}>
+          {/* Invisible, but the raycaster sees it (as it does the walker's proxy): a click over the
+              roof is a point of the courtyard, not the ground behind the building. */}
+          <mesh
+            rotation-x={-Math.PI / 2}
+            visible={false}
+            onClick={(e) => {
+              if (e.delta > 4) return;
+              e.stopPropagation();
+              addCourtyardPoint({ x: e.point.x, z: e.point.z });
+            }}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              finishCourtyard();
+            }}
+          >
+            <planeGeometry args={[planeSide, planeSide]} />
+            <meshBasicMaterial />
+          </mesh>
+        </group>
+      )}
+      {drawing && drawing.points.length > 0 && (
+        <>
+          {drawing.points.length > 1 && (
+            <Line
+              points={(drawing.points.length > 2 ? [...drawing.points, drawing.points[0]] : drawing.points).map(
+                (p) => [p.x, roof + 0.4, p.z] as const,
+              )}
+              color="#9fd8ff"
+              lineWidth={2}
+            />
+          )}
+          {drawing.points.map((p, index) => (
+            <mesh key={`c-${index}`} position={[p.x, roof + 0.4, p.z]} raycast={() => null}>
+              <sphereGeometry args={[0.7, 10, 8]} />
+              <meshBasicMaterial color="#9fd8ff" />
+            </mesh>
+          ))}
+        </>
+      )}
     </>
   );
 }

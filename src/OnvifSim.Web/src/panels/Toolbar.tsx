@@ -3,6 +3,7 @@ import {
   cancelDrawing,
   disableRealWorld,
   enableRealWorld,
+  finishCourtyard,
   finishDrawing,
   redo,
   setTool,
@@ -188,14 +189,18 @@ export function Toolbar() {
                 </button>
               );
             })}
-            {tool.kind === 'draw' && (
+            {(tool.kind === 'draw' || tool.kind === 'courtyard') && (
               <>
                 <span className="hint">
                   {tool.points.length === 0
-                    ? 'Click the ground to set the first point'
-                    : `${tool.points.length} point${tool.points.length > 1 ? 's' : ''}; double-click or Enter to finish`}
+                    ? tool.kind === 'courtyard'
+                      ? 'Click inside the building to set the first point of its courtyard'
+                      : 'Click the ground to set the first point'
+                    : tool.kind === 'courtyard'
+                      ? `Courtyard: ${tool.points.length} point${tool.points.length > 1 ? 's' : ''}; double-click or Enter to finish`
+                      : `${tool.points.length} point${tool.points.length > 1 ? 's' : ''}; double-click or Enter to finish`}
                 </span>
-                <button type="button" onClick={() => void finishDrawing()}>
+                <button type="button" onClick={() => (tool.kind === 'courtyard' ? finishCourtyard() : void finishDrawing())}>
                   Finish
                 </button>
                 <button type="button" onClick={cancelDrawing}>

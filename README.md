@@ -82,8 +82,9 @@ editor, and put away the ones you no longer use without losing them.
   its own — drawn from its colours, never from a picture — so a wall, a road and a floor are told
   apart at a glance; a surface can also be made smooth.
 - Draw a building as any closed outline — walls, roof and floor from both sides — cut doorways into
-  its walls, and leave a courtyard open where the outline has a hole. Drag a vertex in the viewport,
-  or an edge's midpoint to add one; a doorway keeps its place on the wall it was cut into.
+  its walls, and draw a courtyard into it: the selected building's card offers **Draw courtyard**,
+  clicks over its roof put the ring down, and the roof and floor open over it. Drag a vertex in the
+  viewport, or an edge's midpoint to add one; a doorway keeps its place on the wall it was cut into.
 - Prepare any number of named worlds in the data directory and switch between them in the header,
   without restarting; move a world to the trash and restore it, or empty the trash for good. A
   Maryland hall with a fixed master and a PTZ camera facing each other, a doorway onto a ring road
@@ -217,7 +218,9 @@ Picking the same element again updates that object — its footprint, courtyards
 read from OSM again, while its colours, texture and seed stay — rather than adding a second one. A
 building drawn with a courtyard is one prism with the court open: roof and floor stop at its inner
 ring, and its walls face into it. A footprint whose courtyard cannot be built is not offered at all,
-rather than built as a lid over the court. Roads carry no `sourceOsm`, so importing a road twice
+rather than built as a lid over the court. A courtyard can also be drawn into a building by hand
+after it is built; picking the same element again reads its courtyards from OSM and replaces the
+hand-drawn ones. Roads carry no `sourceOsm`, so importing a road twice
 adds it twice. Data © OpenStreetMap contributors.
 
 - **Switch** by choosing a world in the header's list. Edits in the outgoing world are saved first,
@@ -285,12 +288,17 @@ is marked with a dot, so the viewport keeps doing exactly what it did until anot
   click the ground. **Cutaway**, at the left of the tools row, clips the objects and devices above
   2.5 m so a room can be seen and edited from above; a click above the cut plane goes through to what
   stands behind it.
-- **Draw** roads, people and car routes: click the ground point by point and finish with a
-  double-click or Enter. A person walks their route, a car drives theirs over and over; a car turns
-  to follow the route. **Closed loop** makes the last point join the first, so they go round; left
-  open, they turn round at the last point and come back. A road can be closed into a ring the same
-  way. Every camera sees them move: where they are follows from the clock, so all streams and
-  snapshots agree. Drag the points of a selected road or route to reshape it.
+- **Draw** roads, people, car routes and building outlines: click the ground point by point and
+  finish with a double-click or Enter. A person walks their route, a car drives theirs over and over;
+  a car turns to follow the route. **Closed loop** makes the last point join the first, so they go
+  round; left open, they turn round at the last point and come back. A road can be closed into a ring
+  the same way. Every camera sees them move: where they are follows from the clock, so all streams and
+  snapshots agree. Drag the points of a selected road or route to reshape it. A selected building's
+  card offers **Draw courtyard**: click over its roof (an invisible plane at the roof's height, so a
+  click lands where the eye does) and finish the same way; the ring is checked against the outline
+  and the courtyards already there and refused, never silently repaired, when it does not fit. A
+  refused ring keeps its points, so it can be added to or cancelled with Escape; nothing is written
+  until it is finished. Openings are cut into the outer walls only, not into courtyard walls.
 - **Terrain** brushes: Raise, Lower, Smooth and Flatten, with radius and strength.
 - **Contents** lists every camera, object, road, person and moving car in the world on the left.
   Objects are grouped by type, and opening a type shows its ids. Clicking a row selects it exactly as

@@ -1,5 +1,5 @@
 import { objectTypeNames, objectTypes, plateText, type ObjectType, type Opening, type Vec3, type WorldObject } from '../model';
-import { defaultScale, driveCar, removeSelected, updateObject } from '../store';
+import { defaultScale, driveCar, removeSelected, startCourtyard, updateObject } from '../store';
 import { ColorField, NumberField, Section, SelectField, TextField } from './fields';
 import { InspectorTitle } from './FindButton';
 
@@ -89,6 +89,14 @@ export function ObjectInspector({ obj }: { obj: WorldObject }) {
               {obj.holes?.length ? ` and ${obj.holes.length} courtyard${obj.holes.length === 1 ? '' : 's'}` : ''}. Drag a
               vertex in the viewport, or an edge's midpoint to add one.
             </p>
+            {/* A courtyard is drawn over the roof of the building it belongs to; the outline is what
+                says where it may lie. */}
+            <div className="field">
+              <span>Courtyards</span>
+              <button type="button" onClick={() => startCourtyard(obj.id)}>
+                Draw courtyard
+              </button>
+            </div>
           </>
         ) : (
           <>
@@ -147,8 +155,8 @@ export function ObjectInspector({ obj }: { obj: WorldObject }) {
             Add a doorway
           </button>
           <p className="muted">
-            An opening sits on one segment of the footprint, measured along it from the segment's first point; a
-            raised sill makes it a window.
+            An opening sits on one segment of the outer footprint, measured along it from the segment's first point;
+            a raised sill makes it a window. Courtyard walls have none.
           </p>
         </Section>
       )}
