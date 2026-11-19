@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **A courtyard is drawn into a building.** A selected prism's card offers **Draw courtyard**: the
+  clicks land on an invisible plane at the roof's height, so a point goes where the eye does rather
+  than onto the ground behind the building, and Enter or a double-click turns the ring into one of
+  the object's holes in a single edit. The ring is checked before the object is touched, by the same
+  rule the server applies: a simple ring of at least 1 m², wholly inside the outline and clear of its
+  walls, clear of the courtyards already there, leaving at least 1 m² of material around them. A
+  refused ring keeps its points so it can be added to or cancelled; Escape writes nothing. Openings
+  stay on the outer footprint — courtyard walls have none.
 - **A building's footprint may have courtyards.** A `prism` object carries `holes`: rings inside its
   outline, stored the other way round. Walls are drawn around each court, the roof and floor stop at
   it, tiles and parking bays keep out of it, and the wall's lighter face looks into the court. The
