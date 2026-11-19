@@ -4,6 +4,8 @@ import {
   cameraIoOf,
   decodeWorld,
   nextId,
+  normalizeHole,
+  normalizeOutline,
   sameId,
   type CameraIo,
   type CameraKind,
@@ -694,43 +696,6 @@ export const defaultScale: Record<ObjectType, Vec3> = {
   prism: { x: 1, y: 8, z: 1 },
 };
 
-// An outline as the server stores one (Polygon.Normalize): no points closer than a centimetre, no
-// point that only stands on a straight edge, and the direction whose top face points up. A footprint
-// that is drawn round the other way is flipped here, so drawing a building never fails on direction.
-export function normalizeOutline(points: GroundPoint[]): GroundPoint[] {
-  const ring: GroundPoint[] = [];
-  for (const p of points) {
-    const last = ring.at(-1);
-    if (!last || Math.hypot(last.x - p.x, last.z - p.z) > 0.01) ring.push(p);
-  }
-  while (ring.length > 1 && Math.hypot(ring[0].x - ring.at(-1)!.x, ring[0].z - ring.at(-1)!.z) <= 0.01)
-    ring.pop();
-
-  const cross = (a: GroundPoint, b: GroundPoint, c: GroundPoint) =>
-    (b.x - a.x) * (c.z - a.z) - (b.z - a.z) * (c.x - a.x);
-  let removed = true;
-  while (removed && ring.length > 3) {
-    removed = false;
-    for (let i = 0; i < ring.length; i++) {
-      const previous = ring[(i + ring.length - 1) % ring.length];
-      const next = ring[(i + 1) % ring.length];
-      if (Math.abs(cross(previous, ring[i], next)) > 1e-3) continue;
-      ring.splice(i, 1);
-      removed = true;
-      break;
-    }
-  }
-
-  let area = 0;
-  for (let i = 0; i < ring.length; i++) {
-    const a = ring[i];
-    const b = ring[(i + 1) % ring.length];
-    area += a.x * b.z - b.x * a.z;
-  }
-  if (ring.length >= 3 && area > 0) ring.reverse();
-  return ring;
-}
-
 // Adds an object, a camera or a lamp on the ground at (x, z) and selects it. Only what differs from
 // the server's defaults is sent; the full model arrives with the next world, as it does for any edit.
 export async function place(what: Placeable, x: number, z: number) {
@@ -1019,10 +984,6 @@ export async function buildOsmCandidate() {
   const { world, osm } = useEditor.getState();
   const candidate = osm?.candidates[osm.picked];
   if (!world || !candidate) return;
-  if (candidate.hasHoles) {
-    showError('This one is drawn with a courtyard, which a footprint of this world cannot hold; import its parts separately.');
-    return;
-  }
   const source = `${candidate.osmType}/${candidate.osmId}`;
   try {
     if (candidate.kind === 'highway') {
@@ -1048,6 +1009,13 @@ export async function buildOsmCandidate() {
         showError('That outline has no inside to build.');
         return;
       }
+      // Each courtyard is a ring in the footprint, stored the other way round; the object's place is
+      // the outline's middle, and every ring is written relative to it.
+      const holes = candidate.holes.map(normalizeHole);
+      if (holes.some((hole) => hole.length < 3)) {
+        showError('A courtyard of that outline has no inside to build.');
+        return;
+      }
       const cx = ring.reduce((sum, p) => sum + p.x, 0) / ring.length;
       const cz = ring.reduce((sum, p) => sum + p.z, 0) / ring.length;
       const id = uniqueId(slug(candidate.name) || `osm-${candidate.osmId}`, world.objects.map((o) => o.id));
@@ -1057,6 +1025,9 @@ export async function buildOsmCandidate() {
         position: { x: cx, y: 0, z: cz },
         scale: { x: 1, y: candidate.height, z: 1 },
         points: ring.map((p) => ({ x: p.x - cx, z: p.z - cz })),
+        ...(holes.length > 0
+          ? { holes: holes.map((hole) => hole.map((p) => ({ x: p.x - cx, z: p.z - cz }))) }
+          : {}),
         // An apron of the real world is asphalt with its bays painted on, not a pale slab; anything
         // else keeps the light wall and dark roof a building has by default.
         ...(candidate.kind === 'parking'

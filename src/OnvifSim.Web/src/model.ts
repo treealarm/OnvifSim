@@ -130,6 +130,9 @@ export interface WorldObject {
   // A prism's footprint in its own metres, before its rotation, in the direction the server stores it
   // (see normalizeOutline); only a prism has one.
   points?: GroundPoint[] | null;
+  // A prism's courtyards: rings inside the footprint, stored the other way round from it (see
+  // normalizeHole). Null or absent for a footprint without holes.
+  holes?: GroundPoint[][] | null;
   openings?: Opening[] | null;
   // The OSM element an imported object was built from, "way/24303349".
   sourceOsm?: string | null;
@@ -471,6 +474,49 @@ export function heightAt(terrain: Terrain, x: number, z: number): number {
   const h0 = sample(ix, iz) + (sample(ix + 1, iz) - sample(ix, iz)) * tx;
   const h1 = sample(ix, iz + 1) + (sample(ix + 1, iz + 1) - sample(ix, iz + 1)) * tx;
   return h0 + (h1 - h0) * tz;
+}
+
+// An outline as the server stores one (Polygon.Normalize): no points closer than a centimetre, no
+// point that only stands on a straight edge, and the direction whose top face points up. A footprint
+// that is drawn round the other way is flipped here, so drawing a building never fails on direction.
+export function normalizeOutline(points: GroundPoint[]): GroundPoint[] {
+  const ring: GroundPoint[] = [];
+  for (const p of points) {
+    const last = ring.at(-1);
+    if (!last || Math.hypot(last.x - p.x, last.z - p.z) > 0.01) ring.push(p);
+  }
+  while (ring.length > 1 && Math.hypot(ring[0].x - ring.at(-1)!.x, ring[0].z - ring.at(-1)!.z) <= 0.01)
+    ring.pop();
+
+  const cross = (a: GroundPoint, b: GroundPoint, c: GroundPoint) =>
+    (b.x - a.x) * (c.z - a.z) - (b.z - a.z) * (c.x - a.x);
+  let removed = true;
+  while (removed && ring.length > 3) {
+    removed = false;
+    for (let i = 0; i < ring.length; i++) {
+      const previous = ring[(i + ring.length - 1) % ring.length];
+      const next = ring[(i + 1) % ring.length];
+      if (Math.abs(cross(previous, ring[i], next)) > 1e-3) continue;
+      ring.splice(i, 1);
+      removed = true;
+      break;
+    }
+  }
+
+  let area = 0;
+  for (let i = 0; i < ring.length; i++) {
+    const a = ring[i];
+    const b = ring[(i + 1) % ring.length];
+    area += a.x * b.z - b.x * a.z;
+  }
+  if (ring.length >= 3 && area > 0) ring.reverse();
+  return ring;
+}
+
+// A courtyard ring as the server stores one (Polygon.NormalizeHole): normalized, then run the other
+// way round, so its walls face into the court.
+export function normalizeHole(points: GroundPoint[]): GroundPoint[] {
+  return normalizeOutline(points).reverse();
 }
 
 // The horizontal field of view at a zoom position: focal length goes geometrically from the wide to

@@ -170,8 +170,8 @@ function OsmPickCard(
             {candidateLabel(item)}
           </button>
         ))}
-        {candidate?.hasHoles && (
-          <p className="muted">This one is drawn with a courtyard, which a footprint of this world cannot hold; its parts import one at a time.</p>
+        {candidate !== undefined && candidate.holes.length > 0 && (
+          <p className="muted">This one is drawn with a courtyard; it is built with a hole in its roof.</p>
         )}
         <div className="field">
           <button type="button" onClick={() => void buildOsmCandidate()}>

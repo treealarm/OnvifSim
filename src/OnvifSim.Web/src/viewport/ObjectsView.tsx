@@ -15,7 +15,12 @@ const geometries = new Map<string, BufferGeometry>();
 const requested = new Set<string>();
 
 function meshKey(obj: WorldObject): string {
-  return JSON.stringify([obj.type, obj.scale.x, obj.scale.y, obj.scale.z, obj.color, obj.color2, obj.seed, obj.texture ?? '', obj.plate ?? '']);
+  // The footprint, its courtyards and its openings make a prism's mesh as much as its colours do:
+  // leaving them out would show the old shape after an edit.
+  return JSON.stringify([
+    obj.type, obj.scale.x, obj.scale.y, obj.scale.z, obj.color, obj.color2, obj.seed, obj.texture ?? '',
+    obj.plate ?? '', obj.points ?? null, obj.holes ?? null, obj.openings ?? null,
+  ]);
 }
 
 function useObjectGeometries(objects: WorldObject[]): Map<string, BufferGeometry> {
