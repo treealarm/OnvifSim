@@ -82,6 +82,9 @@ interface ObjectViewProps {
 function ObjectView({ obj, terrain, geometry, selected, clippingPlanes }: ObjectViewProps) {
   const [group, setGroup] = useState<Object3D | null>(null);
   const gizmo = useEditor((s) => s.gizmo);
+  // While a courtyard is being drawn, the gizmo's arrows stand at the base of the building and would
+  // take the clicks meant for its roof.
+  const drawingCourtyard = useEditor((s) => s.tool.kind === 'courtyard' && s.tool.objectId === obj.id);
   const ground = heightAt(terrain, obj.position.x, obj.position.z);
 
   function onClick(e: ThreeEvent<MouseEvent>) {
@@ -132,7 +135,7 @@ function ObjectView({ obj, terrain, geometry, selected, clippingPlanes }: Object
           </mesh>
         )}
       </group>
-      {selected && group && (
+      {selected && group && !drawingCourtyard && (
         <TransformControls
           object={group}
           mode={gizmo === 'move' ? 'translate' : 'rotate'}
