@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
 import {
-  insertOnEdge, normalizeRings, remapOpenings, toLocalPoint, toWorldPoint, withPoint, type Footprint,
+  courtyardFits, insertOnEdge, normalizeRings, remapOpenings, toLocalPoint, toWorldPoint, withPoint, type Footprint,
 } from '../src/footprint';
-import { normalizeOutline, type GroundPoint, type Opening } from '../src/model';
+import { normalizeHole, normalizeOutline, type GroundPoint, type Opening } from '../src/model';
 
 // The footprint arithmetic behind dragging a building's vertices: no browser, no server. It is what
 // keeps an opening on its wall while the wall moves, splits or turns.
@@ -146,4 +146,83 @@ test('a point survives the turn and the place of the object it belongs to', () =
   const back = toLocalPoint(obj, toWorldPoint(obj, local));
   expect(back.x).toBeCloseTo(local.x, 9);
   expect(back.z).toBeCloseTo(local.z, 9);
+});
+
+// A courtyard drawn over a building, checked the way WorldValidation.CheckHoles checks it. The
+// outline is a 40 m square around the origin, so a ring is inside it when it is well within ±20 m.
+
+function site(): GroundPoint[] {
+  return normalizeOutline([{ x: -20, z: -20 }, { x: 20, z: -20 }, { x: 20, z: 20 }, { x: -20, z: 20 }]);
+}
+
+function square(cx: number, cz: number, side: number): GroundPoint[] {
+  const half = side / 2;
+  return [
+    { x: cx - half, z: cz - half }, { x: cx + half, z: cz - half },
+    { x: cx + half, z: cz + half }, { x: cx - half, z: cz + half },
+  ];
+}
+
+test('a courtyard inside the outline is taken, stored the other way round', () => {
+  const result = courtyardFits(site(), [], square(0, 0, 10));
+  if ('error' in result) throw new Error(result.error);
+
+  expect(result.hole).toHaveLength(4);
+  expect(signedArea(result.hole)).toBeCloseTo(100);
+  // The outline is stored with a negative area, a courtyard with a positive one.
+  expect(signedArea(result.hole)).toBeGreaterThan(0);
+  expect(signedArea(site())).toBeLessThan(0);
+});
+
+test('a courtyard is accepted whichever way round it is drawn', () => {
+  const ring = square(0, 0, 10);
+  for (const drawn of [ring, [...ring].reverse()]) {
+    const result = courtyardFits(site(), [], drawn);
+    if ('error' in result) throw new Error(result.error);
+    expect(signedArea(result.hole)).toBeCloseTo(100);
+  }
+});
+
+test('a courtyard outside the outline or touching its walls is refused', () => {
+  const outside = courtyardFits(site(), [], square(25, 0, 8));
+  expect('error' in outside && outside.error).toMatch(/not inside the outline/);
+
+  // Its west wall lies exactly on the outline's: a wall of no thickness.
+  const touching = courtyardFits(site(), [], square(-15, 0, 10));
+  expect('error' in touching && touching.error).toMatch(/not inside the outline/);
+});
+
+test('a courtyard crossing itself or too small is refused', () => {
+  const bowtie = [{ x: -5, z: -5 }, { x: 5, z: 5 }, { x: 5, z: -5 }, { x: -5, z: 5 }];
+  const crossed = courtyardFits(site(), [], bowtie);
+  expect('error' in crossed && crossed.error).toMatch(/crosses itself/);
+
+  const tiny = courtyardFits(site(), [], square(0, 0, 0.5));
+  expect('error' in tiny && tiny.error).toMatch(/less than 1 m²/);
+});
+
+test('a courtyard crossing or lying inside another is refused', () => {
+  const courtyards = [normalizeHole(square(-5, 0, 10))];
+
+  const crossing = courtyardFits(site(), courtyards, square(0, 0, 10));
+  expect('error' in crossing && crossing.error).toMatch(/crosses courtyard 1/);
+
+  const inside = courtyardFits(site(), courtyards, square(-5, 0, 2));
+  expect('error' in inside && inside.error).toMatch(/lies inside courtyard 1/);
+});
+
+test('a courtyard leaving too little material around it is refused', () => {
+  const outline = normalizeOutline([{ x: 0, z: 0 }, { x: 10, z: 0 }, { x: 10, z: 10 }, { x: 0, z: 10 }]);
+  // 2.5 cm of wall all round a 10 m square: 100 − 99.0025 m² left.
+  const nearlyAll = courtyardFits(outline, [], square(5, 5, 9.95));
+  expect('error' in nearlyAll && nearlyAll.error).toMatch(/leaves less than 1 m²/);
+});
+
+test('a degenerate courtyard is refused with what is wrong', () => {
+  const twoPoints = courtyardFits(site(), [], [{ x: 0, z: 0 }, { x: 1, z: 0 }]);
+  expect('error' in twoPoints && twoPoints.error).toMatch(/at least three points/);
+
+  // Three points on one line have no inside to build.
+  const collinear = courtyardFits(site(), [], [{ x: -5, z: 0 }, { x: 0, z: 0 }, { x: 5, z: 0 }]);
+  expect('error' in collinear && collinear.error).toMatch(/less than 1 m²/);
 });
