@@ -1074,14 +1074,17 @@ export function cancelOsmPick() {
   set({ tool: { kind: 'select' }, toolGroup: 'select', osm: null });
 }
 
-// The picked object becomes one of this world: a prism of its footprint, a road along its line, a tree
-// where it stands. Its source OSM element is kept with it, so importing the same object again is a
-// second copy nobody wants rather than a silent one.
+// The picked object becomes one of this world: a prism of its footprint, a road along its line, a
+// tree where it stands. Its source OSM element is kept with it, so importing the same object again
+// updates the one it was built into rather than adding a second copy. Colours, texture, seed and the
+// object's own height above the ground stay; the footprint, its courtyards, its height and its place
+// are read from OSM again.
 export async function buildOsmCandidate() {
   const { world, osm } = useEditor.getState();
   const candidate = osm?.candidates[osm.picked];
   if (!world || !candidate) return;
   const source = `${candidate.osmType}/${candidate.osmId}`;
+  const existing = world.objects.find((o) => o.sourceOsm === source);
   try {
     if (candidate.kind === 'highway') {
       const id = nextId('r', world.roads.map((r) => r.id));
@@ -1089,57 +1092,90 @@ export async function buildOsmCandidate() {
       remember({ kind: 'road', id, value: null }, false);
       select({ kind: 'road', id });
     } else if (candidate.kind === 'tree') {
-      const id = uniqueId(slug(candidate.name) || `osm-${candidate.osmId}`, world.objects.map((o) => o.id));
-      await api.putObject({
-        id,
-        type: 'tree.oak',
-        position: { x: candidate.points[0].x, y: 0, z: candidate.points[0].z },
-        scale: defaultScale['tree.oak'],
-        seed: randomSeed(),
-        sourceOsm: source,
-      });
-      remember({ kind: 'object', id, value: null }, false);
-      select({ kind: 'object', id });
+      if (existing) {
+        updateObject({ ...existing, position: { x: candidate.points[0].x, y: existing.position.y, z: candidate.points[0].z } });
+        select({ kind: 'object', id: existing.id });
+      } else {
+        const id = uniqueId(slug(candidate.name) || `osm-${candidate.osmId}`, world.objects.map((o) => o.id));
+        await api.putObject({
+          id,
+          type: 'tree.oak',
+          position: { x: candidate.points[0].x, y: 0, z: candidate.points[0].z },
+          scale: defaultScale['tree.oak'],
+          seed: randomSeed(),
+          sourceOsm: source,
+        });
+        remember({ kind: 'object', id, value: null }, false);
+        select({ kind: 'object', id });
+      }
     } else {
-      const ring = normalizeOutline(candidate.points);
-      if (ring.length < 3) {
-        showError('That outline has no inside to build.');
-        return;
+      const footprint = footprintOfCandidate(candidate);
+      if (!footprint) return;
+      if (existing) {
+        updateObject({
+          ...existing,
+          type: 'prism',
+          position: { x: footprint.cx, y: existing.position.y, z: footprint.cz },
+          rotationY: 0,
+          scale: { x: 1, y: candidate.height, z: 1 },
+          points: footprint.points,
+          holes: footprint.holes.length > 0 ? footprint.holes : null,
+        });
+        select({ kind: 'object', id: existing.id });
+      } else {
+        const id = uniqueId(slug(candidate.name) || `osm-${candidate.osmId}`, world.objects.map((o) => o.id));
+        await api.putObject({
+          id,
+          type: 'prism',
+          position: { x: footprint.cx, y: 0, z: footprint.cz },
+          scale: { x: 1, y: candidate.height, z: 1 },
+          points: footprint.points,
+          ...(footprint.holes.length > 0 ? { holes: footprint.holes } : {}),
+          // An apron of the real world is asphalt with its bays painted on, not a pale slab;
+          // anything else keeps the light wall and dark roof a building has by default.
+          ...(candidate.kind === 'parking'
+            ? { color: '#4f5358', color2: '#4f5358', texture: 'parking' }
+            : {}),
+          seed: randomSeed(),
+          sourceOsm: source,
+        });
+        remember({ kind: 'object', id, value: null }, false);
+        select({ kind: 'object', id });
       }
-      // Each courtyard is a ring in the footprint, stored the other way round; the object's place is
-      // the outline's middle, and every ring is written relative to it.
-      const holes = candidate.holes.map(normalizeHole);
-      if (holes.some((hole) => hole.length < 3)) {
-        showError('A courtyard of that outline has no inside to build.');
-        return;
-      }
-      const cx = ring.reduce((sum, p) => sum + p.x, 0) / ring.length;
-      const cz = ring.reduce((sum, p) => sum + p.z, 0) / ring.length;
-      const id = uniqueId(slug(candidate.name) || `osm-${candidate.osmId}`, world.objects.map((o) => o.id));
-      await api.putObject({
-        id,
-        type: 'prism',
-        position: { x: cx, y: 0, z: cz },
-        scale: { x: 1, y: candidate.height, z: 1 },
-        points: ring.map((p) => ({ x: p.x - cx, z: p.z - cz })),
-        ...(holes.length > 0
-          ? { holes: holes.map((hole) => hole.map((p) => ({ x: p.x - cx, z: p.z - cz }))) }
-          : {}),
-        // An apron of the real world is asphalt with its bays painted on, not a pale slab; anything
-        // else keeps the light wall and dark roof a building has by default.
-        ...(candidate.kind === 'parking'
-          ? { color: '#4f5358', color2: '#4f5358', texture: 'parking' }
-          : {}),
-        seed: randomSeed(),
-        sourceOsm: source,
-      });
-      remember({ kind: 'object', id, value: null }, false);
-      select({ kind: 'object', id });
     }
     set({ osm: null, error: null });
   } catch (error) {
     showError(error);
   }
+}
+
+// The candidate's rings in the object's own metres: the outline's middle is the object's place, and
+// every courtyard is written relative to it, stored the other way round. Null when a ring has no
+// inside to build — a message has been shown.
+function footprintOfCandidate(candidate: OsmCandidate): {
+  points: GroundPoint[];
+  holes: GroundPoint[][];
+  cx: number;
+  cz: number;
+} | null {
+  const ring = normalizeOutline(candidate.points);
+  if (ring.length < 3) {
+    showError('That outline has no inside to build.');
+    return null;
+  }
+  const holes = candidate.holes.map(normalizeHole);
+  if (holes.some((hole) => hole.length < 3)) {
+    showError('A courtyard of that outline has no inside to build.');
+    return null;
+  }
+  const cx = ring.reduce((sum, p) => sum + p.x, 0) / ring.length;
+  const cz = ring.reduce((sum, p) => sum + p.z, 0) / ring.length;
+  return {
+    cx,
+    cz,
+    points: ring.map((p) => ({ x: p.x - cx, z: p.z - cz })),
+    holes: holes.map((hole) => hole.map((p) => ({ x: p.x - cx, z: p.z - cz }))),
+  };
 }
 
 // A name fit for an id: what the object is called where it came from, or its OSM number.

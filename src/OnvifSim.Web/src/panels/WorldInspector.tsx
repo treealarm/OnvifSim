@@ -145,7 +145,12 @@ export function WorldInspector({ world }: { world: World }) {
 function OsmPickCard(
   { candidates, picked, fetching }: { candidates: OsmCandidate[] | null; picked: number; fetching: boolean },
 ) {
+  const world = useEditor((s) => s.world);
   const candidate = candidates?.[picked];
+  // The same OSM element already built into this world: building it again updates that object.
+  const existing = candidate
+    ? world?.objects.find((o) => o.sourceOsm === `${candidate.osmType}/${candidate.osmId}`)
+    : undefined;
   if (!candidates) {
     return (
       <Section title="From OpenStreetMap">
@@ -172,6 +177,11 @@ function OsmPickCard(
         ))}
         {candidate !== undefined && candidate.holes.length > 0 && (
           <p className="muted">This one is drawn with a courtyard; it is built with a hole in its roof.</p>
+        )}
+        {existing && (
+          <p className="muted">
+            Already in this world as <strong>{existing.id}</strong>; building it again updates its outline.
+          </p>
         )}
         <div className="field">
           <button type="button" onClick={() => void buildOsmCandidate()}>
