@@ -6,6 +6,7 @@ import { api } from '../api';
 import { heightAt, type Terrain, type WorldObject } from '../model';
 import { clearSelection, pickFromOsm, select, showError, updateObject, useEditor } from '../store';
 import { CUTAWAY_HEIGHT_M, useCutawayPlanes } from './cutaway';
+import { FootprintView } from './FootprintView';
 import { yawDegrees } from './orientation';
 
 // Meshes come from the server, which alone knows how to build a tree or a house. They depend on the
@@ -15,7 +16,12 @@ const geometries = new Map<string, BufferGeometry>();
 const requested = new Set<string>();
 
 function meshKey(obj: WorldObject): string {
-  return JSON.stringify([obj.type, obj.scale.x, obj.scale.y, obj.scale.z, obj.color, obj.color2, obj.seed, obj.texture ?? '', obj.plate ?? '']);
+  // The footprint, its courtyards and its openings make a prism's mesh as much as its colours do:
+  // leaving them out would show the old shape after an edit.
+  return JSON.stringify([
+    obj.type, obj.scale.x, obj.scale.y, obj.scale.z, obj.color, obj.color2, obj.seed, obj.texture ?? '',
+    obj.plate ?? '', obj.points ?? null, obj.holes ?? null, obj.openings ?? null,
+  ]);
 }
 
 function useObjectGeometries(objects: WorldObject[]): Map<string, BufferGeometry> {
@@ -137,6 +143,7 @@ function ObjectView({ obj, terrain, geometry, selected, clippingPlanes }: Object
           onMouseUp={commit}
         />
       )}
+      {selected && obj.type === 'prism' && <FootprintView obj={obj} terrain={terrain} />}
     </>
   );
 }

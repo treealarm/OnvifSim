@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+- **A building's footprint may have courtyards.** A `prism` object carries `holes`: rings inside its
+  outline, stored the other way round. Walls are drawn around each court, the roof and floor stop at
+  it, tiles and parking bays keep out of it, and the wall's lighter face looks into the court. The
+  cap is triangulated with zero-width bridges and never grows a lid over a court; a footprint whose
+  holes cannot be joined is refused rather than drawn wrong. The OSM import reads a multipolygon's
+  inner rings — the query now asks for `body geom`, without which a relation arrives with no members
+  at all — and a footprint whose courtyard cannot be built is not offered.
+- **A building is edited by its vertices.** A selected prism shows a handle on every corner of its
+  outline and of its courtyards, and a cube on every edge midpoint that adds a corner and drags it
+  at once. A drag is a preview line until the pointer is released; then the rings are normalized and
+  every doorway or window keeps its distance from the corner of its wall that stayed, moved to the
+  piece of a wall that an inserted corner split off, or refused when it no longer fits.
+- **Picking an OSM element that is already in the world updates that object** instead of adding a
+  second copy: its footprint, courtyards, height and place follow OSM again, while its id, colours,
+  texture and seed stay.
+
 ## 0.5.0 (2026-11-12)
 
 - **The demo's landmarks stand in the world.** The Maryland world marks the ten calibration

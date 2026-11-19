@@ -1,9 +1,22 @@
 import { create } from 'zustand';
 import { api, ApiError, type OsmArea, type OsmCandidate } from './api';
 import {
+  footprintOf,
+  insertOnEdge,
+  normalizeRings,
+  remapOpenings,
+  ringOf,
+  sameFootprint,
+  withPoint,
+  type Footprint,
+  type RingIndex,
+} from './footprint';
+import {
   cameraIoOf,
   decodeWorld,
   nextId,
+  normalizeHole,
+  normalizeOutline,
   sameId,
   type CameraIo,
   type CameraKind,
@@ -53,6 +66,18 @@ export interface FocusRequest {
   at: number;
 }
 
+// A footprint vertex being dragged, or one just inserted on an edge. The rings are the object's own,
+// plus the inserted point when there is one; the world is written only when the pointer is released.
+export interface VertexDrag {
+  objectId: string;
+  ring: RingIndex;
+  index: number;
+  // Where the vertex is now, in the object's own metres.
+  point: GroundPoint;
+  before: Footprint;
+  working: Footprint;
+}
+
 interface EditorState {
   connected: boolean;
   // The server's world with the edits it has not confirmed yet laid over it.
@@ -91,6 +116,8 @@ interface EditorState {
   mapFailed: boolean;
   // The point of the selected road or route being dragged over the ground.
   draggedPoint: number | null;
+  // The footprint vertex of the selected building being dragged over the ground.
+  draggedVertex: VertexDrag | null;
   error: string | null;
   undoSteps: number;
   redoSteps: number;
@@ -120,6 +147,7 @@ export const useEditor = create<EditorState>()(() => ({
   mapBaking: false,
   mapFailed: false,
   draggedPoint: null,
+  draggedVertex: null,
   error: null,
   undoSteps: 0,
   redoSteps: 0,
@@ -247,6 +275,7 @@ function resetForWorldSwitch() {
     linksOpen: false,
     focus: null,
     draggedPoint: null,
+    draggedVertex: null,
     undoSteps: 0,
     redoSteps: 0,
     heads: {},
@@ -694,43 +723,6 @@ export const defaultScale: Record<ObjectType, Vec3> = {
   prism: { x: 1, y: 8, z: 1 },
 };
 
-// An outline as the server stores one (Polygon.Normalize): no points closer than a centimetre, no
-// point that only stands on a straight edge, and the direction whose top face points up. A footprint
-// that is drawn round the other way is flipped here, so drawing a building never fails on direction.
-export function normalizeOutline(points: GroundPoint[]): GroundPoint[] {
-  const ring: GroundPoint[] = [];
-  for (const p of points) {
-    const last = ring.at(-1);
-    if (!last || Math.hypot(last.x - p.x, last.z - p.z) > 0.01) ring.push(p);
-  }
-  while (ring.length > 1 && Math.hypot(ring[0].x - ring.at(-1)!.x, ring[0].z - ring.at(-1)!.z) <= 0.01)
-    ring.pop();
-
-  const cross = (a: GroundPoint, b: GroundPoint, c: GroundPoint) =>
-    (b.x - a.x) * (c.z - a.z) - (b.z - a.z) * (c.x - a.x);
-  let removed = true;
-  while (removed && ring.length > 3) {
-    removed = false;
-    for (let i = 0; i < ring.length; i++) {
-      const previous = ring[(i + ring.length - 1) % ring.length];
-      const next = ring[(i + 1) % ring.length];
-      if (Math.abs(cross(previous, ring[i], next)) > 1e-3) continue;
-      ring.splice(i, 1);
-      removed = true;
-      break;
-    }
-  }
-
-  let area = 0;
-  for (let i = 0; i < ring.length; i++) {
-    const a = ring[i];
-    const b = ring[(i + 1) % ring.length];
-    area += a.x * b.z - b.x * a.z;
-  }
-  if (ring.length >= 3 && area > 0) ring.reverse();
-  return ring;
-}
-
 // Adds an object, a camera or a lamp on the ground at (x, z) and selects it. Only what differs from
 // the server's defaults is sent; the full model arrives with the next world, as it does for any edit.
 export async function place(what: Placeable, x: number, z: number) {
@@ -869,6 +861,76 @@ export function movePoint(selection: Selection, index: number, point: GroundPoin
     const vehicle = world.vehicles.find((v) => v.id === selection.id);
     if (vehicle) updateVehicle({ ...vehicle, route: replace(vehicle.route) });
   }
+}
+
+// ---- Editing a building's footprint in the viewport ----
+//
+// A vertex is dragged on a copy of the object's rings and shown as a line; nothing is written to the
+// world until the pointer is released, so an intermediate shape is never sent or validated, and a
+// drag costs no mesh request. On release the rings are normalized and the openings are put back on
+// the walls they belong to.
+
+export function beginVertexDrag(objectId: string, ring: RingIndex, index: number) {
+  const obj = useEditor.getState().world?.objects.find((o) => o.id === objectId);
+  if (!obj || obj.type !== 'prism') return;
+  const before = footprintOf(obj);
+  const point = ringOf(before, ring)[index];
+  if (!point) return;
+  set({ draggedVertex: { objectId, ring, index, point, before, working: before } });
+}
+
+// A cube on the middle of an edge adds a vertex there and starts dragging it; a click without a drag
+// puts it back on the straight line, where normalization drops it again.
+export function beginEdgeInsert(objectId: string, ring: RingIndex, edge: number) {
+  const obj = useEditor.getState().world?.objects.find((o) => o.id === objectId);
+  if (!obj || obj.type !== 'prism') return;
+  const before = footprintOf(obj);
+  const { frame, index } = insertOnEdge(before, ring, edge);
+  if (index < 0) return;
+  const point = ringOf(frame, ring)[index];
+  set({ draggedVertex: { objectId, ring, index, point, before, working: frame } });
+}
+
+export function moveVertexDrag(point: GroundPoint) {
+  const drag = useEditor.getState().draggedVertex;
+  if (drag) set({ draggedVertex: { ...drag, point } });
+}
+
+export function cancelVertexDrag() {
+  if (useEditor.getState().draggedVertex) set({ draggedVertex: null });
+}
+
+export function finishVertexDrag() {
+  const { draggedVertex, world } = useEditor.getState();
+  if (!draggedVertex || !world) return;
+  set({ draggedVertex: null });
+  const obj = world.objects.find((o) => o.id === draggedVertex.objectId);
+  if (!obj || obj.type !== 'prism') return;
+
+  const rings = normalizeRings(withPoint(draggedVertex.working, draggedVertex.ring, draggedVertex.index, draggedVertex.point));
+  if (rings.points.length < 3 || rings.holes.some((hole) => hole.length < 3)) {
+    showError('That outline has no inside to build.');
+    return;
+  }
+  // A vertex put back on a straight edge leaves no trace: the ring came back as it was, and an
+  // inserted point that never left the line is simply gone.
+  if (sameFootprint(rings, draggedVertex.before)) return;
+
+  let openings = obj.openings ?? [];
+  if (draggedVertex.ring < 0 && openings.length > 0) {
+    const remapped = remapOpenings(draggedVertex.before.points, rings.points, openings);
+    if ('error' in remapped) {
+      showError(remapped.error);
+      return;
+    }
+    openings = remapped.openings;
+  }
+  updateObject({
+    ...obj,
+    points: rings.points,
+    holes: rings.holes.length > 0 ? rings.holes : null,
+    openings: openings.length > 0 ? openings : null,
+  });
 }
 
 // ---- The real world under a click ----
@@ -1012,18 +1074,17 @@ export function cancelOsmPick() {
   set({ tool: { kind: 'select' }, toolGroup: 'select', osm: null });
 }
 
-// The picked object becomes one of this world: a prism of its footprint, a road along its line, a tree
-// where it stands. Its source OSM element is kept with it, so importing the same object again is a
-// second copy nobody wants rather than a silent one.
+// The picked object becomes one of this world: a prism of its footprint, a road along its line, a
+// tree where it stands. Its source OSM element is kept with it, so importing the same object again
+// updates the one it was built into rather than adding a second copy. Colours, texture, seed and the
+// object's own height above the ground stay; the footprint, its courtyards, its height and its place
+// are read from OSM again.
 export async function buildOsmCandidate() {
   const { world, osm } = useEditor.getState();
   const candidate = osm?.candidates[osm.picked];
   if (!world || !candidate) return;
-  if (candidate.hasHoles) {
-    showError('This one is drawn with a courtyard, which a footprint of this world cannot hold; import its parts separately.');
-    return;
-  }
   const source = `${candidate.osmType}/${candidate.osmId}`;
+  const existing = world.objects.find((o) => o.sourceOsm === source);
   try {
     if (candidate.kind === 'highway') {
       const id = nextId('r', world.roads.map((r) => r.id));
@@ -1031,47 +1092,90 @@ export async function buildOsmCandidate() {
       remember({ kind: 'road', id, value: null }, false);
       select({ kind: 'road', id });
     } else if (candidate.kind === 'tree') {
-      const id = uniqueId(slug(candidate.name) || `osm-${candidate.osmId}`, world.objects.map((o) => o.id));
-      await api.putObject({
-        id,
-        type: 'tree.oak',
-        position: { x: candidate.points[0].x, y: 0, z: candidate.points[0].z },
-        scale: defaultScale['tree.oak'],
-        seed: randomSeed(),
-        sourceOsm: source,
-      });
-      remember({ kind: 'object', id, value: null }, false);
-      select({ kind: 'object', id });
-    } else {
-      const ring = normalizeOutline(candidate.points);
-      if (ring.length < 3) {
-        showError('That outline has no inside to build.');
-        return;
+      if (existing) {
+        updateObject({ ...existing, position: { x: candidate.points[0].x, y: existing.position.y, z: candidate.points[0].z } });
+        select({ kind: 'object', id: existing.id });
+      } else {
+        const id = uniqueId(slug(candidate.name) || `osm-${candidate.osmId}`, world.objects.map((o) => o.id));
+        await api.putObject({
+          id,
+          type: 'tree.oak',
+          position: { x: candidate.points[0].x, y: 0, z: candidate.points[0].z },
+          scale: defaultScale['tree.oak'],
+          seed: randomSeed(),
+          sourceOsm: source,
+        });
+        remember({ kind: 'object', id, value: null }, false);
+        select({ kind: 'object', id });
       }
-      const cx = ring.reduce((sum, p) => sum + p.x, 0) / ring.length;
-      const cz = ring.reduce((sum, p) => sum + p.z, 0) / ring.length;
-      const id = uniqueId(slug(candidate.name) || `osm-${candidate.osmId}`, world.objects.map((o) => o.id));
-      await api.putObject({
-        id,
-        type: 'prism',
-        position: { x: cx, y: 0, z: cz },
-        scale: { x: 1, y: candidate.height, z: 1 },
-        points: ring.map((p) => ({ x: p.x - cx, z: p.z - cz })),
-        // An apron of the real world is asphalt with its bays painted on, not a pale slab; anything
-        // else keeps the light wall and dark roof a building has by default.
-        ...(candidate.kind === 'parking'
-          ? { color: '#4f5358', color2: '#4f5358', texture: 'parking' }
-          : {}),
-        seed: randomSeed(),
-        sourceOsm: source,
-      });
-      remember({ kind: 'object', id, value: null }, false);
-      select({ kind: 'object', id });
+    } else {
+      const footprint = footprintOfCandidate(candidate);
+      if (!footprint) return;
+      if (existing) {
+        updateObject({
+          ...existing,
+          type: 'prism',
+          position: { x: footprint.cx, y: existing.position.y, z: footprint.cz },
+          rotationY: 0,
+          scale: { x: 1, y: candidate.height, z: 1 },
+          points: footprint.points,
+          holes: footprint.holes.length > 0 ? footprint.holes : null,
+        });
+        select({ kind: 'object', id: existing.id });
+      } else {
+        const id = uniqueId(slug(candidate.name) || `osm-${candidate.osmId}`, world.objects.map((o) => o.id));
+        await api.putObject({
+          id,
+          type: 'prism',
+          position: { x: footprint.cx, y: 0, z: footprint.cz },
+          scale: { x: 1, y: candidate.height, z: 1 },
+          points: footprint.points,
+          ...(footprint.holes.length > 0 ? { holes: footprint.holes } : {}),
+          // An apron of the real world is asphalt with its bays painted on, not a pale slab;
+          // anything else keeps the light wall and dark roof a building has by default.
+          ...(candidate.kind === 'parking'
+            ? { color: '#4f5358', color2: '#4f5358', texture: 'parking' }
+            : {}),
+          seed: randomSeed(),
+          sourceOsm: source,
+        });
+        remember({ kind: 'object', id, value: null }, false);
+        select({ kind: 'object', id });
+      }
     }
     set({ osm: null, error: null });
   } catch (error) {
     showError(error);
   }
+}
+
+// The candidate's rings in the object's own metres: the outline's middle is the object's place, and
+// every courtyard is written relative to it, stored the other way round. Null when a ring has no
+// inside to build — a message has been shown.
+function footprintOfCandidate(candidate: OsmCandidate): {
+  points: GroundPoint[];
+  holes: GroundPoint[][];
+  cx: number;
+  cz: number;
+} | null {
+  const ring = normalizeOutline(candidate.points);
+  if (ring.length < 3) {
+    showError('That outline has no inside to build.');
+    return null;
+  }
+  const holes = candidate.holes.map(normalizeHole);
+  if (holes.some((hole) => hole.length < 3)) {
+    showError('A courtyard of that outline has no inside to build.');
+    return null;
+  }
+  const cx = ring.reduce((sum, p) => sum + p.x, 0) / ring.length;
+  const cz = ring.reduce((sum, p) => sum + p.z, 0) / ring.length;
+  return {
+    cx,
+    cz,
+    points: ring.map((p) => ({ x: p.x - cx, z: p.z - cz })),
+    holes: holes.map((hole) => hole.map((p) => ({ x: p.x - cx, z: p.z - cz }))),
+  };
 }
 
 // A name fit for an id: what the object is called where it came from, or its OSM number.

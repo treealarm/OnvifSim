@@ -159,6 +159,105 @@ public class PrismGeometryTests
         Editor.WorldValidation.Check(world, 0, 0);
     }
 
+    // A footprint with a courtyard is a footprint like any other: the walls of the hole are drawn, the
+    // cap stops at it, and the outline minus the hole is what the building covers.
+    [Fact]
+    public void ACourtyard_IsLeftOpenInTheCap()
+    {
+        var (outline, hole) = CourtyardFootprint();
+        var triangles = Polygon.Triangulate(outline, [hole]);
+        Assert.Equal(0, triangles.Count % 3);
+        Assert.NotEmpty(triangles);
+
+        float area = 0;
+        for (int i = 0; i + 2 < triangles.Count; i += 3)
+        {
+            area += MathF.Abs(Polygon.Cross(triangles[i], triangles[i + 1], triangles[i + 2])) / 2;
+            var triangle = new[] { triangles[i], triangles[i + 1], triangles[i + 2] };
+            Assert.False(Polygon.Contains(triangle, new GroundPoint(15, 15)), "a triangle covers the courtyard");
+        }
+        // 60 x 60 less the 10 x 10 court, whatever the shape of the triangles.
+        Assert.Equal(60 * 60 - 10 * 10, area, 1);
+    }
+
+    // Two courtyards joined one after the other: the second bridge runs to a ring that already carries
+    // the first hole, and neither court is covered.
+    [Fact]
+    public void TwoCourtyards_AreBothLeftOpen()
+    {
+        var outline = Polygon.Normalize(Ring((-30, -30), (-30, 30), (30, 30), (30, -30)));
+        var first = Polygon.NormalizeHole(Ring((-25, -25), (-15, -25), (-15, -15), (-25, -15)));
+        var second = Polygon.NormalizeHole(Ring((15, 15), (25, 15), (25, 25), (15, 25)));
+        var triangles = Polygon.Triangulate(outline, [first, second]);
+
+        float area = 0;
+        for (int i = 0; i + 2 < triangles.Count; i += 3)
+        {
+            area += MathF.Abs(Polygon.Cross(triangles[i], triangles[i + 1], triangles[i + 2])) / 2;
+            var triangle = new[] { triangles[i], triangles[i + 1], triangles[i + 2] };
+            Assert.False(Polygon.Contains(triangle, new GroundPoint(-20, -20)), "a triangle covers the first courtyard");
+            Assert.False(Polygon.Contains(triangle, new GroundPoint(20, 20)), "a triangle covers the second courtyard");
+        }
+        Assert.Equal(60 * 60 - 2 * 10 * 10, area, 1);
+    }
+
+    // The lighter face of a courtyard wall is the one looking into the court, as the lighter face of an
+    // outer wall looks out of the building. The hole is stored the other way round for exactly this.
+    [Fact]
+    public void ACourtyard_WallsFaceIntoIt()
+    {
+        var (outline, hole) = CourtyardFootprint();
+        var prism = new WorldObject
+        {
+            Id = "b", Type = "prism", Scale = new Vec3(1, 6, 1), Texture = "none", Color = "#ffffff",
+            Points = outline, Holes = [hole],
+        };
+        var mesh = SceneBuilder.ObjectMesh(prism);
+        var bright = new List<(System.Numerics.Vector3 Position, System.Numerics.Vector3 Normal)>();
+        for (int i = 0; i < mesh.Positions.Count; i++)
+        {
+            if (mesh.Colors[i].X + mesh.Colors[i].Y + mesh.Colors[i].Z < 2.9f) continue; // the wall's own colour
+            if (MathF.Abs(mesh.Positions[i].Y - 6) > 1e-3f) continue;
+            bright.Add((mesh.Positions[i], mesh.Normals[i]));
+        }
+        Assert.NotEmpty(bright);
+
+        // z grows south: the court at 10..20 has its north wall looking towards +Z, its south wall
+        // towards -Z, and its west and east walls towards +X and -X.
+        static bool OnNorth(System.Numerics.Vector3 p) => MathF.Abs(p.Z - 10) <= 1e-3f && p.X is >= 10 - 1e-3f and <= 20 + 1e-3f;
+        static bool OnSouth(System.Numerics.Vector3 p) => MathF.Abs(p.Z - 20) <= 1e-3f && p.X is >= 10 - 1e-3f and <= 20 + 1e-3f;
+        static bool OnWest(System.Numerics.Vector3 p) => MathF.Abs(p.X - 10) <= 1e-3f && p.Z is >= 10 - 1e-3f and <= 20 + 1e-3f;
+        static bool OnEast(System.Numerics.Vector3 p) => MathF.Abs(p.X - 20) <= 1e-3f && p.Z is >= 10 - 1e-3f and <= 20 + 1e-3f;
+        bool Faces(Func<System.Numerics.Vector3, bool> onWall, System.Numerics.Vector3 into) =>
+            bright.Any(f => onWall(f.Position) && System.Numerics.Vector3.Dot(f.Normal, into) > 0.9f);
+        Assert.True(Faces(OnNorth, new(0, 0, 1)), "the court's north wall does not face into it");
+        Assert.True(Faces(OnSouth, new(0, 0, -1)), "the court's south wall does not face into it");
+        Assert.True(Faces(OnWest, new(1, 0, 0)), "the court's west wall does not face into it");
+        Assert.True(Faces(OnEast, new(-1, 0, 0)), "the court's east wall does not face into it");
+    }
+
+    [Fact]
+    public void APrismWithACourtyard_IsAcceptedInAWorld()
+    {
+        var world = DefaultWorld.Create();
+        var (outline, hole) = CourtyardFootprint();
+        world.Objects.Add(new WorldObject
+        {
+            Id = "courtyard", Type = "prism", Scale = new Vec3(1, 12, 1), Seed = 1,
+            Points = outline, Holes = [hole],
+        });
+        Editor.WorldValidation.Check(world, 0, 0);
+    }
+
+    // A 60 x 60 outline with a 10 x 10 court inside it: the court is 10..20 in both x and z, so its
+    // north wall is the edge at z = 10 and its south wall the edge at z = 20.
+    private static (List<GroundPoint> Outline, List<GroundPoint> Hole) CourtyardFootprint()
+    {
+        var outline = Polygon.Normalize(Ring((-30, -30), (-30, 30), (30, 30), (30, -30)));
+        var hole = Polygon.NormalizeHole(Ring((10, 10), (20, 10), (20, 20), (10, 20)));
+        return (outline, hole);
+    }
+
     // Each of these is refused where a world is written: a footprint that is not normalised, one that
     // crosses itself, one too small, a stretched scale, and openings that do not fit.
     [Theory]
@@ -168,6 +267,13 @@ public class PrismGeometryTests
     [InlineData(3)]
     [InlineData(4)]
     [InlineData(5)]
+    [InlineData(6)]
+    [InlineData(7)]
+    [InlineData(8)]
+    [InlineData(9)]
+    [InlineData(10)]
+    [InlineData(11)]
+    [InlineData(12)]
     public void ABadPrism_IsRefused(int variant)
     {
         var world = DefaultWorld.Create();
@@ -195,6 +301,42 @@ public class PrismGeometryTests
                 break;
             case 5:
                 prism.Openings = [new OpeningModel { Edge = 0, Offset = 10, Width = 2, Height = 20 }];
+                break;
+            case 6:
+                // A hole stored the same way round as the outline: its walls would face the material.
+                prism.Holes = [Polygon.Normalize(Ring((10, 5), (20, 5), (20, 15), (10, 15)))];
+                break;
+            case 7:
+                // A hole outside the outline.
+                prism.Holes = [Polygon.NormalizeHole(Ring((50, 5), (60, 5), (60, 15), (50, 15)))];
+                break;
+            case 8:
+                // A hole touching the outline's wall: no wall left between them.
+                prism.Holes = [Polygon.NormalizeHole(Ring((0, 5), (10, 5), (10, 15), (0, 15)))];
+                break;
+            case 9:
+                // Two holes crossing.
+                prism.Holes =
+                [
+                    Polygon.NormalizeHole(Ring((10, 5), (25, 5), (25, 15), (10, 15))),
+                    Polygon.NormalizeHole(Ring((20, 5), (35, 5), (35, 15), (20, 15))),
+                ];
+                break;
+            case 10:
+                // A hole inside another hole: an island of material with no wall of its own.
+                prism.Holes =
+                [
+                    Polygon.NormalizeHole(Ring((5, 2), (35, 2), (35, 18), (5, 18))),
+                    Polygon.NormalizeHole(Ring((15, 7), (25, 7), (25, 13), (15, 13))),
+                ];
+                break;
+            case 11:
+                // A hole so nearly the whole footprint that almost no material is left.
+                prism.Holes = [Polygon.NormalizeHole(Ring((0.005f, 0.005f), (39.995f, 0.005f), (39.995f, 19.995f), (0.005f, 19.995f)))];
+                break;
+            case 12:
+                // A hole with a collinear point: not the normalised ring the renderer expects.
+                prism.Holes = [Ring((10, 5), (15, 5), (20, 5), (20, 15), (10, 15))];
                 break;
         }
         world.Objects.Add(prism);

@@ -1,6 +1,8 @@
 import { createSocket } from 'node:dgram';
 import { randomUUID } from 'node:crypto';
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
+import { PerspectiveCamera, Vector3 } from 'three';
+import { decodeWorld, heightAt, normalizeHole, normalizeOutline, type GroundPoint, type Opening } from '../src/model';
 import { discoveryPort } from './ports';
 
 // Every test starts from the default world again, and test worlds do not pile up in the shared data
@@ -451,6 +453,185 @@ test('the wiring window connects lamps and sensors to relays', async ({ page, re
   await expect.poll(async () => (await world(request)).wires?.some((w) => w.lampId === 'gate')).toBe(true);
 });
 
+// A building with a courtyard is one object: the editor lists it, its card counts the court, and its
+// mesh has no roof or floor over the courtyard.
+test('a building with a courtyard is one object with a hole in its roof', async ({ page, request }) => {
+  const points = normalizeOutline([
+    { x: -20, z: -20 }, { x: 20, z: -20 }, { x: 20, z: 20 }, { x: -20, z: 20 },
+  ]);
+  const holes = [normalizeHole([
+    { x: -5, z: -5 }, { x: 5, z: -5 }, { x: 5, z: 5 }, { x: -5, z: 5 },
+  ])];
+  const building = {
+    id: 'court-e2e', type: 'prism', position: { x: 0, y: 0, z: 0 }, rotationY: 0,
+    scale: { x: 1, y: 8, z: 1 }, seed: 1, points, holes,
+  };
+  expect((await request.put('/api/objects/court-e2e', { data: building })).ok()).toBe(true);
+  try {
+    await openEditor(page);
+    await selectBuilding(page, 'court-e2e');
+    await expect(page.getByRole('heading', { level: 2 })).toContainText('court-e2e');
+    await expect(page.getByText(/4 points and 1 courtyard/)).toBeVisible();
+
+    const response = await request.post('/api/meshes', { data: [building] });
+    expect(response.ok()).toBe(true);
+    const meshes = (await response.json()) as Record<string, { positions: string; indices: string }>;
+    const positions = floats(meshes['court-e2e'].positions);
+    const indices = uints(meshes['court-e2e'].indices);
+    for (let t = 0; t + 2 < indices.length; t += 3) {
+      const a = corner(positions, indices[t]);
+      const b = corner(positions, indices[t + 1]);
+      const c = corner(positions, indices[t + 2]);
+      const roof = [a, b, c].every((p) => Math.abs(p.y - 8) < 1e-3);
+      const floor = [a, b, c].every((p) => Math.abs(p.y - 0.02) < 1e-3);
+      if (!roof && !floor) continue;
+      expect(covers(a, b, c, 0, 0), 'a roof or floor triangle covers the courtyard').toBe(false);
+    }
+  } finally {
+    await request.delete('/api/objects/court-e2e');
+  }
+});
+
+// A vertex is dragged in the viewport, and the OSM element the object was imported from stays with
+// it; its opening is still on a wall afterwards.
+test('a building vertex is dragged and its OSM provenance stays', async ({ page, request }) => {
+  const points = normalizeOutline([
+    { x: -10, z: -8 }, { x: 10, z: -8 }, { x: 10, z: 8 }, { x: -10, z: 8 },
+  ]);
+  const opening: Opening = { edge: 0, offset: 2, width: 1.8, height: 2.2, sill: 0 };
+  const building = {
+    id: 'drag-e2e', type: 'prism', position: { x: 0, y: 0, z: 0 }, rotationY: 0,
+    scale: { x: 1, y: 8, z: 1 }, seed: 1, points, openings: [opening], sourceOsm: 'way/123',
+  };
+  expect((await request.put('/api/objects/drag-e2e', { data: building })).ok()).toBe(true);
+  try {
+    await openEditor(page);
+    await selectBuilding(page, 'drag-e2e');
+
+    const shown = decodeWorld(await (await request.get('/api/world')).text());
+    const box = await page.locator('.viewport canvas').boundingBox();
+    if (!box) throw new Error('The viewport is not on screen.');
+    // The near south-east corner, where its handle stands a little above the ground.
+    const from = projectPoint({ x: 10, y: heightAt(shown.terrain, 10, 8) + 0.6, z: 8 }, box);
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down();
+    await page.mouse.move(from.x + 45, from.y + 18, { steps: 6 });
+    await page.mouse.up();
+
+    await expect
+      .poll(async () => {
+        const moved = await objectById(request, 'drag-e2e');
+        return moved?.points?.some((p) => Math.hypot(p.x - 10, p.z - 8) > 0.5) ?? false;
+      }, { timeout: 10_000 })
+      .toBe(true);
+
+    const moved = await objectById(request, 'drag-e2e');
+    expect(moved?.sourceOsm).toBe('way/123');
+    const changed = moved?.openings?.[0];
+    expect(changed).toBeDefined();
+    expect(changed!.offset + changed!.width).toBeLessThanOrEqual(edgeLength(moved!.points!, changed!.edge) + 1e-3);
+  } finally {
+    await request.delete('/api/objects/drag-e2e');
+  }
+});
+
+// A cube on the middle of an edge adds a vertex there and drags it off the line; the footprint gains
+// one point and the server keeps it.
+test('an edge midpoint adds a vertex to the footprint', async ({ page, request }) => {
+  const points = normalizeOutline([
+    { x: -10, z: -8 }, { x: 10, z: -8 }, { x: 10, z: 8 }, { x: -10, z: 8 },
+  ]);
+  const building = {
+    id: 'insert-e2e', type: 'prism', position: { x: 0, y: 0, z: 0 }, rotationY: 0,
+    scale: { x: 1, y: 8, z: 1 }, seed: 1, points,
+  };
+  expect((await request.put('/api/objects/insert-e2e', { data: building })).ok()).toBe(true);
+  try {
+    await openEditor(page);
+    await selectBuilding(page, 'insert-e2e');
+
+    const shown = decodeWorld(await (await request.get('/api/world')).text());
+    const box = await page.locator('.viewport canvas').boundingBox();
+    if (!box) throw new Error('The viewport is not on screen.');
+    // The middle of the south wall (z = +8), which faces the editor's camera: the far wall would be
+    // hidden by the building and dragging its middle inwards would fold the footprint over itself.
+    const edge = points.findIndex((p, i) => {
+      const q = points[(i + 1) % points.length];
+      return (at(p, -10, 8) && at(q, 10, 8)) || (at(p, 10, 8) && at(q, -10, 8));
+    });
+    expect(edge).toBeGreaterThanOrEqual(0);
+    const a = points[edge], b = points[(edge + 1) % points.length];
+    const mid = { x: (a.x + b.x) / 2, z: (a.z + b.z) / 2 };
+    const from = projectPoint({ x: mid.x, y: heightAt(shown.terrain, mid.x, mid.z) + 0.5, z: mid.z }, box);
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down();
+    await page.mouse.move(from.x + 20, from.y + 30, { steps: 6 });
+    await page.mouse.up();
+
+    await expect
+      .poll(async () => (await objectById(request, 'insert-e2e'))?.points?.length, { timeout: 10_000 })
+      .toBe(points.length + 1);
+  } finally {
+    await request.delete('/api/objects/insert-e2e');
+  }
+});
+
+function at(p: GroundPoint, x: number, z: number): boolean {
+  return Math.abs(p.x - x) < 1e-3 && Math.abs(p.z - z) < 1e-3;
+}
+
+async function selectBuilding(page: Page, id: string) {
+  const buildings = page.locator('.tree').locator('details.tree-type', { has: page.locator('summary', { hasText: /^Building/ }) });
+  await buildings.locator('summary').click();
+  await buildings.getByRole('button', { name: id, exact: true }).click();
+}
+
+// The editor's camera as the viewport starts it (Viewport.tsx), so a world point can be turned into
+// the pixel a test has to press.
+const viewCamera = new PerspectiveCamera(50, 1, 0.5, 5000);
+
+function projectPoint(p: { x: number; y: number; z: number }, box: { x: number; y: number; width: number; height: number }) {
+  viewCamera.aspect = box.width / box.height;
+  viewCamera.position.set(180, 150, 220);
+  viewCamera.up.set(0, 1, 0);
+  viewCamera.lookAt(0, 0, 0);
+  viewCamera.updateProjectionMatrix();
+  viewCamera.updateMatrixWorld();
+  const v = new Vector3(p.x, p.y, p.z).project(viewCamera);
+  return { x: box.x + ((v.x + 1) / 2) * box.width, y: box.y + ((1 - v.y) / 2) * box.height };
+}
+
+function bytes(base64: string): Uint8Array<ArrayBuffer> {
+  return Uint8Array.from(Buffer.from(base64, 'base64'));
+}
+
+function floats(base64: string): Float32Array<ArrayBuffer> {
+  return new Float32Array(bytes(base64).buffer);
+}
+
+function uints(base64: string): Uint32Array<ArrayBuffer> {
+  return new Uint32Array(bytes(base64).buffer);
+}
+
+function corner(positions: Float32Array, index: number) {
+  return { x: positions[index * 3], y: positions[index * 3 + 1], z: positions[index * 3 + 2] };
+}
+
+// Whether a triangle covers a point of the ground plane.
+function covers(a: { x: number; z: number }, b: { x: number; z: number }, c: { x: number; z: number }, x: number, z: number) {
+  const d1 = (b.x - a.x) * (z - a.z) - (b.z - a.z) * (x - a.x);
+  const d2 = (c.x - b.x) * (z - b.z) - (c.z - b.z) * (x - b.x);
+  const d3 = (a.x - c.x) * (z - c.z) - (a.z - c.z) * (x - c.x);
+  const negative = d1 < -1e-6 || d2 < -1e-6 || d3 < -1e-6;
+  const positive = d1 > 1e-6 || d2 > 1e-6 || d3 > 1e-6;
+  return !(negative && positive);
+}
+
+function edgeLength(points: GroundPoint[], edge: number): number {
+  const a = points[edge], b = points[(edge + 1) % points.length];
+  return Math.hypot(b.x - a.x, b.z - a.z);
+}
+
 async function openEditor(page: Page) {
   await page.goto('/');
   await expect(page.getByText(/\d+ objects, .* cameras, \d+ lamps\./)).toBeVisible();
@@ -536,7 +717,10 @@ async function world(request: APIRequestContext) {
       streams?: { token: string; path: string }[];
       relayOutputs?: { token: string }[]; digitalInputs?: { token: string }[];
     }[];
-    objects: { id: string; type: string; plate?: string | null; position: { x: number; z: number } }[];
+    objects: {
+      id: string; type: string; plate?: string | null; position: { x: number; z: number };
+      points?: GroundPoint[]; holes?: GroundPoint[][]; openings?: Opening[]; sourceOsm?: string | null;
+    }[];
     roads: { id: string; closed: boolean }[];
     walkers: { id: string; route: unknown[]; return: string }[];
     vehicles: { id: string; route: unknown[]; plate?: string | null }[];

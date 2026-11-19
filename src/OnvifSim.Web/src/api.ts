@@ -40,9 +40,10 @@ export interface OsmCandidate {
   kind: string;
   name: string;
   points: GroundPoint[];
+  // A footprint's courtyards, stored the other way round from its outline (see normalizeHole).
+  holes: GroundPoint[][];
   height: number;
   width: number;
-  hasHoles: boolean;
 }
 
 // Everything of the real world inside one world's own extent, read from OpenStreetMap once and kept

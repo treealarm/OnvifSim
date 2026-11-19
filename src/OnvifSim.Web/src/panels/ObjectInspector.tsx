@@ -85,8 +85,9 @@ export function ObjectInspector({ obj }: { obj: WorldObject }) {
           <>
             <NumberField label="Height" value={obj.scale.y} min={0.1} max={200} step={0.1} onChange={(y) => changeScale({ y })} />
             <p className="muted">
-              The size across is the footprint drawn on the ground — {obj.points?.length ?? 0} points. Deleting this
-              building and drawing it again is how the outline changes.
+              The size across is the footprint drawn on the ground — {obj.points?.length ?? 0} points
+              {obj.holes?.length ? ` and ${obj.holes.length} courtyard${obj.holes.length === 1 ? '' : 's'}` : ''}. Drag a
+              vertex in the viewport, or an edge's midpoint to add one.
             </p>
           </>
         ) : (
