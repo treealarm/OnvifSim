@@ -4,7 +4,8 @@ import { BufferAttribute, BufferGeometry, Color, SRGBColorSpace, TextureLoader, 
 import { toLocalPoint } from '../footprint';
 import { heightAt, sameBounds, terrainBounds, type Terrain } from '../model';
 import {
-  addDrawingPoint, clearSelection, finishDrawing, movePoint, moveVertexDrag, pickFromOsm, place, select, updateTerrain, useEditor,
+  addCourtyardPoint, addDrawingPoint, clearSelection, finishCourtyard, finishDrawing, movePoint, moveVertexDrag,
+  pickFromOsm, place, select, updateTerrain, useEditor,
 } from '../store';
 import { applyBrush, type BrushDab } from './brush';
 
@@ -119,6 +120,7 @@ export function TerrainView({ terrain }: { terrain: Terrain }) {
     if (e.delta > 4) return;
     if (tool.kind === 'place') void place(tool.what, e.point.x, e.point.z);
     else if (tool.kind === 'draw') addDrawingPoint({ x: round(e.point.x), z: round(e.point.z) });
+    else if (tool.kind === 'courtyard') addCourtyardPoint({ x: round(e.point.x), z: round(e.point.z) });
     else if (tool.kind === 'osm') {
       // The answer is shown by the world's own panel, which a selected object would replace.
       clearSelection();
@@ -128,9 +130,10 @@ export function TerrainView({ terrain }: { terrain: Terrain }) {
   }
 
   function onDoubleClick(e: ThreeEvent<MouseEvent>) {
-    if (tool.kind !== 'draw') return;
+    if (tool.kind !== 'draw' && tool.kind !== 'courtyard') return;
     e.stopPropagation();
-    void finishDrawing();
+    if (tool.kind === 'courtyard') finishCourtyard();
+    else void finishDrawing();
   }
 
   return (
