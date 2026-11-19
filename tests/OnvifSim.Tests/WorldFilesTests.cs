@@ -1,4 +1,5 @@
 using System.Text.Json;
+using OnvifSim.Geometry;
 using OnvifSim.World;
 
 namespace OnvifSim.Tests;
@@ -301,5 +302,31 @@ public class WorldFilesTests
 
         Assert.Contains("saved-here", File.ReadAllText(Path.Combine(dir.Path, "worlds", "Other.json")));
         Assert.Equal(village, File.ReadAllText(Path.Combine(dir.Path, "worlds", "default.json")));
+    }
+
+    // A courtyard is part of the world file: each ring is written with its own direction, and objects
+    // without holes come back without any.
+    [Fact]
+    public void AWorldWithACourtyard_KeepsItsHoles()
+    {
+        var world = DefaultWorld.Create();
+        var outline = Polygon.Normalize(
+        [
+            new GroundPoint(0, 0), new GroundPoint(40, 0), new GroundPoint(40, 40), new GroundPoint(0, 40),
+        ]);
+        var hole = Polygon.NormalizeHole(
+        [
+            new GroundPoint(10, 10), new GroundPoint(20, 10), new GroundPoint(20, 20), new GroundPoint(10, 20),
+        ]);
+        world.Objects.Add(new WorldObject
+        {
+            Id = "courtyard", Type = "prism", Scale = new(1, 8, 1), Points = outline, Holes = [hole],
+        });
+
+        var back = JsonSerializer.Deserialize<WorldModel>(JsonSerializer.Serialize(world, WorldStore.Json), WorldStore.Json)!;
+
+        var prism = back.Objects.Single(o => o.Id == "courtyard");
+        Assert.Equal(hole, Assert.Single(prism.Holes!));
+        Assert.All(back.Objects.Where(o => o.Id != "courtyard"), o => Assert.Null(o.Holes));
     }
 }

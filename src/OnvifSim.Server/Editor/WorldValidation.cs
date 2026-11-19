@@ -121,7 +121,9 @@ public static partial class WorldValidation
     {
         var points = obj.Points;
         Require(points is { Count: >= 3 }, $"Object {obj.Id}: a prism needs a footprint of at least three points.");
-        Require(points!.Count <= MaxPrismPoints, $"Object {obj.Id}: a footprint of {points.Count} points is beyond {MaxPrismPoints}.");
+        int totalPoints = points!.Count + (obj.Holes?.Sum(h => h.Count) ?? 0);
+        Require(totalPoints <= MaxPrismPoints,
+            $"Object {obj.Id}: a footprint of {totalPoints} points, holes included, is beyond {MaxPrismPoints}.");
         Require(points.All(p => float.IsFinite(p.X) && float.IsFinite(p.Z)), $"Object {obj.Id}: every footprint point must be finite.");
         Require(MathF.Abs(obj.Scale.X - 1) < 1e-3f && MathF.Abs(obj.Scale.Z - 1) < 1e-3f,
             $"Object {obj.Id}: a prism's scale.x and scale.z must be 1 — its size is the footprint, not a stretch.");
@@ -134,6 +136,8 @@ public static partial class WorldValidation
         Require(Polygon.IsSimple(points), $"Object {obj.Id}: the footprint crosses itself, so it has no inside.");
         Require(MathF.Abs(Polygon.SignedArea(points)) >= Polygon.MinAreaM2,
             $"Object {obj.Id}: the footprint covers less than {Polygon.MinAreaM2} m².");
+
+        CheckHoles(obj, points);
 
         foreach (var opening in obj.Openings ?? [])
         {
@@ -149,6 +153,42 @@ public static partial class WorldValidation
             Require(opening.Sill + opening.Height <= obj.Scale.Y + 1e-3f,
                 $"Object {obj.Id}: an opening is taller than the prism.");
         }
+    }
+
+    // A courtyard, and any other hole in a footprint: normalised the other way round from the outline
+    // (see Polygon.NormalizeHole), simple, wholly inside it, touching neither the walls nor another
+    // hole, and leaving enough material around it to be a building.
+    private static void CheckHoles(WorldObject obj, IReadOnlyList<GroundPoint> points)
+    {
+        var holes = obj.Holes;
+        if (holes is null || holes.Count == 0) return;
+
+        for (int h = 0; h < holes.Count; h++)
+        {
+            string where = $"Object {obj.Id}: hole {h + 1}";
+            var hole = holes[h];
+            Require(hole is { Count: >= 3 }, $"{where} needs at least three points.");
+            Require(hole.All(p => float.IsFinite(p.X) && float.IsFinite(p.Z)), $"{where}: every point must be finite.");
+
+            var normalized = Polygon.NormalizeHole(hole);
+            Require(normalized.Count == hole.Count && SameRing(normalized, hole),
+                $"{where} must be normalised the other way round from the outline, without repeated or collinear points.");
+            Require(Polygon.IsSimple(hole), $"{where} crosses itself, so it has no inside.");
+            Require(MathF.Abs(Polygon.SignedArea(hole)) >= Polygon.MinAreaM2,
+                $"{where} covers less than {Polygon.MinAreaM2} m².");
+            Require(Polygon.HoleFits(points, hole), $"{where} is not inside the outline, or touches it.");
+
+            for (int other = 0; other < holes.Count; other++)
+            {
+                if (other == h) continue;
+                Require(!Polygon.RingsCross(hole, holes[other]), $"{where} crosses hole {other + 1}.");
+                Require(!Polygon.Contains(holes[other], hole[0]), $"{where} lies inside hole {other + 1}.");
+            }
+        }
+
+        float net = MathF.Abs(Polygon.SignedArea(points)) - holes.Sum(h => MathF.Abs(Polygon.SignedArea(h)));
+        Require(net >= Polygon.MinAreaM2,
+            $"Object {obj.Id}: the footprint leaves less than {Polygon.MinAreaM2} m² around its holes.");
     }
 
     private static bool SameRing(IReadOnlyList<GroundPoint> a, IReadOnlyList<GroundPoint> b)

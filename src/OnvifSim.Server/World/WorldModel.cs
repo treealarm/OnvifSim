@@ -122,6 +122,11 @@ public sealed class WorldObject
     // for every other type.
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public List<GroundPoint>? Points { get; set; }
+    // A prism's courtyard, and any other hole in its footprint: closed rings inside Points, stored the
+    // other way round so that their walls face into the hole (see Polygon.NormalizeHole). Each ring is
+    // in the object's own metres, before its rotation. Null for every object without a hole.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<List<GroundPoint>>? Holes { get; set; }
     // Holes cut in a prism's walls: a door is an opening whose sill is nought.
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public List<OpeningModel>? Openings { get; set; }

@@ -152,18 +152,56 @@ public static class Primitives
     // A building shell from its footprint in the object's own metres: a wall on every segment, a roof
     // and a floor, all drawn from both sides, so a camera inside sees the walls and a camera outside
     // sees the building. An opening cuts its segment into two panels and the band above it (and below,
-    // when its sill is raised). Grain on the walls follows the seed, so a world built twice draws the
-    // same thing. The footprint must already be normalised (see Polygon).
-    public static void Prism(Mesh m, IReadOnlyList<GroundPoint> points, float height, Vector3 wall, Vector3 roof,
+    // when its sill is raised). A hole — a courtyard — is a ring of walls of its own, and the roof and
+    // floor stop at it. Grain on the walls follows the seed, so a world built twice draws the same
+    // thing. The footprint and its holes must already be normalised (see Polygon).
+    public static void Prism(Mesh m, IReadOnlyList<GroundPoint> points,
+        IReadOnlyList<IReadOnlyList<GroundPoint>>? holes, float height, Vector3 wall, Vector3 roof,
         IReadOnlyList<OpeningModel>? openings, int seed, bool textured, bool tiled = false, bool parking = false)
     {
-        int n = points.Count;
-        if (n < 3 || height <= 0) return;
+        if (points.Count < 3 || height <= 0) return;
 
+        Walls(m, points, openings, seed * 131, wall, height, textured);
+        if (holes is not null)
+            for (int k = 0; k < holes.Count; k++)
+                // A hole is stored the other way round, so the lighter face of its walls looks into
+                // the courtyard. Its own seed keeps the grain from matching the outer walls.
+                Walls(m, holes[k], null, seed * 131 + 1_000_003 * (k + 1), wall, height, textured);
+
+        var roofColor = roof;
+        var floorColor = Vector3.Clamp(roof * 0.8f, Vector3.Zero, Vector3.One);
+        var cap = Polygon.Triangulate(points, holes);
+        for (int t = 0; t + 2 < cap.Count; t += 3)
+        {
+            var a = At(cap[t], height);
+            var b = At(cap[t + 1], height);
+            var c = At(cap[t + 2], height);
+            m.AddFlatTriangle(a, b, c, roofColor);   // the roof, facing up
+            m.AddFlatTriangle(a, c, b, roofColor * 1.02f); // and its underside, the ceiling
+
+            var f0 = At(cap[t], PrismFloorLift);
+            var f1 = At(cap[t + 1], PrismFloorLift);
+            var f2 = At(cap[t + 2], PrismFloorLift);
+            m.AddFlatTriangle(f0, f1, f2, floorColor); // the floor, facing up
+            m.AddFlatTriangle(f0, f2, f1, floorColor); // and the underside, which nobody sees
+        }
+
+        // A tiled prism is a floor: its tiles are the surface, so they stand on its top.
+        if (tiled) TiledCap(m, points, holes, height, roof, seed);
+        // A parking apron is read by its bays, painted on the same top.
+        if (parking) ParkingCap(m, points, holes, height);
+    }
+
+    // A wall on every segment of one ring, cut by the openings named for it. The outline carries the
+    // openings; a courtyard ring has none.
+    private static void Walls(Mesh m, IReadOnlyList<GroundPoint> ring, IReadOnlyList<OpeningModel>? openings,
+        int seed, Vector3 wall, float height, bool textured)
+    {
+        int n = ring.Count;
         for (int i = 0; i < n; i++)
         {
-            var a = points[i];
-            var b = points[(i + 1) % n];
+            var a = ring[i];
+            var b = ring[(i + 1) % n];
             float length = MathF.Sqrt((b.X - a.X) * (b.X - a.X) + (b.Z - a.Z) * (b.Z - a.Z));
             if (length < Polygon.MinPointGapM) continue;
 
@@ -187,44 +225,22 @@ public static class Primitives
                 if (t1 - t0 <= Polygon.MinPointGapM || y1 - y0 <= 0) return;
                 var p0 = Lerp(from, to, t0 / length);
                 var p1 = Lerp(from, to, t1 / length);
-                Quad(target, p0, p1, y0, y1, wall, seed * 131 + i, textured);
+                Quad(target, p0, p1, y0, y1, wall, seed + i, textured);
             }
         }
-
-        var roofColor = roof;
-        var floorColor = Vector3.Clamp(roof * 0.8f, Vector3.Zero, Vector3.One);
-        var triangles = Polygon.Triangulate(points);
-        for (int t = 0; t + 2 < triangles.Count; t += 3)
-        {
-            var a = At(points[triangles[t]], height);
-            var b = At(points[triangles[t + 1]], height);
-            var c = At(points[triangles[t + 2]], height);
-            m.AddFlatTriangle(a, b, c, roofColor);   // the roof, facing up
-            m.AddFlatTriangle(a, c, b, roofColor * 1.02f); // and its underside, the ceiling
-
-            var f0 = At(points[triangles[t]], PrismFloorLift);
-            var f1 = At(points[triangles[t + 1]], PrismFloorLift);
-            var f2 = At(points[triangles[t + 2]], PrismFloorLift);
-            m.AddFlatTriangle(f0, f1, f2, floorColor); // the floor, facing up
-            m.AddFlatTriangle(f0, f2, f1, floorColor); // and the underside, which nobody sees
-        }
-
-        // A tiled prism is a floor: its tiles are the surface, so they stand on its top.
-        if (tiled) TiledCap(m, points, height, roof, seed);
-        // A parking apron is read by its bays, painted on the same top.
-        if (parking) ParkingCap(m, points, height);
     }
 
     // The bays of a parking apron, painted along the edges of its footprint: a white divider every
     // 2.5 m, reaching 5 m in from the edge, with the lane between two rows left clear. A divider that
     // would run out of the apron is not drawn, so a lot of any shape keeps its own outline, and the
     // short ends of a lot carry no rows.
-    private static void ParkingCap(Mesh m, IReadOnlyList<GroundPoint> points, float height)
+    private static void ParkingCap(Mesh m, IReadOnlyList<GroundPoint> points,
+        IReadOnlyList<IReadOnlyList<GroundPoint>>? holes, float height)
     {
         const float bay = 2.5f, depth = 5f, line = 0.12f, shortestRow = 12f;
         var paint = new Vector3(0.94f, 0.94f, 0.90f);
         float y = height + 0.004f;
-        bool Inside(float x, float z) => Polygon.Contains(points, new GroundPoint(x, z));
+        bool Inside(float x, float z) => Polygon.Contains(points, holes, new GroundPoint(x, z));
         for (int i = 0; i < points.Count; i++)
         {
             var a = points[i];
@@ -255,9 +271,10 @@ public static class Primitives
     }
 
     // A tiled floor over the footprint: the cap's own colour is the seam, and tiles stand on it with a
-    // couple of centimetres clear of each other. Cells outside the footprint are left out, so an
-    // L-shaped hall is floored in the shape of its floor.
-    private static void TiledCap(Mesh m, IReadOnlyList<GroundPoint> points, float height, Vector3 tile, int seed)
+    // couple of centimetres clear of each other. Cells outside the footprint or inside a courtyard are
+    // left out, so an L-shaped hall is floored in the shape of its floor.
+    private static void TiledCap(Mesh m, IReadOnlyList<GroundPoint> points,
+        IReadOnlyList<IReadOnlyList<GroundPoint>>? holes, float height, Vector3 tile, int seed)
     {
         const float size = 1.5f, gap = 0.02f;
         float minX = float.MaxValue, minZ = float.MaxValue, maxX = float.MinValue, maxZ = float.MinValue;
@@ -276,7 +293,7 @@ public static class Primitives
                 float x0 = minX + i * size + gap, x1 = x0 + size - 2 * gap;
                 float z0 = minZ + j * size + gap, z1 = z0 + size - 2 * gap;
                 if (x1 <= x0 || z1 <= z0) continue;
-                if (!Polygon.Contains(points, new GroundPoint((x0 + x1) / 2, (z0 + z1) / 2))) continue;
+                if (!Polygon.Contains(points, holes, new GroundPoint((x0 + x1) / 2, (z0 + z1) / 2))) continue;
                 float shade = 1 + 0.03f * (ColorUtil.Hash(seed, i * 131 + j) - 0.5f) * 2;
                 var color = Vector3.Clamp(tile * shade, Vector3.Zero, Vector3.One);
                 // Counter-clockwise seen from above, as the box's own top face.
