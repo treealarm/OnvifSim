@@ -492,6 +492,135 @@ test('a building with a courtyard is one object with a hole in its roof', async 
   }
 });
 
+// A courtyard is drawn over the selected building: clicking the roof puts its corners there, and
+// Enter turns the ring into one of the object's holes — with the roof and floor opened over it.
+test('a courtyard is drawn onto the selected building', async ({ page, request }) => {
+  const points = normalizeOutline([
+    { x: -20, z: -20 }, { x: 20, z: -20 }, { x: 20, z: 20 }, { x: -20, z: 20 },
+  ]);
+  const height = 8;
+  const building = {
+    id: 'court-drawn', type: 'prism', position: { x: 0, y: 0, z: 0 }, rotationY: 0,
+    scale: { x: 1, y: height, z: 1 }, seed: 1, points,
+  };
+  expect((await request.put('/api/objects/court-drawn', { data: building })).ok()).toBe(true);
+  try {
+    await openEditor(page);
+    await selectBuilding(page, 'court-drawn');
+    await page.getByRole('button', { name: 'Draw courtyard', exact: true }).click();
+    await expect(page.getByText('Click inside the building to set the first point of its courtyard')).toBeVisible();
+
+    const shown = decodeWorld(await (await request.get('/api/world')).text());
+    const box = await page.locator('.viewport canvas').boundingBox();
+    if (!box) throw new Error('The viewport is not on screen.');
+    // The roof plane the clicks land on, and from which the test projects the corners back.
+    const roof = heightAt(shown.terrain, 0, 0) + height;
+    for (const p of [{ x: -5, z: -5 }, { x: 5, z: -5 }, { x: 5, z: 5 }, { x: -5, z: 5 }]) {
+      const at = projectPoint({ x: p.x, y: roof, z: p.z }, box);
+      await page.mouse.click(at.x, at.y);
+    }
+    await expect(page.getByText('Courtyard: 4 points; double-click or Enter to finish')).toBeVisible();
+    await page.keyboard.press('Enter');
+
+    await expect.poll(async () => (await objectById(request, 'court-drawn'))?.holes?.length ?? 0).toBe(1);
+    const drawn = await objectById(request, 'court-drawn');
+    expect(drawn?.holes?.[0]).toHaveLength(4);
+    // The courtyard was clicked as a 10 m square; the screen-to-ground arithmetic rounds it a little.
+    // It is stored the other way round from the outline, as the server requires.
+    expect(ringArea(drawn!.holes![0])).toBeGreaterThan(50);
+    expect(ringArea(drawn!.holes![0])).toBeLessThan(200);
+    await expect(page.getByText(/4 points and 1 courtyard/)).toBeVisible();
+
+    const response = await request.post('/api/meshes', { data: [drawn] });
+    expect(response.ok()).toBe(true);
+    const meshes = (await response.json()) as Record<string, { positions: string; indices: string }>;
+    const positions = floats(meshes['court-drawn'].positions);
+    const indices = uints(meshes['court-drawn'].indices);
+    for (let t = 0; t + 2 < indices.length; t += 3) {
+      const a = corner(positions, indices[t]);
+      const b = corner(positions, indices[t + 1]);
+      const c = corner(positions, indices[t + 2]);
+      const onRoof = [a, b, c].every((p) => Math.abs(p.y - height) < 1e-3);
+      const onFloor = [a, b, c].every((p) => Math.abs(p.y - 0.02) < 1e-3);
+      if (!onRoof && !onFloor) continue;
+      expect(covers(a, b, c, 0, 0), 'a roof or floor triangle covers the courtyard').toBe(false);
+    }
+  } finally {
+    await request.delete('/api/objects/court-drawn');
+  }
+});
+
+// A courtyard that reaches outside its building is refused before anything is written; its points
+// stay in hand so it can be finished again or cancelled.
+test('a courtyard outside the outline is refused and leaves the building alone', async ({ page, request }) => {
+  const points = normalizeOutline([
+    { x: -20, z: -20 }, { x: 20, z: -20 }, { x: 20, z: 20 }, { x: -20, z: 20 },
+  ]);
+  const building = {
+    id: 'court-refused', type: 'prism', position: { x: 0, y: 0, z: 0 }, rotationY: 0,
+    scale: { x: 1, y: 8, z: 1 }, seed: 1, points,
+  };
+  expect((await request.put('/api/objects/court-refused', { data: building })).ok()).toBe(true);
+  try {
+    await openEditor(page);
+    await selectBuilding(page, 'court-refused');
+    await page.getByRole('button', { name: 'Draw courtyard', exact: true }).click();
+
+    const shown = decodeWorld(await (await request.get('/api/world')).text());
+    const box = await page.locator('.viewport canvas').boundingBox();
+    if (!box) throw new Error('The viewport is not on screen.');
+    const roof = heightAt(shown.terrain, 0, 0) + 8;
+    for (const p of [{ x: 24, z: -2 }, { x: 26, z: -2 }, { x: 25, z: 2 }]) {
+      const at = projectPoint({ x: p.x, y: roof, z: p.z }, box);
+      await page.mouse.click(at.x, at.y);
+    }
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('alert')).toContainText('not inside the outline');
+
+    // Nothing was sent: the ring never reached the world.
+    await page.waitForTimeout(500);
+    expect((await objectById(request, 'court-refused'))?.holes ?? null).toBeNull();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('heading', { level: 2 })).toContainText('court-refused');
+  } finally {
+    await request.delete('/api/objects/court-refused');
+  }
+});
+
+test('cancelling a courtyard leaves the building alone', async ({ page, request }) => {
+  const points = normalizeOutline([
+    { x: -20, z: -20 }, { x: 20, z: -20 }, { x: 20, z: 20 }, { x: -20, z: 20 },
+  ]);
+  const building = {
+    id: 'court-cancelled', type: 'prism', position: { x: 0, y: 0, z: 0 }, rotationY: 0,
+    scale: { x: 1, y: 8, z: 1 }, seed: 1, points,
+  };
+  expect((await request.put('/api/objects/court-cancelled', { data: building })).ok()).toBe(true);
+  try {
+    await openEditor(page);
+    await selectBuilding(page, 'court-cancelled');
+    await page.getByRole('button', { name: 'Draw courtyard', exact: true }).click();
+
+    const shown = decodeWorld(await (await request.get('/api/world')).text());
+    const box = await page.locator('.viewport canvas').boundingBox();
+    if (!box) throw new Error('The viewport is not on screen.');
+    const roof = heightAt(shown.terrain, 0, 0) + 8;
+    for (const p of [{ x: -2, z: -2 }, { x: 2, z: -2 }]) {
+      const at = projectPoint({ x: p.x, y: roof, z: p.z }, box);
+      await page.mouse.click(at.x, at.y);
+    }
+    await expect(page.getByText('Courtyard: 2 points; double-click or Enter to finish')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByText(/Courtyard: 2 points/)).toHaveCount(0);
+
+    await page.waitForTimeout(500);
+    expect((await objectById(request, 'court-cancelled'))?.holes ?? null).toBeNull();
+    await expect(page.getByRole('button', { name: 'Draw courtyard', exact: true })).toBeVisible();
+  } finally {
+    await request.delete('/api/objects/court-cancelled');
+  }
+});
+
 // A vertex is dragged in the viewport, and the OSM element the object was imported from stays with
 // it; its opening is still on a wall afterwards.
 test('a building vertex is dragged and its OSM provenance stays', async ({ page, request }) => {
@@ -630,6 +759,16 @@ function covers(a: { x: number; z: number }, b: { x: number; z: number }, c: { x
 function edgeLength(points: GroundPoint[], edge: number): number {
   const a = points[edge], b = points[(edge + 1) % points.length];
   return Math.hypot(b.x - a.x, b.z - a.z);
+}
+
+// The signed shoelace area as the world stores it: negative for an outline, positive for a courtyard.
+function ringArea(ring: GroundPoint[]): number {
+  let sum = 0;
+  for (let i = 0; i < ring.length; i++) {
+    const a = ring[i], b = ring[(i + 1) % ring.length];
+    sum += a.x * b.z - b.x * a.z;
+  }
+  return sum / 2;
 }
 
 async function openEditor(page: Page) {
