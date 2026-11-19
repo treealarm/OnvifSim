@@ -81,6 +81,9 @@ editor, and put away the ones you no longer use without losing them.
   people who walk them and cars that drive them over and over. Every surface carries a texture of
   its own — drawn from its colours, never from a picture — so a wall, a road and a floor are told
   apart at a glance; a surface can also be made smooth.
+- Draw a building as any closed outline — walls, roof and floor from both sides — cut doorways into
+  its walls, and leave a courtyard open where the outline has a hole. Drag a vertex in the viewport,
+  or an edge's midpoint to add one; a doorway keeps its place on the wall it was cut into.
 - Prepare any number of named worlds in the data directory and switch between them in the header,
   without restarting; move a world to the trash and restore it, or empty the trash for good. A
   Maryland hall with a fixed master and a PTZ camera facing each other, a doorway onto a ring road
@@ -209,8 +212,13 @@ A click offers what of the real world this simulator can build: a building or a 
 prism of its footprint, a road as a road, a tree as a tree. A click on an object asks about the
 object's own place, a click on the ground about the point under it, and the footprint that holds the
 point comes before anything that merely passes near it. The picked object is outlined before it is
-built, and the OSM element it came from is kept on the object (`sourceOsm`). Buildings drawn with a
-courtyard are refused with a message: a prism has no holes yet. Data © OpenStreetMap contributors.
+built, its courtyards too, and the OSM element it came from is kept on the object (`sourceOsm`).
+Picking the same element again updates that object — its footprint, courtyards, height and place are
+read from OSM again, while its colours, texture and seed stay — rather than adding a second one. A
+building drawn with a courtyard is one prism with the court open: roof and floor stop at its inner
+ring, and its walls face into it. A footprint whose courtyard cannot be built is not offered at all,
+rather than built as a lid over the court. Roads carry no `sourceOsm`, so importing a road twice
+adds it twice. Data © OpenStreetMap contributors.
 
 - **Switch** by choosing a world in the header's list. Edits in the outgoing world are saved first,
   and the new world starts with an empty undo history.
