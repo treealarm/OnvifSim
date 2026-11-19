@@ -1,8 +1,11 @@
 import { useThree, type ThreeEvent } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { BufferAttribute, BufferGeometry, Color, SRGBColorSpace, TextureLoader, type Mesh, type Texture } from 'three';
+import { toLocalPoint } from '../footprint';
 import { heightAt, sameBounds, terrainBounds, type Terrain } from '../model';
-import { addDrawingPoint, clearSelection, finishDrawing, movePoint, pickFromOsm, place, select, updateTerrain, useEditor } from '../store';
+import {
+  addDrawingPoint, clearSelection, finishDrawing, movePoint, moveVertexDrag, pickFromOsm, place, select, updateTerrain, useEditor,
+} from '../store';
 import { applyBrush, type BrushDab } from './brush';
 
 interface Stroke {
@@ -99,7 +102,15 @@ export function TerrainView({ terrain }: { terrain: Terrain }) {
   function onPointerMove(e: ThreeEvent<PointerEvent>) {
     ring.current?.position.set(e.point.x, e.point.y + 0.3, e.point.z);
     if (stroke.current) dab(e.point.x, e.point.z);
-    const { draggedPoint, selection } = useEditor.getState();
+    const { draggedPoint, draggedVertex, selection, world } = useEditor.getState();
+    if (draggedVertex) {
+      const obj = world?.objects.find((o) => o.id === draggedVertex.objectId);
+      if (obj) {
+        // A vertex is stored in the object's own metres, where its rotation and place are not.
+        const local = toLocalPoint(obj, { x: e.point.x, z: e.point.z });
+        moveVertexDrag({ x: round(local.x), z: round(local.z) });
+      }
+    }
     if (draggedPoint !== null && selection) movePoint(selection, draggedPoint, { x: round(e.point.x), z: round(e.point.z) });
   }
 

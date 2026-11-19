@@ -6,6 +6,7 @@ import { api } from '../api';
 import { heightAt, type Terrain, type WorldObject } from '../model';
 import { clearSelection, pickFromOsm, select, showError, updateObject, useEditor } from '../store';
 import { CUTAWAY_HEIGHT_M, useCutawayPlanes } from './cutaway';
+import { FootprintView } from './FootprintView';
 import { yawDegrees } from './orientation';
 
 // Meshes come from the server, which alone knows how to build a tree or a house. They depend on the
@@ -142,6 +143,7 @@ function ObjectView({ obj, terrain, geometry, selected, clippingPlanes }: Object
           onMouseUp={commit}
         />
       )}
+      {selected && obj.type === 'prism' && <FootprintView obj={obj} terrain={terrain} />}
     </>
   );
 }

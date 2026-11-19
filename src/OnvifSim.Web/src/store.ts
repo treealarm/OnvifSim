@@ -1,6 +1,17 @@
 import { create } from 'zustand';
 import { api, ApiError, type OsmArea, type OsmCandidate } from './api';
 import {
+  footprintOf,
+  insertOnEdge,
+  normalizeRings,
+  remapOpenings,
+  ringOf,
+  sameFootprint,
+  withPoint,
+  type Footprint,
+  type RingIndex,
+} from './footprint';
+import {
   cameraIoOf,
   decodeWorld,
   nextId,
@@ -55,6 +66,18 @@ export interface FocusRequest {
   at: number;
 }
 
+// A footprint vertex being dragged, or one just inserted on an edge. The rings are the object's own,
+// plus the inserted point when there is one; the world is written only when the pointer is released.
+export interface VertexDrag {
+  objectId: string;
+  ring: RingIndex;
+  index: number;
+  // Where the vertex is now, in the object's own metres.
+  point: GroundPoint;
+  before: Footprint;
+  working: Footprint;
+}
+
 interface EditorState {
   connected: boolean;
   // The server's world with the edits it has not confirmed yet laid over it.
@@ -93,6 +116,8 @@ interface EditorState {
   mapFailed: boolean;
   // The point of the selected road or route being dragged over the ground.
   draggedPoint: number | null;
+  // The footprint vertex of the selected building being dragged over the ground.
+  draggedVertex: VertexDrag | null;
   error: string | null;
   undoSteps: number;
   redoSteps: number;
@@ -122,6 +147,7 @@ export const useEditor = create<EditorState>()(() => ({
   mapBaking: false,
   mapFailed: false,
   draggedPoint: null,
+  draggedVertex: null,
   error: null,
   undoSteps: 0,
   redoSteps: 0,
@@ -249,6 +275,7 @@ function resetForWorldSwitch() {
     linksOpen: false,
     focus: null,
     draggedPoint: null,
+    draggedVertex: null,
     undoSteps: 0,
     redoSteps: 0,
     heads: {},
@@ -834,6 +861,76 @@ export function movePoint(selection: Selection, index: number, point: GroundPoin
     const vehicle = world.vehicles.find((v) => v.id === selection.id);
     if (vehicle) updateVehicle({ ...vehicle, route: replace(vehicle.route) });
   }
+}
+
+// ---- Editing a building's footprint in the viewport ----
+//
+// A vertex is dragged on a copy of the object's rings and shown as a line; nothing is written to the
+// world until the pointer is released, so an intermediate shape is never sent or validated, and a
+// drag costs no mesh request. On release the rings are normalized and the openings are put back on
+// the walls they belong to.
+
+export function beginVertexDrag(objectId: string, ring: RingIndex, index: number) {
+  const obj = useEditor.getState().world?.objects.find((o) => o.id === objectId);
+  if (!obj || obj.type !== 'prism') return;
+  const before = footprintOf(obj);
+  const point = ringOf(before, ring)[index];
+  if (!point) return;
+  set({ draggedVertex: { objectId, ring, index, point, before, working: before } });
+}
+
+// A cube on the middle of an edge adds a vertex there and starts dragging it; a click without a drag
+// puts it back on the straight line, where normalization drops it again.
+export function beginEdgeInsert(objectId: string, ring: RingIndex, edge: number) {
+  const obj = useEditor.getState().world?.objects.find((o) => o.id === objectId);
+  if (!obj || obj.type !== 'prism') return;
+  const before = footprintOf(obj);
+  const { frame, index } = insertOnEdge(before, ring, edge);
+  if (index < 0) return;
+  const point = ringOf(frame, ring)[index];
+  set({ draggedVertex: { objectId, ring, index, point, before, working: frame } });
+}
+
+export function moveVertexDrag(point: GroundPoint) {
+  const drag = useEditor.getState().draggedVertex;
+  if (drag) set({ draggedVertex: { ...drag, point } });
+}
+
+export function cancelVertexDrag() {
+  if (useEditor.getState().draggedVertex) set({ draggedVertex: null });
+}
+
+export function finishVertexDrag() {
+  const { draggedVertex, world } = useEditor.getState();
+  if (!draggedVertex || !world) return;
+  set({ draggedVertex: null });
+  const obj = world.objects.find((o) => o.id === draggedVertex.objectId);
+  if (!obj || obj.type !== 'prism') return;
+
+  const rings = normalizeRings(withPoint(draggedVertex.working, draggedVertex.ring, draggedVertex.index, draggedVertex.point));
+  if (rings.points.length < 3 || rings.holes.some((hole) => hole.length < 3)) {
+    showError('That outline has no inside to build.');
+    return;
+  }
+  // A vertex put back on a straight edge leaves no trace: the ring came back as it was, and an
+  // inserted point that never left the line is simply gone.
+  if (sameFootprint(rings, draggedVertex.before)) return;
+
+  let openings = obj.openings ?? [];
+  if (draggedVertex.ring < 0 && openings.length > 0) {
+    const remapped = remapOpenings(draggedVertex.before.points, rings.points, openings);
+    if ('error' in remapped) {
+      showError(remapped.error);
+      return;
+    }
+    openings = remapped.openings;
+  }
+  updateObject({
+    ...obj,
+    points: rings.points,
+    holes: rings.holes.length > 0 ? rings.holes : null,
+    openings: openings.length > 0 ? openings : null,
+  });
 }
 
 // ---- The real world under a click ----
